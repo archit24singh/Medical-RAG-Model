@@ -1,0 +1,24 @@
+{
+  "provider_name": "Dr. Robert Chen",
+  "doc_type": "provider_info",
+  "provider_npi": "9876543210",
+  "provider_dob": "1978-06-15",
+  "specialty": "Internal Medicine",
+  "sub_specialty": "Geriatric Medicine",
+  "license_number": "MD-2024-789",
+  "license_state": "CA",
+  "license_expiry": "2026-12-31",
+  "address": "123 Medical Drive, Suite 400, Los Angeles, CA 90001",
+  "phone": "555-0123",
+  "fax": "555-0124",
+  "email": "r.chen@citymedical.com",
+  "hospital_affiliations": [
+    "City Medical Center",
+    "County General Hospital"
+  ],
+  "accepting_patients": true,
+  "languages": ["English", "Mandarin"],
+  "medical_school": "UCLA David Geffen School of Medicine",
+  "residency": "Cedars-Sinai Medical Center",
+  "board_certified": true
+}

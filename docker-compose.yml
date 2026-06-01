@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+
+  # ── Vector Database ──────────────────────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:0.5.3
+    container_name: medical_rag_chromadb
+    ports:
+      - "8001:8000"           # Access ChromaDB directly at localhost:8001
+    volumes:
+      - chroma_data:/chroma/chroma   # Persist vector data between restarts
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+    networks:
+      - rag_network
+
+  # ── RAG Backend (FastAPI) ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+    container_name: medical_rag_backend
+    ports:
+      - "8080:8000"           # API at localhost:8080, docs at localhost:8080/docs
+    volumes:
+      - ./bucket:/app/bucket       # Local bucket/ folder — swap to S3 mount when upgrading to cloud
+      - model_cache:/root/.cache   # Cache sentence-transformer + Docling models between restarts
+      - db_data:/app/data          # Persist SQLite structured facts database
+    env_file:
+      - .env                  # Load LLM config from .env file
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    depends_on:
+      - chromadb
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+  # ── Streamlit Frontend ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+    container_name: medical_rag_frontend
+    ports:
+      - "8501:8501"           # Chat UI at localhost:8501
+    volumes:
+      - ./frontend:/app        # Live reload — edits to app.py take effect instantly
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - rag_network
+    restart: unless-stopped
+
+networks:
+  rag_network:
+    driver: bridge
+
+volumes:
+  chroma_data:    # Persists indexed documents (ChromaDB)
+  model_cache:    # Caches embedding + Docling models (downloaded once)
+  db_data:        # Persists SQLite structured facts database

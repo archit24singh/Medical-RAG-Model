@@ -1,0 +1,27 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+chromadb==0.5.3
+sentence-transformers==3.0.1
+pypdf==4.2.0
+pandas==2.2.2
+openpyxl==3.1.4
+python-multipart==0.0.9
+pydantic-settings==2.3.4
+ollama==0.2.1
+openai==1.35.0
+python-dotenv==1.0.1
+httpx==0.27.0
+
+# ── Document processing pipeline ──────────────────────────────────────────────
+# Docling: IBM's document parser — PDF/DOCX/XML → structured Markdown.
+# Brings in layout detection (deep learning), RapidOCR, and image handling.
+docling>=2.5.0
+
+# RapidOCR: fast, pure-Python OCR used by Docling for scanned/handwritten pages.
+rapidocr-onnxruntime>=1.3.0
+
+# BM25 keyword search — combined with vector search for hybrid retrieval.
+rank-bm25>=0.2.2
+
+# Numpy is used by BM25 score sorting and general numeric ops.
+numpy>=1.24.0

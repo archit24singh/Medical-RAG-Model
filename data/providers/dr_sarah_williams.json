@@ -1,0 +1,24 @@
+{
+  "provider_name": "Dr. Sarah Williams",
+  "doc_type": "provider_info",
+  "provider_npi": "5555555555",
+  "provider_dob": "1985-03-22",
+  "specialty": "Orthopedic Surgery",
+  "sub_specialty": "Spine Surgery",
+  "license_number": "MD-2022-441",
+  "license_state": "CA",
+  "license_expiry": "2027-06-30",
+  "address": "456 Ortho Blvd, Suite 200, Los Angeles, CA 90002",
+  "phone": "555-0456",
+  "fax": "555-0457",
+  "email": "s.williams@citymedical.com",
+  "hospital_affiliations": [
+    "City Medical Center",
+    "Spine & Sports Clinic"
+  ],
+  "accepting_patients": true,
+  "languages": ["English", "Spanish"],
+  "medical_school": "Johns Hopkins University School of Medicine",
+  "residency": "Mayo Clinic",
+  "board_certified": true
+}

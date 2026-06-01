@@ -1,0 +1,25 @@
+{
+  "patient_name": "John Smith",
+  "patient_id": "P002",
+  "date": "2025-09-15",
+  "doc_type": "record",
+  "visit_type": "Follow-up",
+  "chief_complaint": "Persistent lower back pain for 3 weeks",
+  "diagnosis": "Lumbar strain — likely muscle-related, no disc involvement on MRI",
+  "treatment_plan": [
+    "Physical therapy — 2x per week for 6 weeks",
+    "Ibuprofen 400mg as needed (max 3x daily with food)",
+    "Ice/heat alternation at home",
+    "Follow-up in 6 weeks or sooner if pain worsens"
+  ],
+  "vitals": {
+    "blood_pressure": "122/78 mmHg",
+    "heart_rate": "72 bpm",
+    "temperature": "98.6 F",
+    "weight": "185 lbs"
+  },
+  "allergies": ["Penicillin"],
+  "provider_name": "Dr. Sarah Williams",
+  "provider_npi": "5555555555",
+  "facility": "City Medical Center"
+}

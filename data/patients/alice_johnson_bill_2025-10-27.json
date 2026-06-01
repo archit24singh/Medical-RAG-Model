@@ -1,0 +1,23 @@
+{
+  "patient_name": "Alice Johnson",
+  "patient_id": "P001",
+  "date": "2025-10-27",
+  "doc_type": "bill",
+  "bill_number": "BILL-2025-1027-001",
+  "items": [
+    { "description": "Initial Consultation",      "amount": 250.00 },
+    { "description": "Complete Blood Count (CBC)", "amount": 75.00  },
+    { "description": "Metabolic Panel",            "amount": 125.00 },
+    { "description": "Chest X-Ray",               "amount": 350.00 },
+    { "description": "Amoxicillin 500mg (30 caps)","amount": 45.00  }
+  ],
+  "subtotal": 845.00,
+  "insurance_provider": "BlueCross BlueShield",
+  "insurance_coverage": 600.00,
+  "total_amount": 845.00,
+  "patient_due": 245.00,
+  "provider_name": "City Medical Center",
+  "provider_npi": "1234567890",
+  "payment_due_date": "2025-11-27",
+  "status": "pending"
+}
