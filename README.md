@@ -13,10 +13,10 @@ ever sending patient data to a third-party API by default.
 Ask questions like:
 
 ```
-Get patient Alice Johnson's bill for 27-10-2025
-What is the NPI number for Dr. Robert Chen?
-Show me John Smith's medical record from September 2025
-What is the total amount Alice owes?
+Get patient A's bill for 27-10-2025
+What is the NPI number for Dr. R?
+Show me John Doe's medical record from September 2025
+What is the total amount A owes?
 ```
 
 ...and get an answer grounded directly in your ingested documents, along with the
