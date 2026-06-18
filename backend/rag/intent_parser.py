@@ -11,54 +11,17 @@ Example:
               ...
           }
 
-The LLM is tried first (most accurate).
-If it is unavailable a regex fallback handles common patterns.
+Regex-only — zero LLM calls, zero network latency.
+The LLM-based path was removed because it added one Ollama round-trip to every
+query and had a known failure mode where ICD codes (e.g. "Z15") were mistaken
+for patient IDs, routing reference-document queries to the SQL path and
+returning "No matching records found."
 """
-import json
 import logging
 import re
 from datetime import datetime
 
-from rag.llm_client import call_llm
-
 logger = logging.getLogger(__name__)
-
-# ── LLM prompt ────────────────────────────────────────────────────────────────
-
-_INTENT_PROMPT = """You are a medical records search assistant. Extract search criteria from the user's query.
-
-Return ONLY a valid JSON object with these exact fields (use null if a field is not mentioned):
-{{
-  "query_type":     "patient" or "provider",
-  "patient_name":   full patient name as string or null,
-  "patient_id":     patient ID or MRN or null,
-  "date":           date in YYYY-MM-DD format or null,
-  "doc_type":       "bill" | "record" | "prescription" | "lab_result" | "provider_info" or null,
-  "provider_name":  full provider / doctor name or null,
-  "provider_npi":   10-digit NPI number as string or null,
-  "specific_field": the specific data point requested (e.g. "NPI number", "date of birth", "total amount") or null
-}}
-
-Date conversion rules:
-  "27-10-2025"        → "2025-10-27"
-  "October 27, 2025"  → "2025-10-27"
-  "10/27/2025"        → "2025-10-27"
-
-Examples:
-  Query: "Get patient Alice Johnson's bill for 27-10-2025"
-  JSON:  {{"query_type":"patient","patient_name":"Alice Johnson","patient_id":null,"date":"2025-10-27","doc_type":"bill","provider_name":null,"provider_npi":null,"specific_field":null}}
-
-  Query: "What is the NPI number for Dr. Robert Chen?"
-  JSON:  {{"query_type":"provider","patient_name":null,"patient_id":null,"date":null,"doc_type":"provider_info","provider_name":"Dr. Robert Chen","provider_npi":null,"specific_field":"NPI number"}}
-
-  Query: "Show me records for patient P001"
-  JSON:  {{"query_type":"patient","patient_name":null,"patient_id":"P001","date":null,"doc_type":"record","provider_name":null,"provider_npi":null,"specific_field":null}}
-
-  Query: "What is the date of birth for provider NPI 9876543210?"
-  JSON:  {{"query_type":"provider","patient_name":null,"patient_id":null,"date":null,"doc_type":"provider_info","provider_name":null,"provider_npi":"9876543210","specific_field":"date of birth"}}
-
-User query: "{query}"
-JSON:"""
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -66,23 +29,10 @@ JSON:"""
 def parse_intent(query: str) -> dict:
     """
     Parse a user query and return a dict of extracted search criteria.
-    Falls back to regex if the LLM is unavailable.
+    Uses regex-based extraction — fast, deterministic, no LLM calls.
     """
-    # 1. Try LLM — most accurate, handles any phrasing
-    try:
-        raw = call_llm(_INTENT_PROMPT.format(query=query))
-        match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
-        if match:
-            parsed = json.loads(match.group())
-            parsed = _normalize_intent(parsed)
-            logger.info(f"Intent (LLM): {parsed}")
-            return parsed
-    except Exception as e:
-        logger.warning(f"LLM intent parsing failed: {e} — using regex fallback")
-
-    # 2. Regex fallback
     parsed = _normalize_intent(_regex_parse(query))
-    logger.info(f"Intent (regex): {parsed}")
+    logger.info("Intent (regex): %s", parsed)
     return parsed
 
 
@@ -95,7 +45,39 @@ def _normalize_intent(intent: dict) -> dict:
         val = intent.get(field)
         if val and isinstance(val, str):
             intent[field] = val.strip().title()
+
+    # The LLM intent parser is told patient_id is "ID or MRN", which is broad
+    # enough that a query like "Z15 code definition" or "what is the E11.9
+    # diagnosis code" gets ICD-10-CM codes ("Z15", "E11.9") extracted into
+    # patient_id/subject_id/hadm_id/provider_npi. That makes has_entity=True
+    # for a query that names no patient at all, which routes to sql/hybrid,
+    # builds a ChromaDB where-filter on a patient_id that matches nothing,
+    # and — because that filter looks "entity-tied" — the no-results path
+    # refuses to broaden the search, so the system reports "No matching
+    # records found" even though the answer is sitting in an ingested
+    # reference document (e.g. the ICD-10-CM guidelines PDF).
+    #
+    # Strip out any ID-like field that is itself an ICD-10-CM code so these
+    # queries fall through to a plain, unfiltered RAG search instead.
+    for field in ("patient_id", "subject_id", "hadm_id", "provider_npi"):
+        val = intent.get(field)
+        if val and isinstance(val, str) and _ICD10_CODE_RE.match(val.strip()):
+            logger.info(
+                "Dropping %s=%r from intent — looks like an ICD-10-CM code, "
+                "not a patient/provider identifier",
+                field, val,
+            )
+            intent[field] = None
+
     return intent
+
+
+# ICD-10-CM diagnosis codes: a letter followed by 2 digits, optionally a
+# decimal point and 1-4 more digits/letters (e.g. "Z15", "E11.9", "S72.001A").
+# Real patient IDs in this system are either purely numeric (MIMIC-III
+# SUBJECT_ID/HADM_ID), 10-digit NPIs, or "P###"-style MRNs with 3+ digits
+# after the "P" — none of which match this pattern.
+_ICD10_CODE_RE = re.compile(r"^[A-Za-z]\d{2}(\.[A-Za-z0-9]{1,4})?$")
 
 
 def build_where_filter(intent: dict) -> dict | None:
@@ -115,6 +97,14 @@ def build_where_filter(intent: dict) -> dict | None:
 
     if intent.get("patient_id"):
         conditions.append({"patient_id": {"$eq": intent["patient_id"]}})
+
+    # MIMIC-III SUBJECT_ID is stored in the same ChromaDB "patient_id"
+    # metadata field as other patient identifiers (tabular ingestion maps
+    # SUBJECT_ID columns into patient_id), so it uses the same condition.
+    # hadm_id has no ChromaDB metadata equivalent — it's resolved via the
+    # SQL facts database only (see sql_retriever.lookup).
+    if intent.get("subject_id"):
+        conditions.append({"patient_id": {"$eq": intent["subject_id"]}})
 
     # Only exact-match a name if it looks like a full name (≥ 2 tokens)
     patient_name = intent.get("patient_name") or ""
@@ -150,6 +140,8 @@ def _regex_parse(query: str) -> dict:
         "doc_type":      None,
         "provider_name": None,
         "provider_npi":  None,
+        "subject_id":    None,
+        "hadm_id":       None,
         "specific_field": None,
     }
 
@@ -203,20 +195,143 @@ def _regex_parse(query: str) -> dict:
     if pid_m:
         result["patient_id"] = f"P{pid_m.group(1)}"
 
+    # --- MIMIC-III SUBJECT_ID / HADM_ID (explicit keyword phrasing) ---
+    # e.g. "subject id 10006", "subject_id 10006", "hadm id 142345",
+    # "hadm_id 142345", "admission id 142345", "admission 142345".
+    # Checked before the bare-numeric fallback below so an explicit
+    # "hadm id ..." phrase isn't mistaken for a generic patient ID.
+    hadm_m = re.search(r"\bhadm[\s_]?id\D{0,5}(\d{1,8})\b", q)
+    if not hadm_m:
+        hadm_m = re.search(r"\badmission(?:\s+id)?\D{0,5}(\d{3,8})\b", q)
+    if hadm_m:
+        result["hadm_id"] = hadm_m.group(1)
+
+    subj_m = re.search(r"\bsubject[\s_]?id\D{0,5}(\d{1,8})\b", q)
+    if subj_m:
+        result["subject_id"] = subj_m.group(1)
+
+    # --- Bare numeric patient identifier (MIMIC-III SUBJECT_ID) ---
+    # Relax the patient-ID match for IDs given as plain numbers (no "P"
+    # prefix), as in "patient 10006" or "records for patient 10006".
+    # Skipped if a P-prefixed ID, NPI, subject_id, or hadm_id was already
+    # found above to avoid double-matching the same number.
+    if (not result["patient_id"] and not result["provider_npi"]
+            and not result["subject_id"] and not result["hadm_id"]
+            and result["query_type"] == "patient"):
+        bare_m = re.search(r"\bpatient\D{0,5}(\d{2,8})\b", q)
+        if bare_m:
+            result["subject_id"] = bare_m.group(1)
+
     # --- Specific field ---
     field_map = {
         "NPI number":    ["npi number", "npi"],
         "date of birth": ["dob", "date of birth", "birth date", "birthday"],
         "total amount":  ["total amount", "total", "how much", "amount due", "balance"],
+        "claim number":  ["claim no", "claim number", "claim id", "claim"],
+        "patient id":    ["patient account number", "patient acct no", "account number",
+                          "acct no", "acct number", "patient id", "mrn", "chart number",
+                          "member id"],
         "address":       ["address", "location"],
         "phone":         ["phone", "telephone", "contact number"],
+        "insurance":     ["insurance id", "insurance number", "insurance"],
+        "gender":        ["gender", "sex"],
+        "death time":    ["death time", "deathtime", "date of death", "time of death",
+                          "died", "expired", "expiry date", "passed away"],
+        "admission type": ["admission type"],
+        "discharge time": ["discharge time", "dischtime", "discharge date"],
+        "admit time":    ["admit time", "admittime", "admission date", "admission time"],
     }
     for field, kws in field_map.items():
         if any(kw in q for kw in kws):
             result["specific_field"] = field
             break
 
+    # --- Patient / provider name ---
+    # The LLM path normally extracts this. Without this fallback, any query
+    # where the LLM call fails (timeout, rate limit, bad JSON, etc.) loses
+    # the named entity entirely: patient_name/provider_name stay None,
+    # has_entity becomes False, and the query gets routed to an unfiltered
+    # RAG search over the whole corpus — which often surfaces nothing for a
+    # precise "<field> for <Name>" question even though the patient exists.
+    #
+    # Recover a name from common phrasings: "... for <Name>",
+    # "patient/provider/doctor/dr <Name>". We scan word-by-word after the
+    # keyword and stop at the first word that looks like part of the
+    # question rather than the name (a stopword, or a token containing a
+    # digit/punctuation that isn't part of a name).
+    name = _extract_name_after(query, r"\bfor\b")
+    if not name:
+        name = _extract_name_after(query, r"\b(?:patient|provider|doctor|dr\.?)\b")
+    if not name:
+        # Handle "<Name>'s <field>" phrasing (e.g. "Susan L Hill's MRN?"),
+        # which has no "for"/"patient"/"provider" keyword to anchor on.
+        name = _extract_name_before_possessive(query)
+
+    if name:
+        if result["query_type"] == "provider":
+            result["provider_name"] = name
+        else:
+            result["patient_name"] = name
+
     return result
+
+
+# Words that indicate the text following a "for"/"patient"/"provider" keyword
+# is part of the question, not a person's name — extraction stops here.
+_NAME_STOPWORDS = {
+    "bill", "bills", "record", "records", "prescription", "prescriptions",
+    "invoice", "invoices", "lab", "labs", "result", "results", "report",
+    "reports", "claim", "claims", "for", "on", "of", "the", "a", "an", "is",
+    "was", "does", "do", "who", "what", "show", "get", "give", "tell", "find",
+    "me", "their", "his", "her", "and", "info", "information", "details",
+    "id", "number", "no", "npi", "dob", "patient", "patients", "provider",
+    "providers", "doctor", "doctors",
+}
+
+
+def _extract_name_after(query: str, keyword_pattern: str) -> str | None:
+    """
+    Find `keyword_pattern` (e.g. "for") and return the run of name-like
+    tokens that follows it (up to 4 tokens), stopping at punctuation, a
+    digit-containing token, or a word in _NAME_STOPWORDS. Strips a trailing
+    possessive ("Johnson's" -> "Johnson"). Returns None if nothing usable
+    follows the keyword.
+    """
+    m = re.search(keyword_pattern + r"\s+(.+)", query, re.IGNORECASE)
+    if not m:
+        return None
+
+    tokens = re.findall(r"[A-Za-z][A-Za-z'\-.]*", m.group(1))
+    name_tokens = []
+    for tok in tokens:
+        clean = re.sub(r"['’]s$", "", tok)
+        if clean.lower() in _NAME_STOPWORDS:
+            break
+        name_tokens.append(clean)
+        if len(name_tokens) >= 4:
+            break
+
+    return " ".join(name_tokens) if name_tokens else None
+
+
+def _extract_name_before_possessive(query: str) -> str | None:
+    """
+    Handle "<Name>'s <field>" phrasing (e.g. "Susan L Hill's MRN?"), which has
+    no "for"/"patient"/"provider" keyword for _extract_name_after to anchor
+    on. Finds the run of tokens immediately before the first "'s"/"'s", then
+    drops any leading question-word tokens ("what is", "who is", ...) so only
+    the name remains.
+    """
+    m = re.search(r"([A-Za-z][A-Za-z'\-.]*(?:\s+[A-Za-z][A-Za-z'\-.]*){0,4})['’]s\b", query)
+    if not m:
+        return None
+
+    tokens = re.findall(r"[A-Za-z][A-Za-z'\-.]*", m.group(1))
+    while tokens and tokens[0].lower() in _NAME_STOPWORDS:
+        tokens.pop(0)
+
+    tokens = tokens[-4:]
+    return " ".join(tokens) if tokens else None
 
 
 def _reformat(date_str: str, input_fmt: str) -> str:

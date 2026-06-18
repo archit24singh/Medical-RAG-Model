@@ -56,7 +56,9 @@ def route(intent: dict) -> str:
         intent.get("patient_name") or
         intent.get("patient_id") or
         intent.get("provider_name") or
-        intent.get("provider_npi")
+        intent.get("provider_npi") or
+        intent.get("subject_id") or
+        intent.get("hadm_id")
     )
 
     has_specific = bool(

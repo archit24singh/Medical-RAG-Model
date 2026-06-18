@@ -11,16 +11,19 @@ class Settings(BaseSettings):
     CHROMA_PORT: int = 8001
     CHROMA_COLLECTION: str = "medical_docs"
 
-    # Embedding model (runs locally inside the backend container)
-    # all-MiniLM-L6-v2 is ~90MB, downloaded once and cached
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    # Embedding model — served by Ollama.
+    # nomic-embed-text has an 8192-token context window; the previous
+    # all-MiniLM-L6-v2 was capped at 256 tokens and silently truncated every
+    # chunk beyond that limit, making half of each chunk invisible to search.
+    # Pull once before starting the stack: ollama pull nomic-embed-text
+    EMBEDDING_MODEL: str = "nomic-embed-text"
 
     # LLM Provider
     # "ollama" -> free, fully local (requires Ollama installed on host)
     # "openai" -> cloud, requires OPENAI_API_KEY
     LLM_PROVIDER: Literal["ollama", "openai"] = "ollama"
 
-    # Ollama settings
+    # Ollama settings (used for both embeddings and text generation)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "mistral"
 
@@ -41,21 +44,24 @@ class Settings(BaseSettings):
     # Startup behaviour
     AUTO_INGEST: bool = True
 
-    # ── Document processing pipeline ──────────────────────────────────────────
-    # Prepend 2-3 sentences of context to every chunk before storing.
-    # Improves retrieval accuracy at the cost of 1 extra LLM call per chunk.
-    ENABLE_CONTEXTUAL_ENRICHMENT: bool = True
+    # ── Document chunking ──────────────────────────────────────────────────────
+    # Character-based sliding-window splitter — mirrors the reference RAG baseline
+    # (RecursiveCharacterTextSplitter, chunk_size=1000, chunk_overlap=200).
+    # 1000 chars ≈ 200-250 tokens, well inside nomic-embed-text's 8192-token limit.
+    # No LLM calls during ingestion.
+    CHUNK_SIZE: int = 1000
+    CHUNK_OVERLAP: int = 200
 
-    # Use SmolVLM (256 M-param vision model) to describe embedded images.
-    # Disabled by default — enable once the model is cached in model_cache volume.
-    ENABLE_IMAGE_DESCRIPTION: bool = False
-
-    # Target maximum tokens per chunk (≈ words × 1.3).
-    # Chunks at or below this size are not split further by the LLM.
-    CHUNK_MAX_TOKENS: int = 512
-
+    # ── Retrieval ──────────────────────────────────────────────────────────────
     # Hybrid search balance — 0.0 = pure BM25, 1.0 = pure vector, 0.5 = balanced.
     HYBRID_SEARCH_ALPHA: float = 0.5
+
+    # CrossEncoder reranker — retrieve RERANKER_INITIAL_K candidates from the
+    # hybrid search, rerank with the cross-encoder, then pass only the top
+    # RERANKER_TOP_K to the LLM for answer generation.
+    RERANKER_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    RERANKER_TOP_K: int = 5
+    RERANKER_INITIAL_K: int = 20
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

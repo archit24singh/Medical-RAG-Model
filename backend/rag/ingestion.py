@@ -1,22 +1,21 @@
 """
-Document ingestion pipeline - supports PDF, JSON, CSV, Excel, and plain text.
+Document ingestion pipeline — supports PDF, CSV, Excel, TXT, MD, JSON.
 
-For each file:
-  1. Load and extract/clean content
-  2. Extract metadata (patient name, date, doc type, provider NPI, etc.)
-     - CSV / Excel: each row becomes its own document with cleaned, normalized metadata
-     - JSON: read fields directly from the data (or fall back to LLM)
-     - PDF / TXT: ask the LLM to extract fields
-  3. Store text + metadata in ChromaDB
+TEXT DOCUMENT pipeline (PDF / DOCX / TXT / MD):
+  1. Extract text   — PyMuPDF (fitz) for PDFs; plain-text reader for others
+  2. Chunk          — sliding-window splitter (1000 chars / 200 overlap)
+  3. Header         — prepend "<Title> [chunk N/M]:" before each chunk
+  4. Store          — ChromaDB (one entry per chunk, nomic-embed-text embeddings)
 
-CSV/Excel cleaning pipeline (applied before ingestion):
-  - Detect the real header row (skips merged-cell titles and blank rows)
-  - Drop entirely empty rows and columns
-  - Strip leading/trailing whitespace from every cell
-  - Forward-fill merged cells so every row has a value
-  - Normalize dates to YYYY-MM-DD
-  - Title-case patient and provider names
-  - Convert blank/"nan"/"N/A" cells to null
+  Zero LLM calls.  Replaces the old Docling → LLM-chunker → enricher →
+  structured_extractor chain that made 200+ Ollama calls per PDF.
+
+TABULAR pipeline (CSV / Excel):
+  ChromaDB  — one doc per row, text = "Col1: Val1 | Col2: Val2 | …"
+  SQLite    — direct columnar mapping via _write_rows_to_sql (no LLM)
+
+JSON pipeline:
+  Direct field-map extraction, stored as a single ChromaDB doc.
 
 Storage note:
   Currently reads from the local bucket/ folder.
@@ -32,78 +31,73 @@ from pathlib import Path
 
 from config import settings
 from rag.vectorstore import add_document, add_documents_batch
-from rag.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = {
-    # Tabular (grouped by patient)
+    # Tabular
     ".csv", ".xlsx", ".xls",
     # Structured
     ".json",
-    # Unstructured — routed through Docling → chunker → enricher
-    ".pdf", ".docx", ".doc", ".pptx", ".html", ".htm", ".xml",
-    ".txt", ".md",
-    # Images
-    ".png", ".jpg", ".jpeg", ".tiff", ".bmp",
-}
-
-# Extensions handled by the full unstructured parsing pipeline
-_UNSTRUCTURED_EXTENSIONS = {
-    ".pdf", ".docx", ".doc", ".pptx", ".html", ".htm", ".xml",
-    ".png", ".jpg", ".jpeg", ".tiff", ".bmp",
+    # Text documents — PyMuPDF / plain-text reader
+    ".pdf", ".txt", ".md",
+    ".html", ".htm", ".xml",
+    ".docx", ".doc",
 }
 
 # Cell values treated as missing even if non-null
 _NULL_VALUES = {"", "nan", "none", "n/a", "na", "-", "--", "null", "undefined"}
 
-_META_PROMPT = """You are analyzing a medical document to extract key metadata.
 
-Filename: {filename}
+# ── Field maps ─────────────────────────────────────────────────────────────────
 
-Document content (first 2000 characters):
-{content}
+_FIELD_MAP = {
+    "patient_name":  ["patient_name", "patient", "name", "full_name", "member_name"],
+    "patient_id":    ["patient_id", "id", "mrn", "patient_number", "member_id",
+                      "patient acct no", "subject_id"],
+    "date":          ["date", "bill_date", "service_date", "date_of_service", "visit_date",
+                      "service date", "claim date", "start date of service"],
+    "doc_type":      ["doc_type", "document_type", "type", "record_type"],
+    "provider_name": ["provider_name", "provider", "physician", "doctor", "physician_name",
+                      "rendering provider", "appointment / servicing provider"],
+    "provider_npi":  ["provider_npi", "npi", "npi_number"],
+    "provider_dob":  ["provider_dob", "dob", "date_of_birth"],
+    "total_amount":  ["total_amount", "total", "amount", "bill_amount", "billed charge",
+                      "total payment", "balance", "amount_due"],
+}
 
-Extract the following. Return ONLY valid JSON - no explanation, no markdown fences:
-{{
-  "doc_type":      "bill" | "record" | "prescription" | "lab_result" | "provider_info" | "other",
-  "patient_name":  "Full Name" or null,
-  "patient_id":    "ID string" or null,
-  "date":          "YYYY-MM-DD" or null,
-  "provider_name": "Full Name" or null,
-  "provider_npi":  "10-digit number as string" or null,
-  "provider_dob":  "YYYY-MM-DD" or null,
-  "total_amount":  "numeric string e.g. 1250.00" or null,
-  "summary":       "One sentence describing this document"
-}}"""
-
-
-# ── File loaders ──────────────────────────────────────────────────────────────
-
-def _load_pdf(path: str) -> str:
-    from pypdf import PdfReader
-    reader = PdfReader(path)
-    return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
-
-
-def _load_json(path: str) -> tuple:
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return json.dumps(data, indent=2), data
-
-
-def _load_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8", errors="ignore") as f:
-        return f.read()
+# Additional column candidates used for per-row SQLite ingestion
+_ROW_FIELD_MAP = {
+    "patient_dob":    ["patient dob", "date_of_birth", "dob"],
+    "patient_gender": ["patient gender", "gender", "sex"],
+    "claim_number":   ["claim no", "claim number", "claim_no", "claim id"],
+    "address_line1":  ["patient address line 1", "address line 1", "address", "patient address"],
+    "address_line2":  ["patient address line 2", "address line 2"],
+    "city":           ["patient city", "city"],
+    "state":          ["patient state", "state"],
+    "zip":            ["patient zip code", "patient zip", "zip", "zip code", "postal code"],
+    "phone":          ["patient cell phone", "patient home phone", "patient phone",
+                       "phone", "telephone"],
+    "insurance_id":   ["primary payer subscriber no", "insurance id", "policy number"],
+    "diagnosis_code": ["icd1 code", "icd code", "diagnosis code"],
+    "diagnosis_name": ["icd1 name", "diagnosis name", "diagnosis"],
+    "cpt_code":       ["cpt code", "procedure code"],
+    "cpt_name":       ["cpt description", "procedure description"],
+    # MIMIC-III admission / diagnosis fields
+    "hadm_id":        ["hadm_id"],
+    "icd9_code":      ["icd9_code"],
+    "seq_num":        ["seq_num"],
+    "admittime":      ["admittime"],
+    "dischtime":      ["dischtime"],
+    "deathtime":      ["deathtime"],
+    "admission_type": ["admission_type"],
+}
 
 
 # ── Data cleaning utilities ───────────────────────────────────────────────────
 
 def _clean_str(val) -> str | None:
-    """
-    Normalize a cell value to a clean string or None.
-    Handles NaN floats, strips whitespace, rejects known null-like strings.
-    """
+    """Normalize a cell value to a clean string or None."""
     if val is None:
         return None
     if isinstance(val, float) and math.isnan(val):
@@ -115,11 +109,7 @@ def _clean_str(val) -> str | None:
 
 
 def _normalize_date(val: str) -> str | None:
-    """
-    Parse a date string into YYYY-MM-DD format.
-    Accepts most common formats (MM/DD/YYYY, DD-MM-YYYY, etc.).
-    Returns the original value unchanged if parsing fails.
-    """
+    """Parse a date string into YYYY-MM-DD; return original if parsing fails."""
     if not val:
         return None
     try:
@@ -131,23 +121,57 @@ def _normalize_date(val: str) -> str | None:
 
 
 def _safe_cell(val) -> str | None:
-    """
-    Extract a scalar string from a cell value.
-    Handles NaN, None, and the edge case where pandas returns a Series
-    instead of a scalar (e.g. duplicate column names).
-    """
+    """Extract a scalar string from a cell, handling NaN and Series edge cases."""
     import pandas as pd
     if isinstance(val, pd.Series):
         val = val.iloc[0] if not val.empty else None
     return _clean_str(val)
 
 
+# ── Fuzzy column-header matching ──────────────────────────────────────────────
+
+_FUZZY_HEADER_THRESHOLD = 0.5
+
+
+def _header_tokens(header: str) -> set[str]:
+    """Tokenize a column header into normalized lowercase tokens."""
+    if not header:
+        return set()
+    s = str(header)
+    s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
+    s = re.sub(r"(?<=[A-Za-z])(?=\d)", " ", s)
+    s = re.sub(r"(?<=\d)(?=[A-Za-z])", " ", s)
+    s = re.sub(r"[_\-/.,#:()]+", " ", s)
+    return {t for t in s.lower().split() if t}
+
+
+def _header_match_score(header_tokens: set[str], candidate: str) -> float:
+    """Jaccard similarity between a header's tokens and a candidate's tokens."""
+    cand = _header_tokens(candidate)
+    if not header_tokens or not cand:
+        return 0.0
+    union = header_tokens | cand
+    return len(header_tokens & cand) / len(union) if union else 0.0
+
+
+def _find_best_fuzzy_column(
+    columns: list, candidates: list[str],
+    threshold: float = _FUZZY_HEADER_THRESHOLD,
+) -> str | None:
+    """Return the column whose tokens best overlap with any candidate, above threshold."""
+    best_col, best_score = None, 0.0
+    for col in columns:
+        tokens = _header_tokens(col)
+        if not tokens:
+            continue
+        for candidate in candidates:
+            score = _header_match_score(tokens, candidate)
+            if score > best_score:
+                best_score, best_col = score, col
+    return best_col if best_score >= threshold else None
+
+
 def _find_patient_column(columns: list) -> str | None:
-    """
-    Return the column name that represents the patient (name or ID).
-    Checks against _FIELD_MAP candidates, case-insensitively.
-    Prefers patient_name; falls back to patient_id.
-    """
     lower_map = {c.lower().strip(): c for c in columns}
     for candidate in _FIELD_MAP["patient_name"]:
         if candidate in lower_map:
@@ -155,121 +179,81 @@ def _find_patient_column(columns: list) -> str | None:
     for candidate in _FIELD_MAP["patient_id"]:
         if candidate in lower_map:
             return lower_map[candidate]
-    return None
+    fuzzy = _find_best_fuzzy_column(columns, _FIELD_MAP["patient_name"])
+    if fuzzy:
+        return fuzzy
+    return _find_best_fuzzy_column(columns, _FIELD_MAP["patient_id"])
 
 
 def _find_column(columns: list, field_key: str) -> str | None:
-    """Return the first column matching any candidate for a given _FIELD_MAP key."""
     lower_map = {c.lower().strip(): c for c in columns}
     for candidate in _FIELD_MAP[field_key]:
         if candidate in lower_map:
             return lower_map[candidate]
-    return None
+    return _find_best_fuzzy_column(columns, _FIELD_MAP[field_key])
 
 
-def _build_patient_text(patient_name: str, rows: list[dict], filename: str,
-                        max_chars: int = 4000) -> str:
-    """
-    Build a readable text block for a patient's grouped rows.
-    Starts with a header summary, then appends row data until max_chars is reached.
-    """
-    lines = [
-        f"Patient: {patient_name}",
-        f"Source:  {filename}",
-        f"Records: {len(rows)} rows",
-        "",
-    ]
-    header = "\n".join(lines)
-    body_lines = []
-
-    for i, row in enumerate(rows):
-        parts = [f"{k}: {v}" for k, v in row.items() if v]
-        body_lines.append(f"Row {i + 1}: " + " | ".join(parts))
-
-    body = "\n".join(body_lines)
-    full = header + body
-
-    if len(full) > max_chars:
-        # Always keep the header; truncate body with a note
-        truncated = body[:max_chars - len(header) - 60]
-        last_newline = truncated.rfind("\n")
-        if last_newline > 0:
-            truncated = truncated[:last_newline]
-        full = header + truncated + f"\n... ({len(rows)} rows total, truncated for embedding)"
-
-    return full
+def _find_row_column(columns: list, field_key: str) -> str | None:
+    lower_map = {c.lower().strip(): c for c in columns}
+    for candidate in _ROW_FIELD_MAP[field_key]:
+        if candidate in lower_map:
+            return lower_map[candidate]
+    return _find_best_fuzzy_column(columns, _ROW_FIELD_MAP[field_key])
 
 
-def _extract_patient_metadata(patient_name: str, rows: list[dict],
-                               filename: str, ext: str,
-                               file_path: str, date_col: str | None,
-                               amount_col: str | None) -> dict:
-    """Build metadata for a patient-grouped document."""
-    meta = {k: None for k in list(_FIELD_MAP.keys()) + ["doc_type", "summary"]}
+# ── Metadata helpers ──────────────────────────────────────────────────────────
 
-    meta["patient_name"] = patient_name
-    meta["doc_type"]     = _doc_type_from_filename(filename)
-    meta["file_name"]    = filename
-    meta["file_path"]    = str(Path(file_path).resolve())
-    meta["file_type"]    = ext.lstrip(".")
-    meta["row_count"]    = str(len(rows))
-
-    # Date range: find min and max dates across all rows
-    if date_col:
-        raw_dates = [_normalize_date(_safe_cell(r.get(date_col))) for r in rows]
-        valid_dates = sorted(d for d in raw_dates if d and re.match(r"\d{4}-\d{2}-\d{2}", d))
-        if valid_dates:
-            meta["date"]     = valid_dates[0]   # earliest (used for filtering)
-            meta["date_end"] = valid_dates[-1]  # latest
-
-    # Total amount: sum all numeric values in the amount column
-    if amount_col:
-        total = 0.0
-        for r in rows:
-            try:
-                val = _safe_cell(r.get(amount_col))
-                if val:
-                    total += float(re.sub(r"[^\d.]", "", val))
-            except Exception:
-                pass
-        if total > 0:
-            meta["total_amount"] = f"{total:.2f}"
-
-    # Patient ID — grab from first row that has it
-    id_col = _find_column(list(rows[0].keys()) if rows else [], "patient_id")
-    if id_col:
-        meta["patient_id"] = _safe_cell(rows[0].get(id_col))
-
-    date_range = (
-        f"{meta['date']} to {meta.get('date_end', meta['date'])}"
-        if meta.get("date") else "unknown date range"
-    )
-    meta["summary"] = (
-        f"{len(rows)} record(s) for {patient_name} from {filename} ({date_range})"
-    )
-    return meta
-
-
-# ── Metadata extraction ───────────────────────────────────────────────────────
-
-_FIELD_MAP = {
-    "patient_name":  ["patient_name", "patient", "name", "full_name", "member_name"],
-    "patient_id":    ["patient_id", "id", "mrn", "patient_number", "member_id"],
-    "date":          ["date", "bill_date", "service_date", "date_of_service", "visit_date"],
-    "doc_type":      ["doc_type", "document_type", "type", "record_type"],
-    "provider_name": ["provider_name", "provider", "physician", "doctor", "physician_name"],
-    "provider_npi":  ["provider_npi", "npi", "npi_number"],
-    "provider_dob":  ["provider_dob", "dob", "date_of_birth"],
-    "total_amount":  ["total_amount", "total", "amount", "bill_amount", "balance", "amount_due"],
+_CATEGORY_DOC_TYPE_MAP = {
+    "discharge summary": "record",
+    "nursing":           "record",
+    "nursing/other":     "record",
+    "physician":         "record",
+    "physician ":        "record",
+    "general":           "record",
+    "case management":   "record",
+    "consult":           "record",
+    "radiology":         "lab_result",
+    "ecg":               "lab_result",
+    "echo":              "lab_result",
+    "rehab services":    "record",
+    "social work":       "record",
+    "pharmacy":          "prescription",
 }
 
 
+def _doc_type_from_filename(filename: str) -> str:
+    fn = filename.lower()
+    if "bill" in fn or "invoice" in fn:
+        return "bill"
+    if "provider" in fn or "npi" in fn or "doctor" in fn:
+        return "provider_info"
+    if "prescription" in fn or "rx" in fn:
+        return "prescription"
+    if "lab" in fn:
+        return "lab_result"
+    if "record" in fn:
+        return "record"
+    return "other"
+
+
+def _doc_type_from_category(category: str | None) -> str | None:
+    if not category:
+        return None
+    return _CATEGORY_DOC_TYPE_MAP.get(category.strip().lower())
+
+
+def _meta_from_filename(filename: str) -> dict:
+    meta = {k: None for k in list(_FIELD_MAP.keys()) + ["doc_type", "summary"]}
+    meta["doc_type"] = _doc_type_from_filename(filename)
+    date_match = re.search(r"(\d{4})-(\d{2})-(\d{2})", filename)
+    if date_match:
+        meta["date"] = date_match.group()
+    meta["summary"] = "Document: " + filename
+    return meta
+
+
 def _extract_meta_from_row(row: dict, filename: str, row_idx: int, total_rows: int) -> dict:
-    """
-    Extract and normalize metadata from a single data row.
-    Fields present in _FIELD_MAP are mapped; everything else is stored as-is.
-    Rows with missing fields are kept (stored with nulls).
-    """
+    """Extract and normalize metadata from a single data row."""
     lower_row = {k.lower(): v for k, v in row.items() if k}
     meta = {k: None for k in list(_FIELD_MAP.keys()) + ["doc_type", "summary"]}
 
@@ -281,18 +265,18 @@ def _extract_meta_from_row(row: dict, filename: str, row_idx: int, total_rows: i
                     meta[meta_key] = val
                     break
 
-    # Normalize date
     if meta.get("date"):
         meta["date"] = _normalize_date(meta["date"]) or meta["date"]
-
-    # Normalize names to Title Case
     if meta.get("patient_name"):
         meta["patient_name"] = meta["patient_name"].title()
     if meta.get("provider_name"):
         meta["provider_name"] = meta["provider_name"].title()
 
     if not meta["doc_type"]:
-        meta["doc_type"] = _doc_type_from_filename(filename)
+        meta["doc_type"] = (
+            _doc_type_from_category(lower_row.get("category"))
+            or _doc_type_from_filename(filename)
+        )
 
     entity = meta.get("patient_name") or meta.get("provider_name") or "unknown"
     meta["summary"] = (
@@ -300,23 +284,11 @@ def _extract_meta_from_row(row: dict, filename: str, row_idx: int, total_rows: i
         f" (row {row_idx + 1}/{total_rows} of {filename})"
     )
     meta["row_index"] = str(row_idx)
-
     return meta
 
 
-def _extract_meta_llm(content: str, filename: str) -> dict:
-    """Ask the LLM to extract metadata from unstructured document content."""
-    try:
-        raw = call_llm(_META_PROMPT.format(filename=filename, content=content[:2000]))
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-    except Exception as e:
-        logger.warning("LLM metadata extraction failed for %s: %s", filename, e)
-    return _meta_from_filename(filename)
-
-
 def _extract_meta_structured(data: object, filename: str) -> dict:
+    """Map a JSON object's keys directly to metadata fields."""
     if isinstance(data, list):
         data = data[0] if data else {}
     if not isinstance(data, dict):
@@ -338,36 +310,14 @@ def _extract_meta_structured(data: object, filename: str) -> dict:
 
     entity = meta.get("patient_name") or meta.get("provider_name") or "unknown"
     meta["summary"] = (
-        str(meta.get("doc_type", "Document")) + " for " + entity +
-        " dated " + str(meta.get("date", "unknown date"))
+        str(meta.get("doc_type", "Document"))
+        + " for " + entity
+        + " dated " + str(meta.get("date", "unknown date"))
     )
     return meta
 
 
-def _meta_from_filename(filename: str) -> dict:
-    meta = {k: None for k in list(_FIELD_MAP.keys()) + ["doc_type", "summary"]}
-    meta["doc_type"] = _doc_type_from_filename(filename)
-    date_match = re.search(r"(\d{4})-(\d{2})-(\d{2})", filename)
-    if date_match:
-        meta["date"] = date_match.group()
-    meta["summary"] = "Document: " + filename
-    return meta
-
-
-def _doc_type_from_filename(filename: str) -> str:
-    fn = filename.lower()
-    if "bill" in fn or "invoice" in fn:
-        return "bill"
-    if "provider" in fn or "npi" in fn or "doctor" in fn:
-        return "provider_info"
-    if "prescription" in fn or "rx" in fn:
-        return "prescription"
-    if "lab" in fn:
-        return "lab_result"
-    if "record" in fn:
-        return "record"
-    return "other"
-
+# ── Document ID helpers ───────────────────────────────────────────────────────
 
 def _row_doc_id(file_path: str, row_idx: int) -> str:
     """Stable ID for a single row — updates in place on re-ingest."""
@@ -379,18 +329,348 @@ def _doc_id(file_path: str) -> str:
     return hashlib.md5(str(Path(file_path).resolve()).encode()).hexdigest()
 
 
-# ── Tabular ingestion (CSV / Excel) ──────────────────────────────────────────
+# ── Address helper ────────────────────────────────────────────────────────────
 
+def _compose_address(row: dict, cols: dict) -> str | None:
+    """Combine address-related columns into a single human-readable string."""
+    line1 = _safe_cell(row.get(cols.get("address_line1"))) if cols.get("address_line1") else None
+    line2 = _safe_cell(row.get(cols.get("address_line2"))) if cols.get("address_line2") else None
+    city  = _safe_cell(row.get(cols.get("city")))  if cols.get("city")  else None
+    state = _safe_cell(row.get(cols.get("state"))) if cols.get("state") else None
+    zipc  = _safe_cell(row.get(cols.get("zip")))   if cols.get("zip")   else None
+
+    parts = [p for p in (line1, line2) if p]
+    city_state = ", ".join(p for p in (city, state) if p)
+    if zipc:
+        city_state = f"{city_state} {zipc}".strip()
+    if city_state:
+        parts.append(city_state)
+    return ", ".join(parts) if parts else None
+
+
+def _build_patient_text(
+    patient_name: str, rows: list[dict], filename: str, max_chars: int = 4000,
+) -> str:
+    """Build a readable text blob for a patient's rows (used by _write_rows_to_sql)."""
+    header = (
+        f"Patient: {patient_name}\n"
+        f"Source:  {filename}\n"
+        f"Records: {len(rows)} rows\n\n"
+    )
+    body_lines = [
+        f"Row {i + 1}: " + " | ".join(f"{k}: {v}" for k, v in row.items() if v)
+        for i, row in enumerate(rows)
+    ]
+    body = "\n".join(body_lines)
+    full = header + body
+    if len(full) > max_chars:
+        truncated = body[:max_chars - len(header) - 60]
+        last_nl = truncated.rfind("\n")
+        truncated = truncated[:last_nl] if last_nl > 0 else truncated
+        full = header + truncated + f"\n... ({len(rows)} rows total, truncated)"
+    return full
+
+
+# ── Text-document helpers ─────────────────────────────────────────────────────
+
+def _split_text_into_chunks(
+    text: str,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
+) -> list[str]:
+    """
+    Sliding-window character splitter — zero dependencies, zero LLM calls.
+
+    Mirrors LangChain's RecursiveCharacterTextSplitter(chunk_size, chunk_overlap,
+    length_function=len).  Tries to break at the cleanest boundary available
+    (paragraph → line → space → character).
+
+    Bug fix: only search for separators in the SECOND HALF of the window
+    (start + chunk_size//2 … end).  The original code searched the full window,
+    so rfind could return a separator very close to `start`, making
+    `cut - chunk_overlap` fall below `start` and clamping the advance to just
+    1 character per iteration — turning a 315K-char PDF into 23K micro-chunks
+    instead of ~393 proper ones.  By restricting the search to the second half
+    we guarantee at least chunk_size//2 chars of forward progress per chunk.
+    """
+    if len(text) <= chunk_size:
+        return [text.strip()] if text.strip() else []
+
+    chunks: list[str] = []
+    start = 0
+    min_advance = chunk_size // 2   # never step forward by less than this
+
+    while start < len(text):
+        end = min(start + chunk_size, len(text))
+
+        if end == len(text):
+            # Last segment — take everything remaining
+            tail = text[start:].strip()
+            if tail:
+                chunks.append(tail)
+            break
+
+        # Only look for separators in the second half of the window so the
+        # chosen cut point is always well past `start + min_advance`.
+        cut = end
+        search_from = start + min_advance
+        for sep in ("\n\n", "\n", " "):
+            pos = text.rfind(sep, search_from, end)
+            if pos != -1:
+                cut = pos + len(sep)
+                break
+
+        chunk = text[start:cut].strip()
+        if chunk:
+            chunks.append(chunk)
+
+        # Step forward; overlap pulls start back but never below last cut
+        next_start = cut - chunk_overlap
+        start = next_start if next_start > start else cut
+
+    return chunks
+
+
+def _extract_text_from_file(file_path: str, ext: str) -> str:
+    """
+    Extract raw text from a document using the appropriate reader.
+
+    PDF      → PyMuPDF (fitz) with pypdf fallback
+    DOCX/DOC → PyMuPDF (can open DOCX via internal format support)
+    Others   → plain UTF-8 read (tabs stripped, HTML tags removed for HTML files)
+    """
+    if ext == ".pdf":
+        try:
+            import fitz  # PyMuPDF
+            doc = fitz.open(file_path)
+            pages = [page.get_text() for page in doc]
+            doc.close()
+            return "\n\n".join(pages)
+        except Exception as exc_fitz:
+            logger.warning("PyMuPDF failed for %s (%s) — falling back to pypdf", file_path, exc_fitz)
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(file_path)
+                return "\n".join(page.extract_text() or "" for page in reader.pages)
+            except Exception as exc_pypdf:
+                raise RuntimeError(
+                    f"Both PyMuPDF and pypdf failed for {file_path}: {exc_pypdf}"
+                ) from exc_pypdf
+
+    if ext in (".docx", ".doc"):
+        try:
+            import fitz
+            doc = fitz.open(file_path)
+            text = "\n\n".join(page.get_text() for page in doc)
+            doc.close()
+            return text
+        except Exception as exc:
+            # Last-resort: read as text (works for some .doc files)
+            logger.warning("fitz failed for %s (%s) — reading as plain text", file_path, exc)
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                return f.read()
+
+    if ext in (".html", ".htm"):
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            raw = f.read()
+        # Strip tags — good enough for text retrieval
+        return re.sub(r"<[^>]+>", " ", raw)
+
+    # .txt, .md, .xml, and anything else — plain read
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read().replace("\t", " ")
+
+
+def _row_to_chroma_text(row: dict, filename: str) -> str:
+    """
+    Convert one spreadsheet row to a ChromaDB document string.
+    Format: "[Source: <file>] Col1: Val1 | Col2: Val2 | …"
+    """
+    parts = [f"{k}: {v}" for k, v in row.items() if v and str(v).strip()]
+    body = " | ".join(parts)
+    return f"[Source: {filename}] {body}" if body else ""
+
+
+# ── Direct per-row SQLite ingestion ──────────────────────────────────────────
+
+def _write_rows_to_sql(
+    clean_rows:   list[dict],
+    patient_col:  str | None,
+    date_col:     str | None,
+    amount_col:   str | None,
+    columns:      list,
+    filename:     str,
+) -> int:
+    """
+    Write each spreadsheet row directly to SQLite as a claim/visit record.
+    Deterministic, no LLM, scales to tens of thousands of rows.
+    Returns the number of records inserted.
+    """
+    from db.operations import (
+        find_or_create_patient, find_or_create_provider, find_or_create_admission,
+        insert_record,
+    )
+    from rag.icd9_lookup import lookup_icd9
+
+    if not patient_col:
+        return 0
+
+    row_cols = {key: _find_row_column(columns, key) for key in _ROW_FIELD_MAP}
+    id_col            = _find_column(columns, "patient_id")
+    provider_name_col = _find_column(columns, "provider_name")
+    provider_npi_col  = _find_column(columns, "provider_npi")
+
+    _lower_col_map = {c.lower().strip(): c for c in columns if c}
+    subject_id_col = _lower_col_map.get("subject_id")
+
+    _consumed_cols = {
+        patient_col, id_col, date_col, amount_col,
+        provider_name_col, provider_npi_col, subject_id_col,
+    }
+    _consumed_cols.update(c for c in row_cols.values() if c)
+    extra_cols = [c for c in columns if c and c not in _consumed_cols]
+
+    patient_pk_cache:  dict[str, int] = {}
+    provider_pk_cache: dict[str, int] = {}
+    count = 0
+
+    for idx, row in enumerate(clean_rows):
+        patient_name = (row.get(patient_col) or "").strip().title()
+        if not patient_name:
+            continue
+
+        subject_id_val = _safe_cell(row.get(subject_id_col)) if subject_id_col else None
+
+        if patient_name not in patient_pk_cache:
+            try:
+                patient_pk_cache[patient_name] = find_or_create_patient(
+                    name=patient_name,
+                    patient_id=_safe_cell(row.get(id_col)) if id_col else None,
+                    dob=_normalize_date(_safe_cell(row.get(row_cols["patient_dob"])))
+                        if row_cols["patient_dob"] else None,
+                    gender=_safe_cell(row.get(row_cols["patient_gender"]))
+                        if row_cols["patient_gender"] else None,
+                    phone=_safe_cell(row.get(row_cols["phone"]))
+                        if row_cols["phone"] else None,
+                    address=_compose_address(row, row_cols),
+                    insurance_id=_safe_cell(row.get(row_cols["insurance_id"]))
+                        if row_cols["insurance_id"] else None,
+                    subject_id=subject_id_val,
+                    source_file=filename,
+                )
+            except Exception as exc:
+                logger.warning("find_or_create_patient failed for %s: %s", patient_name, exc)
+                continue
+        patient_pk = patient_pk_cache[patient_name]
+
+        provider_pk = None
+        provider_name = _safe_cell(row.get(provider_name_col)) if provider_name_col else None
+        if provider_name:
+            provider_key = provider_name.title()
+            if provider_key not in provider_pk_cache:
+                try:
+                    provider_pk_cache[provider_key] = find_or_create_provider(
+                        name=provider_key,
+                        npi=_safe_cell(row.get(provider_npi_col)) if provider_npi_col else None,
+                        source_file=filename,
+                    )
+                except Exception as exc:
+                    logger.warning("find_or_create_provider failed for %s: %s", provider_key, exc)
+                    provider_pk_cache[provider_key] = None
+            provider_pk = provider_pk_cache[provider_key]
+
+        hadm_id_val       = _safe_cell(row.get(row_cols["hadm_id"]))  if row_cols["hadm_id"]  else None
+        icd9_code_val     = _safe_cell(row.get(row_cols["icd9_code"])) if row_cols["icd9_code"] else None
+        seq_num_val       = _safe_cell(row.get(row_cols["seq_num"]))  if row_cols["seq_num"]  else None
+        icd9_description  = lookup_icd9(icd9_code_val) if icd9_code_val else None
+
+        admittime_val      = _safe_cell(row.get(row_cols["admittime"]))      if row_cols["admittime"]      else None
+        dischtime_val      = _safe_cell(row.get(row_cols["dischtime"]))      if row_cols["dischtime"]      else None
+        deathtime_val      = _safe_cell(row.get(row_cols["deathtime"]))      if row_cols["deathtime"]      else None
+        admission_type_val = _safe_cell(row.get(row_cols["admission_type"])) if row_cols["admission_type"] else None
+
+        diag_code = _safe_cell(row.get(row_cols["diagnosis_code"])) if row_cols["diagnosis_code"] else None
+        diag_name = _safe_cell(row.get(row_cols["diagnosis_name"])) if row_cols["diagnosis_name"] else None
+        diagnosis = " - ".join(
+            p for p in (diag_code or icd9_code_val, diag_name or icd9_description) if p
+        ) or None
+
+        cpt_code  = _safe_cell(row.get(row_cols["cpt_code"])) if row_cols["cpt_code"] else None
+        cpt_name  = _safe_cell(row.get(row_cols["cpt_name"])) if row_cols["cpt_name"] else None
+        treatment = " - ".join(p for p in (cpt_code, cpt_name) if p) or None
+
+        claim_number = _safe_cell(row.get(row_cols["claim_number"])) if row_cols["claim_number"] else None
+        total_amount = _safe_cell(row.get(amount_col)) if amount_col else None
+        record_date  = _normalize_date(_safe_cell(row.get(date_col))) if date_col else None
+        record_type  = "bill" if amount_col else "visit"
+
+        raw_text = _build_patient_text(patient_name, [row], filename, max_chars=4000)
+
+        details: dict = {}
+        if row_cols["address_line2"] and row.get(row_cols["address_line2"]):
+            details["address_line_2"] = _safe_cell(row.get(row_cols["address_line2"]))
+        for col in extra_cols:
+            val = _safe_cell(row.get(col))
+            if val:
+                details[col] = val
+
+        try:
+            insert_record(
+                patient_id=patient_pk,
+                record_type=record_type,
+                raw_text=raw_text,
+                source_file=filename,
+                provider_id=provider_pk,
+                record_date=record_date,
+                total_amount=total_amount,
+                claim_number=claim_number,
+                diagnosis=diagnosis,
+                treatment=treatment,
+                details=details or None,
+                page_number=None,
+                chunk_index=str(idx),
+                hadm_id=hadm_id_val,
+                icd9_code=icd9_code_val,
+                icd9_description=icd9_description,
+                seq_num=seq_num_val,
+            )
+            count += 1
+        except Exception as exc:
+            logger.warning("insert_record failed for row %d (%s): %s", idx, patient_name, exc)
+
+        if hadm_id_val:
+            try:
+                find_or_create_admission(
+                    patient_pk=patient_pk,
+                    subject_id=subject_id_val,
+                    hadm_id=hadm_id_val,
+                    admittime=admittime_val,
+                    dischtime=dischtime_val,
+                    deathtime=deathtime_val,
+                    admission_type=admission_type_val,
+                    diagnosis=diag_name or icd9_description,
+                    source_file=filename,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "find_or_create_admission failed for hadm_id %s: %s", hadm_id_val, exc
+                )
+
+    return count
+
+
+# ── Tabular ingestion (CSV / Excel) ──────────────────────────────────────────
 
 def _ingest_tabular(file_path: str, ext: str) -> dict:
     """
-    Ingest a CSV or Excel file grouped by patient.
+    Ingest a CSV or Excel file.
 
-    One document per unique patient per file is created, containing all of
-    that patient's rows as text. This scales to 20 000+ row files without
-    blowing up ChromaDB or embedding time.
+    ChromaDB: one document per row — text = "Col1: Val1 | Col2: Val2 | …"
+              This matches the reference-repo CSVLoader pattern and makes every
+              individual row retrievable via semantic search.
 
-    If no patient column is detected, the whole file becomes one document.
+    SQLite:   direct columnar mapping via _write_rows_to_sql — no LLM,
+              captures every field for exact ID-based queries.
     """
     import pandas as pd
 
@@ -410,18 +690,17 @@ def _ingest_tabular(file_path: str, ext: str) -> dict:
 
     df.columns = [str(c).strip() for c in df.columns]
     df = df.dropna(how="all").reset_index(drop=True)
-
     total_rows = len(df)
     if total_rows == 0:
         return {"status": "error", "message": f"No data rows in {filename}"}
 
-    logger.info("Loaded %d rows from %s — grouping by patient", total_rows, filename)
+    logger.info("Loaded %d rows from %s", total_rows, filename)
 
     patient_col = _find_patient_column(list(df.columns))
     date_col    = _find_column(list(df.columns), "date")
     amount_col  = _find_column(list(df.columns), "total_amount")
 
-    # Build clean row dicts (safe scalar extraction)
+    # Build clean row dicts
     clean_rows: list[dict] = []
     for idx in range(total_rows):
         row_dict: dict = {}
@@ -432,188 +711,143 @@ def _ingest_tabular(file_path: str, ext: str) -> dict:
                 row_dict[col] = None
         clean_rows.append(row_dict)
 
-    # Group by patient
-    if patient_col:
-        groups: dict[str, list] = {}
-        for row in clean_rows:
-            key = (row.get(patient_col) or "Unknown").strip().title()
-            groups.setdefault(key, []).append(row)
-        logger.info("Found %d unique patients in %s", len(groups), filename)
-    else:
-        logger.warning("No patient column in %s — storing as single document", filename)
-        groups = {"Unknown": clean_rows}
+    # ── ChromaDB: one document per row ───────────────────────────────────────
+    all_ids:   list[str] = []
+    all_texts: list[str] = []
+    all_metas: list[dict] = []
 
-    # Build and batch-upsert one document per patient
-    all_ids:   list = []
-    all_texts: list = []
-    all_metas: list = []
-
-    for patient_name, rows in groups.items():
-        text = _build_patient_text(patient_name, rows, filename)
+    for idx, row in enumerate(clean_rows):
+        text = _row_to_chroma_text(row, filename)
         if not text.strip():
             continue
 
-        doc_id = hashlib.md5(
-            f"{path.resolve()}::patient::{patient_name}".encode()
-        ).hexdigest()
+        meta = _extract_meta_from_row(row, filename, idx, total_rows)
+        meta["file_name"] = filename
+        meta["file_type"] = ext.lstrip(".")
 
-        meta = _extract_patient_metadata(
-            patient_name, rows, filename, ext, file_path, date_col, amount_col
-        )
-        all_ids.append(doc_id)
+        all_ids.append(_row_doc_id(file_path, idx))
         all_texts.append(text)
         all_metas.append(meta)
 
     if not all_ids:
-        return {"status": "error", "message": f"No valid patient groups in {filename}"}
+        return {"status": "error", "message": f"No non-empty rows in {filename}"}
 
     ingested = add_documents_batch(all_ids, all_texts, all_metas)
+    logger.info("ChromaDB: %d/%d row doc(s) stored from %s", ingested, total_rows, filename)
 
-    # Also write to SQLite so tabular data is reachable via exact SQL lookup
+    # ── SQLite: clear old records, then write all rows ────────────────────────
     try:
-        from rag.structured_extractor import extract_and_store_batch
-        tabular_chunks = [
-            {"text": t, "original_text": t, "page_number": 1,
-             "chunk_index": i, "word_count": len(t.split())}
-            for i, t in enumerate(all_texts)
-        ]
-        sql_count = extract_and_store_batch(tabular_chunks, filename)
-        logger.info("SQLite extraction (tabular): %d record(s) stored from %s",
-                    sql_count, filename)
+        from db.operations import delete_records_by_source_file
+        deleted = delete_records_by_source_file(filename)
+        if deleted:
+            logger.info("Removed %d existing record(s) for %s before re-ingest", deleted, filename)
     except Exception as exc:
-        logger.warning("SQLite extraction failed for tabular %s: %s", filename, exc)
+        logger.warning("Failed to clear old records for %s: %s", filename, exc)
 
-    logger.info(
-        "Tabular ingest complete: %s — %d patient docs from %d rows",
-        filename, ingested, total_rows,
-    )
+    try:
+        sql_count = _write_rows_to_sql(
+            clean_rows, patient_col, date_col, amount_col, list(df.columns), filename
+        )
+        logger.info("SQLite: %d record(s) stored from %s", sql_count, filename)
+    except Exception as exc:
+        logger.warning("SQLite ingestion failed for %s: %s", filename, exc)
 
     return {
-        "status":            "success",
-        "doc_id":            _doc_id(file_path),
-        "file_name":         filename,
-        "patients_ingested": ingested,
-        "rows_processed":    total_rows,
-        "metadata":          {"doc_type": _doc_type_from_filename(filename), "file_name": filename},
+        "status":         "success",
+        "doc_id":         _doc_id(file_path),
+        "file_name":      filename,
+        "rows_ingested":  ingested,
+        "rows_processed": total_rows,
+        "metadata":       {"doc_type": _doc_type_from_filename(filename), "file_name": filename},
     }
 
 
-# ── Unstructured ingestion (PDF / DOCX / XML / images) ───────────────────────
+# ── Text-document ingestion (PDF / DOCX / TXT / MD) ──────────────────────────
 
-def _ingest_unstructured(file_path: str, ext: str) -> dict:
+def _ingest_text_document(file_path: str, ext: str) -> dict:
     """
-    Full processing pipeline for unstructured documents:
+    Text document ingestion pipeline — zero LLM calls.
 
-      Parse (Docling + RapidOCR)
-        → Chunk (header split + LLM semantic split)
-          → Enrich (contextual sentences via Mistral)
-            → Store (ChromaDB — one entry per chunk)
+    1. Extract text  — PyMuPDF for PDF, plain reader for others
+    2. Chunk         — sliding-window splitter (CHUNK_SIZE / CHUNK_OVERLAP)
+    3. Header        — prepend "<Title> [chunk N/M]:" for context
+    4. Store         — ChromaDB, one entry per chunk
 
-    Each chunk gets rich metadata including page_number and chunk_number so
-    queries can surface exactly the right part of a large document.
+    The contextual header (step 3) ensures that even when a chunk is retrieved
+    in isolation the embedding captures which document it came from — inspired
+    by the contextual_chunk_headers.ipynb reference notebook.
     """
-    from rag.document_parser import parse_document
-    from rag.chunker import chunk_pages
-    from rag.enricher import enrich_chunks
-
     path     = Path(file_path)
     filename = path.name
+    doc_title = path.stem.replace("_", " ").replace("-", " ").title()
 
-    logger.info("Unstructured ingest: %s", filename)
+    logger.info("Text ingest: %s", filename)
 
-    # ── 1. Parse ──────────────────────────────────────────────────────────────
+    # 1. Extract
     try:
-        describe_images = settings.ENABLE_IMAGE_DESCRIPTION
-        pages = parse_document(file_path, describe_images=describe_images)
+        text = _extract_text_from_file(file_path, ext)
     except Exception as exc:
-        return {"status": "error", "message": f"Parsing failed for {filename}: {exc}"}
+        return {"status": "error", "message": f"Text extraction failed for {filename}: {exc}"}
 
-    if not pages or not any(p.get("text", "").strip() for p in pages):
-        return {"status": "error", "message": f"No text could be extracted from {filename}"}
+    text = text.strip()
+    if not text:
+        return {"status": "error", "message": f"No text extracted from {filename}"}
 
-    # ── 2. Chunk ──────────────────────────────────────────────────────────────
-    chunks = chunk_pages(pages, filename)
-
+    # 2. Chunk
+    chunks = _split_text_into_chunks(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
     if not chunks:
         return {"status": "error", "message": f"Chunking produced no output for {filename}"}
 
-    # ── 3. Contextual enrichment (optional, controlled by config) ─────────────
-    if settings.ENABLE_CONTEXTUAL_ENRICHMENT:
-        try:
-            chunks = enrich_chunks(chunks, pages, filename)
-            logger.info("Enrichment complete: %d chunk(s) enriched for %s", len(chunks), filename)
-        except Exception as exc:
-            logger.warning(
-                "Enrichment failed for %s: %s — storing plain chunks", filename, exc
-            )
+    logger.info("Chunked %s into %d chunk(s)", filename, len(chunks))
 
-    # ── 3b. Structured extraction → SQLite (per-chunk, every patient) ─────────
-    # This is the accuracy layer: every patient/provider/visit/bill mentioned
-    # in every chunk is written to SQLite as structured, queryable rows.
-    # This runs AFTER enrichment so original_text is always available.
-    try:
-        from rag.structured_extractor import extract_and_store_batch
-        sql_count = extract_and_store_batch(chunks, filename)
-        logger.info("SQLite extraction: %d record(s) stored from %s", sql_count, filename)
-    except Exception as exc:
-        logger.warning("Structured extraction failed for %s: %s — continuing", filename, exc)
-
-    # ── 4. Extract base metadata from the first chunk via LLM ────────────────
-    first_text = "\n".join(c["text"] for c in chunks[:2])[:2000]
-    base_meta  = _extract_meta_llm(first_text, filename)
-
-    # Normalise names to Title Case (consistent with tabular pipeline)
-    if base_meta.get("patient_name"):
-        base_meta["patient_name"] = base_meta["patient_name"].strip().title()
-    if base_meta.get("provider_name"):
-        base_meta["provider_name"] = base_meta["provider_name"].strip().title()
-
-    total_pages  = max(c["page_number"] for c in chunks)
-    total_chunks = len(chunks)
-
+    # 3 & 4. Header + batch-store
+    base_meta = _meta_from_filename(filename)
     base_meta.update({
         "file_name":    filename,
         "file_path":    str(path.resolve()),
         "file_type":    ext.lstrip("."),
-        "total_pages":  str(total_pages),
-        "total_chunks": str(total_chunks),
-        "source":       "docling",
+        "total_chunks": str(len(chunks)),
+        "source":       "pymupdf",
     })
 
-    # ── 5. Batch store — one ChromaDB entry per chunk ─────────────────────────
+    # Clear stale SQLite records for this file
+    try:
+        from db.operations import delete_records_by_source_file
+        deleted = delete_records_by_source_file(filename)
+        if deleted:
+            logger.info("Removed %d existing record(s) for %s", deleted, filename)
+    except Exception as exc:
+        logger.warning("Failed to clear old records for %s: %s", filename, exc)
+
     ids, texts, metas = [], [], []
-    for chunk in chunks:
+    for chunk_idx, chunk_text in enumerate(chunks):
+        # Contextual header gives the embedding model document-level context
+        contextual_text = f"{doc_title} [chunk {chunk_idx + 1}/{len(chunks)}]:\n{chunk_text}"
+
         chunk_id = hashlib.md5(
-            f"{path.resolve()}::chunk::{chunk['chunk_index']}".encode()
+            f"{path.resolve()}::chunk::{chunk_idx}".encode()
         ).hexdigest()
 
-        chunk_meta = {
-            **base_meta,
-            "page_number":      str(chunk["page_number"]),
-            "chunk_number":     str(chunk["chunk_index"]),
-            "chunk_word_count": str(chunk["word_count"]),
-            "token_estimate":   str(chunk["token_estimate"]),
-            "has_context":      str(chunk.get("has_context", False)),
-        }
-
         ids.append(chunk_id)
-        texts.append(chunk["text"])
-        metas.append(chunk_meta)
+        texts.append(contextual_text)
+        metas.append({
+            **base_meta,
+            "chunk_number":     str(chunk_idx),
+            "chunk_word_count": str(len(chunk_text.split())),
+        })
 
     ingested = add_documents_batch(ids, texts, metas)
 
     logger.info(
-        "Unstructured ingest complete: %s — %d/%d chunk(s) stored from %d page(s)",
-        filename, ingested, total_chunks, len(pages),
+        "Text ingest complete: %s — %d/%d chunk(s) stored",
+        filename, ingested, len(chunks),
     )
-
     return {
-        "status":           "success",
-        "doc_id":           _doc_id(file_path),
-        "file_name":        filename,
-        "chunks_ingested":  ingested,
-        "pages_processed":  len(pages),
-        "metadata":         base_meta,
+        "status":          "success",
+        "doc_id":          _doc_id(file_path),
+        "file_name":       filename,
+        "chunks_ingested": ingested,
+        "metadata":        base_meta,
     }
 
 
@@ -621,11 +855,14 @@ def _ingest_unstructured(file_path: str, ext: str) -> dict:
 
 def ingest_file(file_path: str) -> dict:
     """
-    Load, clean, and store a single file in the vector store.
+    Load and store a single file in the vector store (and SQLite where relevant).
 
-    CSV / Excel files are ingested row by row (one document per row).
-    PDF / TXT / MD files are ingested as a single document via LLM metadata extraction.
-    JSON files use direct field mapping with LLM fallback.
+    Routing:
+      .csv / .xlsx / .xls  → tabular pipeline (row-per-doc ChromaDB + SQL)
+      .pdf / .txt / .md /
+      .docx / .doc /
+      .html / .htm / .xml  → text-document pipeline (chunked ChromaDB)
+      .json                → direct field-map extraction
 
     Returns dict with keys: status, and optionally doc_id, file_name, metadata.
     """
@@ -640,23 +877,22 @@ def ingest_file(file_path: str) -> dict:
 
     filename = path.name
 
-    # ── Tabular: CSV / Excel — grouped by patient ─────────────────────────────
+    # Tabular
     if ext in (".csv", ".xlsx", ".xls"):
         return _ingest_tabular(file_path, ext)
 
-    # ── Unstructured: PDF / DOCX / XML / images / TXT / MD ───────────────────
-    # All these go through the full Docling → chunk → enrich pipeline.
-    if ext in _UNSTRUCTURED_EXTENSIONS or ext in (".txt", ".md"):
-        return _ingest_unstructured(file_path, ext)
+    # Text documents
+    if ext in (".pdf", ".txt", ".md", ".html", ".htm", ".xml", ".docx", ".doc"):
+        return _ingest_text_document(file_path, ext)
 
-    # ── Structured JSON — direct field mapping ────────────────────────────────
+    # Structured JSON
     if ext == ".json":
         doc_id = _doc_id(file_path)
         try:
-            text, raw = _load_json(file_path)
+            with open(file_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            text = json.dumps(raw, indent=2)
             meta = _extract_meta_structured(raw, filename)
-            if not meta.get("patient_name") and not meta.get("provider_name"):
-                meta = _extract_meta_llm(text, filename)
         except Exception as exc:
             return {"status": "error", "message": f"Failed to load {filename}: {exc}"}
 
@@ -665,7 +901,7 @@ def ingest_file(file_path: str) -> dict:
 
         meta["file_path"] = str(path.resolve())
         meta["file_name"] = filename
-        meta["file_type"] = ext.lstrip(".")
+        meta["file_type"] = "json"
 
         success = add_document(doc_id, text, meta)
         if success:
@@ -679,23 +915,36 @@ def ingest_file(file_path: str) -> dict:
 def ingest_directory(bucket_dir: str = None) -> dict:
     """
     Walk bucket_dir recursively and ingest every supported file.
-
-    Currently reads from the local bucket/ folder.
-    To upgrade to S3: replace Path(bucket_dir).rglob(...) with an S3 listing call.
-
     Returns a summary dict with keys: success, skipped, errors.
     """
     data_dir = bucket_dir or settings.BUCKET_DIR
-    results = {"success": [], "skipped": [], "errors": []}
+    results  = {"success": [], "skipped": [], "errors": []}
 
     data_path = Path(data_dir)
     if not data_path.exists():
         logger.warning("Bucket directory not found: %s", data_dir)
         return results
 
-    files = []
+    files: list[Path] = []
     for ext in SUPPORTED_EXTENSIONS:
         files.extend(data_path.rglob("*" + ext))
+
+    # Skip files inside any directory whose name starts with '_'.
+    # Convention: rename a folder to _skip_<name> or _ignore_<name> to exclude it
+    # without moving it out of the bucket (e.g. large files not ready for ingest).
+    def _is_excluded(fp: Path) -> bool:
+        relative_parts = fp.relative_to(data_path).parts[:-1]  # all parts except filename
+        return any(part.startswith("_") for part in relative_parts)
+
+    excluded = [fp for fp in files if _is_excluded(fp)]
+    files    = [fp for fp in files if not _is_excluded(fp)]
+
+    if excluded:
+        logger.info(
+            "Skipping %d file(s) in underscore-prefixed directories: %s",
+            len(excluded),
+            sorted({fp.parent.name for fp in excluded}),
+        )
 
     if not files:
         logger.info("No supported files found in %s", data_dir)
@@ -714,7 +963,7 @@ def ingest_directory(bucket_dir: str = None) -> dict:
             results["errors"].append({"file": str(fp), "error": result["message"]})
 
     logger.info(
-        "Ingestion complete - %d ok, %d skipped, %d errors",
-        len(results["success"]), len(results["skipped"]), len(results["errors"])
+        "Ingestion complete — %d ok, %d skipped, %d errors",
+        len(results["success"]), len(results["skipped"]), len(results["errors"]),
     )
     return results

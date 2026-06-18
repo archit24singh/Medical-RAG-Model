@@ -13,7 +13,6 @@ Query flow:
 import logging
 import time
 import chromadb
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -167,6 +166,52 @@ def _wait_for_chroma(host: str, port: int, retries: int = 20, delay: float = 3.0
     )
 
 
+class _OllamaEmbeddingFunction:
+    """
+    ChromaDB-compatible embedding function backed by Ollama's nomic-embed-text.
+
+    nomic-embed-text supports up to 8192 tokens per input — 32× the 256-token
+    hard limit of the previous all-MiniLM-L6-v2 model.  Every chunk now gets
+    fully embedded instead of being silently truncated at the halfway point.
+
+    The Ollama client is created lazily on first use so the class can be
+    instantiated at import time before the Docker network is up.
+    """
+
+    def __init__(self, model_name: str, host: str) -> None:
+        self._model = model_name
+        self._host  = host
+        self._client = None  # created on first __call__
+
+    def _get_client(self):
+        if self._client is None:
+            import ollama
+            self._client = ollama.Client(host=self._host)
+        return self._client
+
+    def __call__(self, input: list) -> list:  # noqa: A002  (shadow built-in)
+        """
+        Embed a batch of texts in a single Ollama API call.
+
+        Uses the modern /api/embed endpoint (ollama>=0.3.3) which accepts a
+        list of strings and returns all embeddings in one round-trip — replacing
+        the old /api/embeddings path that required one HTTP call per text.
+        For a ChromaDB batch of 100 texts this eliminates 99 serial HTTP calls.
+        """
+        client = self._get_client()
+        try:
+            resp = client.embed(model=self._model, input=input)
+            # resp.embeddings is list[list[float]], one vector per input text
+            return list(resp.embeddings)
+        except Exception as exc:
+            logger.error("Ollama batch embed failed: %s", exc)
+            raise RuntimeError(
+                f"Ollama embedding failed — ensure Ollama is running at "
+                f"{self._host} and the model is pulled:\n"
+                f"  ollama pull {self._model}"
+            ) from exc
+
+
 # Module-level singletons — created once, reused across requests
 _client: chromadb.HttpClient = None
 _collection = None
@@ -182,8 +227,6 @@ def get_collection():
     logger.info("Connecting to ChromaDB at %s:%s", settings.CHROMA_HOST, settings.CHROMA_PORT)
 
     # Wait for ChromaDB to be ready, then connect.
-    # With matching server/client versions (both 0.5.3), the default_tenant
-    # and default_database are created automatically on server startup.
     _wait_for_chroma(settings.CHROMA_HOST, settings.CHROMA_PORT)
 
     _client = chromadb.HttpClient(
@@ -191,10 +234,12 @@ def get_collection():
         port=settings.CHROMA_PORT,
     )
 
-    # Sentence-transformer embedding model runs inside the backend container.
-    # The model is downloaded on first use and cached in model_cache volume.
-    ef = SentenceTransformerEmbeddingFunction(
-        model_name=settings.EMBEDDING_MODEL
+    # Embeddings are served by Ollama (nomic-embed-text, 8192-token context).
+    # Ollama runs on the host machine; the backend container reaches it via
+    # host.docker.internal (set in docker-compose environment).
+    ef = _OllamaEmbeddingFunction(
+        model_name=settings.EMBEDDING_MODEL,
+        host=settings.OLLAMA_BASE_URL,
     )
 
     _collection = _client.get_or_create_collection(
@@ -203,8 +248,10 @@ def get_collection():
         metadata={"hnsw:space": "cosine"},  # Cosine similarity for text
     )
 
-    logger.info(f"Connected — collection '{settings.CHROMA_COLLECTION}' "
-                f"has {_collection.count()} document(s)")
+    logger.info(
+        "Connected — collection '%s' has %d document(s) | embedding: %s",
+        settings.CHROMA_COLLECTION, _collection.count(), settings.EMBEDDING_MODEL,
+    )
     return _collection
 
 

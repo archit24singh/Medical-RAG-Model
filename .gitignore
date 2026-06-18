@@ -16,6 +16,9 @@ db_data/
 *.db
 chroma_data/
 
+# ── Reference / research material (local only, never committed) ──────────────
+REFERENCE-REPO/
+
 # ── OS / editor ──────────────────────────────────────────────────────────────
 .DS_Store
 .vscode/

@@ -11,6 +11,7 @@ Endpoints:
 
 Interactive API docs: http://localhost:8000/docs
 """
+import asyncio
 import logging
 import threading
 from contextlib import asynccontextmanager
@@ -108,9 +109,13 @@ async def ingest_all():
     """
     Walk the bucket/ directory and ingest every supported file.
     Drop files into bucket/patients/ or bucket/providers/ then call this endpoint.
+
+    Runs ingest_directory in a thread-pool executor so the FastAPI event loop
+    stays free during ingestion — /health and /query remain responsive throughout.
     """
     try:
-        res = ingest_directory(settings.BUCKET_DIR)
+        loop = asyncio.get_event_loop()
+        res = await loop.run_in_executor(None, ingest_directory, settings.BUCKET_DIR)
         return {
             "message":       "Ingestion complete",
             "success_count": len(res["success"]),

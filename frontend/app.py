@@ -40,8 +40,21 @@ def relevance_label(score: float) -> str:
     return f'<span class="relevance-low">🔴 {pct:.0f}%</span>'
 
 
-def render_sources(documents: list) -> None:
-    """Render the source documents panel with relevance scores."""
+def render_sources(documents: list, msg_key: str = "") -> None:
+    """
+    Render the source documents panel with relevance scores.
+
+    `msg_key` should be a unique identifier for the chat message this panel
+    belongs to. render_sources() is called once per assistant message every
+    time the page reruns (once for each message replayed from history, plus
+    once for a brand-new message), so a checkbox key built only from the
+    document's position + id (e.g. "raw_1_sql:118459") can collide across
+    different messages whenever the same source document happens to appear
+    at the same position in more than one answer — which Streamlit reports
+    as a DuplicateWidgetID error. Folding msg_key into the key keeps widgets
+    from different messages distinct even when their underlying documents
+    are identical.
+    """
     if not documents:
         return
     with st.expander(f"📎 {len(documents)} source document(s)"):
@@ -63,12 +76,23 @@ def render_sources(documents: list) -> None:
                     tags.append(f"NPI: {m['provider_npi']}")
                 if m.get("total_amount"):
                     tags.append(f"Amount: ${m['total_amount']}")
+                if m.get("subject_id"):
+                    tags.append(f"Subject ID: {m['subject_id']}")
+                if m.get("hadm_id"):
+                    tags.append(f"Admission (HADM_ID): {m['hadm_id']}")
+                if m.get("icd9_code"):
+                    icd9_tag = f"ICD9: {m['icd9_code']}"
+                    if m.get("icd9_description"):
+                        icd9_tag += f" ({m['icd9_description']})"
+                    tags.append(icd9_tag)
+                if m.get("seq_num"):
+                    tags.append(f"Diagnosis seq: {m['seq_num']}")
                 st.caption("  |  ".join(tags))
             with c2:
                 score = doc.get("relevance_score", 0)
                 st.markdown(relevance_label(score), unsafe_allow_html=True)
 
-            if st.checkbox("View raw content", key=f"raw_{i}_{doc.get('id', i)}"):
+            if st.checkbox("View raw content", key=f"raw_{msg_key}_{i}_{doc.get('id', i)}"):
                 st.code(doc.get("content", "")[:1000], language=None)
 
             if i < len(documents):
@@ -190,6 +214,17 @@ with st.sidebar:
                             st.write(f"**Date:** {m['date']}")
                         if m.get("provider_npi"):
                             st.write(f"**NPI:** {m['provider_npi']}")
+                        if m.get("subject_id"):
+                            st.write(f"**Subject ID:** {m['subject_id']}")
+                        if m.get("hadm_id"):
+                            st.write(f"**Admission (HADM_ID):** {m['hadm_id']}")
+                        if m.get("icd9_code"):
+                            icd9_line = f"**ICD9 code:** {m['icd9_code']}"
+                            if m.get("icd9_description"):
+                                icd9_line += f" ({m['icd9_description']})"
+                            st.write(icd9_line)
+                        if m.get("seq_num"):
+                            st.write(f"**Diagnosis sequence:** {m['seq_num']}")
                         st.caption(f"ID: `{doc['id']}`")
 
 
@@ -210,6 +245,8 @@ with st.expander("💡 Example queries — click to use", expanded=False):
         "What is the total amount on Alice's latest bill?",
         "Get provider information for NPI 9876543210",
         "What is the date of birth for Dr. Sarah Williams?",
+        "Show me the diagnoses for subject id 10006",
+        "What was the admission type for hadm id 142345?",
     ]
     for ex in examples:
         if st.button(f"→  {ex}", key=f"ex_{ex}"):
@@ -220,11 +257,11 @@ with st.expander("💡 Example queries — click to use", expanded=False):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-for msg in st.session_state.messages:
+for msg_idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg["role"] == "assistant" and msg.get("documents"):
-            render_sources(msg["documents"])
+            render_sources(msg["documents"], msg_key=f"hist{msg_idx}")
 
 
 # ── Chat input ────────────────────────────────────────────────────────────────
@@ -253,6 +290,8 @@ if user_input:
             INTENT_LABELS = {
                 "patient_name":   "Patient",
                 "patient_id":     "ID",
+                "subject_id":     "Subject ID",
+                "hadm_id":        "Admission (HADM_ID)",
                 "provider_name":  "Provider",
                 "provider_npi":   "NPI",
                 "provider_dob":   "Provider DOB",
@@ -280,7 +319,11 @@ if user_input:
                 )
 
             st.markdown(answer)
-            render_sources(documents)
+            # This message hasn't been appended to st.session_state.messages
+            # yet, so its eventual index is the current length — use that as
+            # the msg_key so it can't collide with the history-loop keys
+            # above (which use "hist{msg_idx}" for already-appended messages).
+            render_sources(documents, msg_key=f"new{len(st.session_state.messages)}")
 
             st.session_state.messages.append({
                 "role":      "assistant",

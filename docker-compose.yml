@@ -16,6 +16,11 @@ services:
       - rag_network
 
   # ── RAG Backend (FastAPI) ────────────────────────────────────────────────────
+  # NOTE: Ollama runs on the HOST machine (not in Docker).
+  # Before starting the stack, pull the required models once:
+  #   ollama pull nomic-embed-text   # embeddings (8192-token context)
+  #   ollama pull mistral            # text generation (already pulled)
+  # The backend reaches Ollama via host.docker.internal:11434.
   backend:
     build:
       context: ./backend
@@ -24,15 +29,19 @@ services:
       - "8080:8000"           # API at localhost:8080, docs at localhost:8080/docs
     volumes:
       - ./bucket:/app/bucket       # Local bucket/ folder — swap to S3 mount when upgrading to cloud
-      - model_cache:/root/.cache   # Cache sentence-transformer + Docling models between restarts
+      - model_cache:/root/.cache   # Cache CrossEncoder reranker model between restarts
       - db_data:/app/data          # Persist SQLite structured facts database
     env_file:
       - .env                  # Load LLM config from .env file
     environment:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
+      # Point the backend at the host-machine Ollama (macOS/Windows Docker Desktop)
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
     depends_on:
       - chromadb
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Linux Docker host resolution
     networks:
       - rag_network
     restart: unless-stopped
