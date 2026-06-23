@@ -25,7 +25,7 @@ from pydantic import BaseModel
 from config import settings
 from db.schema import init_db
 from rag.ingestion import ingest_directory, ingest_file
-from rag.retriever import query as rag_query
+from rag.orchestrator import query as rag_query
 from rag.vectorstore import delete_document, get_document_count, list_all_documents
 
 logging.basicConfig(
@@ -39,11 +39,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Medical RAG System starting up...")
 
-    # Initialise SQLite structured facts database
+    # Initialise PostgreSQL structured facts database
     try:
         init_db()
     except Exception as e:
-        logger.warning("SQLite init failed (non-fatal): %s", e)
+        logger.warning("PostgreSQL init failed (non-fatal): %s", e)
 
     if settings.AUTO_INGEST:
         # Run ingestion in a background thread so FastAPI starts serving

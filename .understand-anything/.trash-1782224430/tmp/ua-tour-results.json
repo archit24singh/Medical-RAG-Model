@@ -1,0 +1,722 @@
+{
+  "scriptCompleted": true,
+  "entryPointCandidates": [
+    {
+      "id": "file:backend/main.py",
+      "score": 5,
+      "name": "main.py",
+      "summary": "FastAPI application entry point exposing REST endpoints for ingestion, querying, listing, and deletion."
+    },
+    {
+      "id": "file:frontend/app.py",
+      "score": 5,
+      "name": "app.py",
+      "summary": "Streamlit chat interface for querying patient records and billing in plain English."
+    },
+    {
+      "id": "document:README.md",
+      "score": 5,
+      "name": "README.md",
+      "summary": "Primary project documentation: architecture, privacy rationale, setup."
+    },
+    {
+      "id": "file:scripts/migrate_sqlite_to_postgres.py",
+      "score": 2,
+      "name": "migrate_sqlite_to_postgres.py",
+      "summary": "Top-level copy of migration script."
+    },
+    {
+      "id": "file:scripts/purge_structured_chroma.py",
+      "score": 2,
+      "name": "purge_structured_chroma.py",
+      "summary": "Top-level copy of ChromaDB purge script."
+    }
+  ],
+  "fanInRanking": [
+    {
+      "id": "file:backend/rag/vectorstore.py",
+      "fanIn": 3,
+      "name": "vectorstore.py"
+    },
+    {
+      "id": "file:backend/config.py",
+      "fanIn": 2,
+      "name": "config.py"
+    },
+    {
+      "id": "file:backend/main.py",
+      "fanIn": 2,
+      "name": "main.py"
+    },
+    {
+      "id": "file:backend/rag/sql_retriever.py",
+      "fanIn": 2,
+      "name": "sql_retriever.py"
+    },
+    {
+      "id": "file:backend/rag/ingestion.py",
+      "fanIn": 2,
+      "name": "ingestion.py"
+    },
+    {
+      "id": "file:backend/db/schema.py",
+      "fanIn": 2,
+      "name": "schema.py"
+    },
+    {
+      "id": "file:backend/rag/orchestrator.py",
+      "fanIn": 1,
+      "name": "orchestrator.py"
+    },
+    {
+      "id": "file:backend/rag/retriever.py",
+      "fanIn": 1,
+      "name": "retriever.py"
+    },
+    {
+      "id": "file:backend/rag/intent_parser.py",
+      "fanIn": 1,
+      "name": "intent_parser.py"
+    },
+    {
+      "id": "file:backend/rag/query_router.py",
+      "fanIn": 1,
+      "name": "query_router.py"
+    },
+    {
+      "id": "file:backend/rag/llm_client.py",
+      "fanIn": 1,
+      "name": "llm_client.py"
+    },
+    {
+      "id": "file:backend/rag/audit_logger.py",
+      "fanIn": 1,
+      "name": "audit_logger.py"
+    },
+    {
+      "id": "file:backend/db/operations.py",
+      "fanIn": 1,
+      "name": "operations.py"
+    },
+    {
+      "id": "service:docker-compose.yml",
+      "fanIn": 1,
+      "name": "docker-compose.yml"
+    },
+    {
+      "id": "service:docker-compose.yml:postgres",
+      "fanIn": 1,
+      "name": "postgres"
+    },
+    {
+      "id": "service:docker-compose.yml:chromadb",
+      "fanIn": 1,
+      "name": "chromadb"
+    },
+    {
+      "id": "service:docker-compose.yml:backend",
+      "fanIn": 1,
+      "name": "backend"
+    },
+    {
+      "id": "service:docker-compose.yml:frontend",
+      "fanIn": 1,
+      "name": "frontend"
+    },
+    {
+      "id": "file:backend/rag/icd9_lookup.py",
+      "fanIn": 0,
+      "name": "icd9_lookup.py"
+    },
+    {
+      "id": "file:backend/scripts/catalog_admin.py",
+      "fanIn": 0,
+      "name": "catalog_admin.py"
+    }
+  ],
+  "fanOutRanking": [
+    {
+      "id": "file:backend/main.py",
+      "fanOut": 5,
+      "name": "main.py"
+    },
+    {
+      "id": "file:backend/rag/retriever.py",
+      "fanOut": 5,
+      "name": "retriever.py"
+    },
+    {
+      "id": "service:docker-compose.yml",
+      "fanOut": 4,
+      "name": "docker-compose.yml"
+    },
+    {
+      "id": "file:backend/rag/orchestrator.py",
+      "fanOut": 2,
+      "name": "orchestrator.py"
+    },
+    {
+      "id": "file:backend/rag/sql_retriever.py",
+      "fanOut": 1,
+      "name": "sql_retriever.py"
+    },
+    {
+      "id": "file:backend/rag/ingestion.py",
+      "fanOut": 1,
+      "name": "ingestion.py"
+    },
+    {
+      "id": "file:backend/db/operations.py",
+      "fanOut": 1,
+      "name": "operations.py"
+    },
+    {
+      "id": "service:backend/Dockerfile",
+      "fanOut": 1,
+      "name": "Dockerfile"
+    },
+    {
+      "id": "config:.env.example",
+      "fanOut": 1,
+      "name": ".env.example"
+    },
+    {
+      "id": "config:data/sources.yaml",
+      "fanOut": 1,
+      "name": "sources.yaml"
+    },
+    {
+      "id": "config:data/sql_schema_metadata.yaml",
+      "fanOut": 1,
+      "name": "sql_schema_metadata.yaml"
+    },
+    {
+      "id": "document:README.md",
+      "fanOut": 1,
+      "name": "README.md"
+    },
+    {
+      "id": "document:SETUP_GUIDE.md",
+      "fanOut": 1,
+      "name": "SETUP_GUIDE.md"
+    },
+    {
+      "id": "file:backend/config.py",
+      "fanOut": 0,
+      "name": "config.py"
+    },
+    {
+      "id": "file:backend/rag/intent_parser.py",
+      "fanOut": 0,
+      "name": "intent_parser.py"
+    },
+    {
+      "id": "file:backend/rag/query_router.py",
+      "fanOut": 0,
+      "name": "query_router.py"
+    },
+    {
+      "id": "file:backend/rag/llm_client.py",
+      "fanOut": 0,
+      "name": "llm_client.py"
+    },
+    {
+      "id": "file:backend/rag/vectorstore.py",
+      "fanOut": 0,
+      "name": "vectorstore.py"
+    },
+    {
+      "id": "file:backend/rag/audit_logger.py",
+      "fanOut": 0,
+      "name": "audit_logger.py"
+    },
+    {
+      "id": "file:backend/rag/icd9_lookup.py",
+      "fanOut": 0,
+      "name": "icd9_lookup.py"
+    }
+  ],
+  "bfsTraversal": {
+    "startNode": "file:backend/main.py",
+    "order": [
+      "file:backend/main.py",
+      "file:backend/config.py",
+      "file:backend/db/schema.py",
+      "file:backend/rag/ingestion.py",
+      "file:backend/rag/orchestrator.py",
+      "file:backend/rag/vectorstore.py",
+      "file:backend/rag/audit_logger.py",
+      "file:backend/rag/retriever.py",
+      "file:backend/rag/intent_parser.py",
+      "file:backend/rag/llm_client.py",
+      "file:backend/rag/query_router.py",
+      "file:backend/rag/sql_retriever.py",
+      "file:backend/db/operations.py"
+    ],
+    "depthMap": {
+      "file:backend/main.py": 0,
+      "file:backend/config.py": 1,
+      "file:backend/db/schema.py": 1,
+      "file:backend/rag/ingestion.py": 1,
+      "file:backend/rag/orchestrator.py": 1,
+      "file:backend/rag/vectorstore.py": 1,
+      "file:backend/rag/audit_logger.py": 2,
+      "file:backend/rag/retriever.py": 2,
+      "file:backend/rag/intent_parser.py": 3,
+      "file:backend/rag/llm_client.py": 3,
+      "file:backend/rag/query_router.py": 3,
+      "file:backend/rag/sql_retriever.py": 3,
+      "file:backend/db/operations.py": 4
+    },
+    "byDepth": {
+      "0": [
+        "file:backend/main.py"
+      ],
+      "1": [
+        "file:backend/config.py",
+        "file:backend/db/schema.py",
+        "file:backend/rag/ingestion.py",
+        "file:backend/rag/orchestrator.py",
+        "file:backend/rag/vectorstore.py"
+      ],
+      "2": [
+        "file:backend/rag/audit_logger.py",
+        "file:backend/rag/retriever.py"
+      ],
+      "3": [
+        "file:backend/rag/intent_parser.py",
+        "file:backend/rag/llm_client.py",
+        "file:backend/rag/query_router.py",
+        "file:backend/rag/sql_retriever.py"
+      ],
+      "4": [
+        "file:backend/db/operations.py"
+      ]
+    }
+  },
+  "nonCodeFiles": {
+    "documentation": [
+      {
+        "id": "document:README.md",
+        "name": "README.md",
+        "type": "document",
+        "summary": "Primary project documentation: architecture, privacy rationale, setup."
+      },
+      {
+        "id": "document:SETUP_GUIDE.md",
+        "name": "SETUP_GUIDE.md",
+        "type": "document",
+        "summary": "Comprehensive Docker deployment and configuration guide."
+      },
+      {
+        "id": "document:todo.md",
+        "name": "todo.md",
+        "type": "document",
+        "summary": "Development task tracker for planned improvements."
+      },
+      {
+        "id": "document:backend/requirements.txt",
+        "name": "requirements.txt",
+        "type": "document",
+        "summary": "Backend Python dependency manifest."
+      },
+      {
+        "id": "document:frontend/requirements.txt",
+        "name": "requirements.txt",
+        "type": "document",
+        "summary": "Frontend Python dependency manifest."
+      }
+    ],
+    "infrastructure": [
+      {
+        "id": "service:backend/Dockerfile",
+        "name": "Dockerfile",
+        "type": "service",
+        "summary": "Docker build for FastAPI backend on port 8000."
+      },
+      {
+        "id": "service:frontend/Dockerfile",
+        "name": "Dockerfile",
+        "type": "service",
+        "summary": "Docker build for Streamlit frontend on port 8501."
+      },
+      {
+        "id": "service:frontend/Dockerfile:python",
+        "name": "python",
+        "type": "service",
+        "summary": "Python 3.11-slim stage for Streamlit."
+      },
+      {
+        "id": "service:docker-compose.yml",
+        "name": "docker-compose.yml",
+        "type": "service",
+        "summary": "Docker Compose orchestrating 4 services: PostgreSQL, ChromaDB, FastAPI backend, Streamlit frontend."
+      },
+      {
+        "id": "service:docker-compose.yml:postgres",
+        "name": "postgres",
+        "type": "service",
+        "summary": "PostgreSQL 16 service on port 5432."
+      },
+      {
+        "id": "service:docker-compose.yml:chromadb",
+        "name": "chromadb",
+        "type": "service",
+        "summary": "ChromaDB vector database on port 8001."
+      },
+      {
+        "id": "service:docker-compose.yml:backend",
+        "name": "backend",
+        "type": "service",
+        "summary": "FastAPI backend service on port 8080."
+      },
+      {
+        "id": "service:docker-compose.yml:frontend",
+        "name": "frontend",
+        "type": "service",
+        "summary": "Streamlit frontend service on port 8501."
+      }
+    ],
+    "data": [],
+    "config": [
+      {
+        "id": "config:.env.example",
+        "name": ".env.example",
+        "type": "config",
+        "summary": "Template environment configuration for all runtime settings."
+      },
+      {
+        "id": "config:.understand-anything/config.json",
+        "name": "config.json",
+        "type": "config",
+        "summary": "Understand-Anything plugin configuration."
+      },
+      {
+        "id": "config:data/patients/alice_johnson_bill_2025-10-27.json",
+        "name": "alice_johnson_bill_2025-10-27.json",
+        "type": "config",
+        "summary": "Sample patient billing record for Alice Johnson."
+      },
+      {
+        "id": "config:data/patients/john_smith_record_2025-09-15.json",
+        "name": "john_smith_record_2025-09-15.json",
+        "type": "config",
+        "summary": "Sample patient medical record for John Smith."
+      },
+      {
+        "id": "config:data/providers/dr_robert_chen.json",
+        "name": "dr_robert_chen.json",
+        "type": "config",
+        "summary": "Sample provider profile for Dr. Robert Chen."
+      },
+      {
+        "id": "config:data/providers/dr_sarah_williams.json",
+        "name": "dr_sarah_williams.json",
+        "type": "config",
+        "summary": "Sample provider profile for Dr. Sarah Williams."
+      },
+      {
+        "id": "config:data/sources.yaml",
+        "name": "sources.yaml",
+        "type": "config",
+        "summary": "Stream ingestion config mapping CSV/Excel signatures to canonical fields."
+      },
+      {
+        "id": "config:data/sql_schema_metadata.yaml",
+        "name": "sql_schema_metadata.yaml",
+        "type": "config",
+        "summary": "Few-shot SQL examples for LLM text-to-SQL generation."
+      }
+    ]
+  },
+  "clusters": [],
+  "layers": {
+    "count": 8,
+    "list": [
+      {
+        "id": "layer:api",
+        "name": "API Layer",
+        "description": "FastAPI entry point exposing REST endpoints for clinical querying, ingestion, listing, deletion."
+      },
+      {
+        "id": "layer:rag-pipeline",
+        "name": "RAG Pipeline",
+        "description": "Core RAG modules: orchestrator, retriever, intent parser, query router, LLM client, deprecated stubs."
+      },
+      {
+        "id": "layer:data",
+        "name": "Data Layer",
+        "description": "PostgreSQL schema/CRUD, ChromaDB vector store, ingestion pipeline, ICD-9 lookup, SQL retriever, migration scripts, fixture data."
+      },
+      {
+        "id": "layer:service",
+        "name": "Service & Admin Layer",
+        "description": "HIPAA audit logger and CLI catalog-admin tool."
+      },
+      {
+        "id": "layer:frontend",
+        "name": "Frontend Layer",
+        "description": "Streamlit chat UI, its Dockerfile, and dependency manifest."
+      },
+      {
+        "id": "layer:infrastructure",
+        "name": "Infrastructure Layer",
+        "description": "Docker Compose and container build definitions for the 4-service stack."
+      },
+      {
+        "id": "layer:config",
+        "name": "Configuration Layer",
+        "description": "Pydantic Settings module, .env.example template, tooling config."
+      },
+      {
+        "id": "layer:documentation",
+        "name": "Documentation",
+        "description": "README, SETUP_GUIDE, todo.md, requirements manifests."
+      }
+    ]
+  },
+  "nodeSummaryIndex": {
+    "file:backend/config.py": {
+      "name": "config.py",
+      "type": "file",
+      "summary": "Central configuration module defining a Pydantic Settings class for all runtime parameters."
+    },
+    "file:backend/main.py": {
+      "name": "main.py",
+      "type": "file",
+      "summary": "FastAPI application entry point exposing REST endpoints for ingestion, querying, listing, and deletion."
+    },
+    "file:backend/rag/orchestrator.py": {
+      "name": "orchestrator.py",
+      "type": "file",
+      "summary": "Top-level RAG query orchestrator routing queries to vector or SQL retriever with audit logging."
+    },
+    "file:backend/rag/retriever.py": {
+      "name": "retriever.py",
+      "type": "file",
+      "summary": "Full hybrid retrieval pipeline: intent parsing, routing, SQL/vector dispatching, cross-encoder reranking, hallucination grading."
+    },
+    "file:backend/rag/intent_parser.py": {
+      "name": "intent_parser.py",
+      "type": "file",
+      "summary": "Regex-based parser extracting patient names, providers, dates, ICD codes from plain-English clinical queries."
+    },
+    "file:backend/rag/query_router.py": {
+      "name": "query_router.py",
+      "type": "file",
+      "summary": "Classifies parsed intent as analytical/SQL-lookup/ICD-10/vector-search and attaches routing metadata."
+    },
+    "file:backend/rag/llm_client.py": {
+      "name": "llm_client.py",
+      "type": "file",
+      "summary": "Unified LLM invocation dispatching to Ollama or OpenAI based on configuration."
+    },
+    "file:backend/rag/sql_retriever.py": {
+      "name": "sql_retriever.py",
+      "type": "file",
+      "summary": "SQL retrieval: structured entity lookup and LLM text-to-SQL analytical query path."
+    },
+    "file:backend/rag/vectorstore.py": {
+      "name": "vectorstore.py",
+      "type": "file",
+      "summary": "ChromaDB vector collection with hybrid BM25+dense search and CRUD operations."
+    },
+    "file:backend/rag/ingestion.py": {
+      "name": "ingestion.py",
+      "type": "file",
+      "summary": "Core ingestion pipeline processing tabular (CSV/Excel) and unstructured (PDF/TXT/DOCX) files into PostgreSQL and ChromaDB."
+    },
+    "file:backend/rag/audit_logger.py": {
+      "name": "audit_logger.py",
+      "type": "file",
+      "summary": "HIPAA-oriented audit logging writing structured JSON records of every query event to a rotating log file."
+    },
+    "file:backend/rag/icd9_lookup.py": {
+      "name": "icd9_lookup.py",
+      "type": "file",
+      "summary": "Lazy-loaded in-memory ICD-9 diagnosis code lookup table."
+    },
+    "file:backend/db/schema.py": {
+      "name": "schema.py",
+      "type": "file",
+      "summary": "PostgreSQL schema initialization, connection management, migration runner, and dynamic staging-table/view system."
+    },
+    "file:backend/db/operations.py": {
+      "name": "operations.py",
+      "type": "file",
+      "summary": "PostgreSQL data-access: upsert and fuzzy-match for patients, providers, admissions, clinical records."
+    },
+    "file:backend/scripts/catalog_admin.py": {
+      "name": "catalog_admin.py",
+      "type": "file",
+      "summary": "CLI tool for managing the data stream catalog that drives the dynamic SQL query layer."
+    },
+    "file:backend/scripts/migrate_sqlite_to_postgres.py": {
+      "name": "migrate_sqlite_to_postgres.py",
+      "type": "file",
+      "summary": "Database migration from SQLite to PostgreSQL."
+    },
+    "file:backend/scripts/purge_structured_chroma.py": {
+      "name": "purge_structured_chroma.py",
+      "type": "file",
+      "summary": "Maintenance script for purging structured documents from ChromaDB."
+    },
+    "file:frontend/app.py": {
+      "name": "app.py",
+      "type": "file",
+      "summary": "Streamlit chat interface for querying patient records and billing in plain English."
+    },
+    "file:backend/rag/__init__.py": {
+      "name": "__init__.py",
+      "type": "file",
+      "summary": "Empty package initializer for backend/rag."
+    },
+    "file:backend/db/__init__.py": {
+      "name": "__init__.py",
+      "type": "file",
+      "summary": "Empty package initializer for backend/db."
+    },
+    "file:backend/rag/chunker.py": {
+      "name": "chunker.py",
+      "type": "file",
+      "summary": "Deprecated stub."
+    },
+    "file:backend/rag/document_parser.py": {
+      "name": "document_parser.py",
+      "type": "file",
+      "summary": "Deprecated stub."
+    },
+    "file:backend/rag/enricher.py": {
+      "name": "enricher.py",
+      "type": "file",
+      "summary": "Deprecated stub."
+    },
+    "file:backend/rag/structured_extractor.py": {
+      "name": "structured_extractor.py",
+      "type": "file",
+      "summary": "Deprecated stub."
+    },
+    "file:scripts/migrate_sqlite_to_postgres.py": {
+      "name": "migrate_sqlite_to_postgres.py",
+      "type": "file",
+      "summary": "Top-level copy of migration script."
+    },
+    "file:scripts/purge_structured_chroma.py": {
+      "name": "purge_structured_chroma.py",
+      "type": "file",
+      "summary": "Top-level copy of ChromaDB purge script."
+    },
+    "file:.understand-anything/.understandignore": {
+      "name": ".understandignore",
+      "type": "file",
+      "summary": "Ignore patterns for analysis tool."
+    },
+    "service:backend/Dockerfile": {
+      "name": "Dockerfile",
+      "type": "service",
+      "summary": "Docker build for FastAPI backend on port 8000."
+    },
+    "service:frontend/Dockerfile": {
+      "name": "Dockerfile",
+      "type": "service",
+      "summary": "Docker build for Streamlit frontend on port 8501."
+    },
+    "service:frontend/Dockerfile:python": {
+      "name": "python",
+      "type": "service",
+      "summary": "Python 3.11-slim stage for Streamlit."
+    },
+    "service:docker-compose.yml": {
+      "name": "docker-compose.yml",
+      "type": "service",
+      "summary": "Docker Compose orchestrating 4 services: PostgreSQL, ChromaDB, FastAPI backend, Streamlit frontend."
+    },
+    "service:docker-compose.yml:postgres": {
+      "name": "postgres",
+      "type": "service",
+      "summary": "PostgreSQL 16 service on port 5432."
+    },
+    "service:docker-compose.yml:chromadb": {
+      "name": "chromadb",
+      "type": "service",
+      "summary": "ChromaDB vector database on port 8001."
+    },
+    "service:docker-compose.yml:backend": {
+      "name": "backend",
+      "type": "service",
+      "summary": "FastAPI backend service on port 8080."
+    },
+    "service:docker-compose.yml:frontend": {
+      "name": "frontend",
+      "type": "service",
+      "summary": "Streamlit frontend service on port 8501."
+    },
+    "config:.env.example": {
+      "name": ".env.example",
+      "type": "config",
+      "summary": "Template environment configuration for all runtime settings."
+    },
+    "config:.understand-anything/config.json": {
+      "name": "config.json",
+      "type": "config",
+      "summary": "Understand-Anything plugin configuration."
+    },
+    "config:data/patients/alice_johnson_bill_2025-10-27.json": {
+      "name": "alice_johnson_bill_2025-10-27.json",
+      "type": "config",
+      "summary": "Sample patient billing record for Alice Johnson."
+    },
+    "config:data/patients/john_smith_record_2025-09-15.json": {
+      "name": "john_smith_record_2025-09-15.json",
+      "type": "config",
+      "summary": "Sample patient medical record for John Smith."
+    },
+    "config:data/providers/dr_robert_chen.json": {
+      "name": "dr_robert_chen.json",
+      "type": "config",
+      "summary": "Sample provider profile for Dr. Robert Chen."
+    },
+    "config:data/providers/dr_sarah_williams.json": {
+      "name": "dr_sarah_williams.json",
+      "type": "config",
+      "summary": "Sample provider profile for Dr. Sarah Williams."
+    },
+    "config:data/sources.yaml": {
+      "name": "sources.yaml",
+      "type": "config",
+      "summary": "Stream ingestion config mapping CSV/Excel signatures to canonical fields."
+    },
+    "config:data/sql_schema_metadata.yaml": {
+      "name": "sql_schema_metadata.yaml",
+      "type": "config",
+      "summary": "Few-shot SQL examples for LLM text-to-SQL generation."
+    },
+    "document:README.md": {
+      "name": "README.md",
+      "type": "document",
+      "summary": "Primary project documentation: architecture, privacy rationale, setup."
+    },
+    "document:SETUP_GUIDE.md": {
+      "name": "SETUP_GUIDE.md",
+      "type": "document",
+      "summary": "Comprehensive Docker deployment and configuration guide."
+    },
+    "document:todo.md": {
+      "name": "todo.md",
+      "type": "document",
+      "summary": "Development task tracker for planned improvements."
+    },
+    "document:backend/requirements.txt": {
+      "name": "requirements.txt",
+      "type": "document",
+      "summary": "Backend Python dependency manifest."
+    },
+    "document:frontend/requirements.txt": {
+      "name": "requirements.txt",
+      "type": "document",
+      "summary": "Frontend Python dependency manifest."
+    }
+  },
+  "totalNodes": 48,
+  "totalEdges": 25
+}

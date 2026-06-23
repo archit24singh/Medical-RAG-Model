@@ -1,0 +1,15 @@
+{
+  "projectRoot": "/Users/architbenipal/Documents/Claude-Projects/RAG MODEL EXAMPLE/RAG MODEL",
+  "batchFiles": [
+    {"path": "backend/db/operations.py", "language": "python", "sizeLines": 557, "fileCategory": "code"},
+    {"path": "backend/db/schema.py", "language": "python", "sizeLines": 676, "fileCategory": "code"},
+    {"path": "backend/rag/sql_retriever.py", "language": "python", "sizeLines": 803, "fileCategory": "code"},
+    {"path": "backend/scripts/catalog_admin.py", "language": "python", "sizeLines": 406, "fileCategory": "code"}
+  ],
+  "batchImportData": {
+    "backend/db/operations.py": ["backend/db/schema.py"],
+    "backend/db/schema.py": ["backend/config.py"],
+    "backend/rag/sql_retriever.py": ["backend/db/operations.py"],
+    "backend/scripts/catalog_admin.py": ["backend/config.py", "backend/db/schema.py"]
+  }
+}

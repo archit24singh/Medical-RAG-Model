@@ -23,6 +23,44 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# ── Analytical query detection ────────────────────────────────────────────────
+# Patterns that indicate the user wants aggregate/trending data rather than a
+# specific patient or provider record.  When any of these match, the intent
+# parser sets is_analytical=True and the query is routed to the text-to-SQL
+# path instead of the SQL exact-lookup or RAG paths.
+
+_ANALYTICAL_PATTERNS = [
+    # Aggregation / analytics action words
+    r"\b(count|total|sum|average|avg|mean|rate|trend|trending|revenue|denial|denials"
+    r"|ar\b|ytd|breakdown|distribution|percentage|percent|statistics|stat|metric|metrics"
+    r"|how many|how much|top \d+|ranking|ranked)\b",
+    # "by <dimension>" analytical patterns
+    r"\bby\s+(provider|month|payer|year|quarter|diagnosis|icd|cpt|insurance|specialty"
+    r"|date|week|day|type|category|service)\b",
+    # Temporal / comparative analytics
+    r"\b(month-over-month|year-over-year|ytd|quarter-to-date|qtd|last\s+\d+\s+(month|year|week)s?"
+    r"|across all|overall|aggregate|among all|total billed|total paid|total charges"
+    r"|gross revenue|net revenue|collection rate|denial rate|accounts receivable)\b",
+]
+
+_ANALYTICAL_RE = re.compile(
+    "|".join(f"(?:{p})" for p in _ANALYTICAL_PATTERNS),
+    re.IGNORECASE,
+)
+
+
+def _is_analytical_query(query: str) -> bool:
+    """
+    Returns True if the query is asking for aggregate / analytical data
+    (counts, totals, trends, breakdowns by dimension) rather than a specific
+    patient or provider record.
+
+    Important: a query like "total amount for Alice Johnson" IS NOT analytical —
+    it's a specific-patient lookup.  Analytical queries typically have no specific
+    patient/provider name AND ask for aggregate metrics.
+    """
+    return bool(_ANALYTICAL_RE.search(query))
+
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -143,6 +181,9 @@ def _regex_parse(query: str) -> dict:
         "subject_id":    None,
         "hadm_id":       None,
         "specific_field": None,
+        # True when the query asks for aggregate / trending data rather than a
+        # specific patient/provider record — routes to the text-to-SQL path.
+        "is_analytical": _is_analytical_query(query),
     }
 
     # --- query_type ---

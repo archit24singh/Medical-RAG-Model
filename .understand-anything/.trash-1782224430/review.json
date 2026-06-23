@@ -1,0 +1,42 @@
+{
+  "issues": [],
+  "warnings": [
+    "Node 'file:.understand-anything/.understandignore' has no edges (orphan)",
+    "Node 'config:.understand-anything/config.json' has no edges (orphan)",
+    "Node 'file:backend/db/__init__.py' has no edges (orphan)",
+    "Node 'file:backend/rag/__init__.py' has no edges (orphan)",
+    "Node 'file:backend/rag/chunker.py' has no edges (orphan)",
+    "Node 'file:backend/rag/document_parser.py' has no edges (orphan)",
+    "Node 'file:backend/rag/enricher.py' has no edges (orphan)",
+    "Node 'file:backend/rag/structured_extractor.py' has no edges (orphan)",
+    "Node 'config:data/patients/alice_johnson_bill_2025-10-27.json' has no edges (orphan)",
+    "Node 'config:data/patients/john_smith_record_2025-09-15.json' has no edges (orphan)",
+    "Node 'config:data/providers/dr_robert_chen.json' has no edges (orphan)",
+    "Node 'config:data/providers/dr_sarah_williams.json' has no edges (orphan)"
+  ],
+  "stats": {
+    "totalNodes": 156,
+    "totalEdges": 275,
+    "totalLayers": 8,
+    "tourSteps": 15,
+    "nodeTypes": {
+      "file": 27,
+      "class": 2,
+      "function": 106,
+      "service": 8,
+      "config": 8,
+      "document": 5
+    },
+    "edgeTypes": {
+      "contains": 113,
+      "exports": 65,
+      "imports": 24,
+      "calls": 46,
+      "related": 6,
+      "depends_on": 8,
+      "deploys": 2,
+      "configures": 5,
+      "documents": 6
+    }
+  }
+}

@@ -3,40 +3,46 @@ Main RAG retrieval pipeline — dual-track: SQL exact lookup + hybrid RAG.
 
 Query paths
 -----------
+  Analytical path
+    → Aggregate / trending queries (counts, totals, breakdowns by dimension)
+    → LLM generates SQL from schema YAML → sqlglot AST check → execute on read-only PG
+
   SQL path  (sql / hybrid)
-    → Precise factual questions routed to SQLite by the query router
+    → Precise factual questions routed to PostgreSQL by the query router
     → Results come from structured rows, never LLM-generated facts
     → raw_text (verbatim source) is quoted directly → zero hallucination
     → LLM only formats the presentation, not the facts
 
   RAG path  (rag / hybrid fallback)
     → Open-ended / summary questions answered by hybrid vector+BM25 search
-    → CrossEncoder reranking (retrieve 20, rerank, use top 5)
-    → Relevance grader (binary yes/no per chunk, removes irrelevant docs)
-    → LLM synthesises an answer from the surviving relevant chunks
-    → Hallucination checker validates the final answer
+    → CrossEncoder reranking (retrieve 20, rerank, keep chunks above score threshold)
+    → LLM synthesises an answer from the surviving chunks
+    → Hallucination checker validates grounding; failure → raw sources + hard message
 
 Decision tree
 -------------
   parse_intent (regex-only) → query_router.route() →
-    'sql'    → sql_retriever.lookup() → format verbatim answer
-    'hybrid' → sql first, then RAG if needed
-    'rag'    → hybrid vector+BM25 → rerank → grade → LLM → hallucination-check
+    'analytical' → sql_retriever.analytical_lookup() → format aggregate answer
+    'sql'        → sql_retriever.lookup() → format verbatim answer
+    'hybrid'     → sql first, then RAG if needed
+    'rag'        → hybrid vector+BM25 → rerank → threshold-filter → LLM → grounding-check
 
 Anti-hallucination measures
 ----------------------------
   1. SQL results are returned verbatim — the LLM cannot alter the facts
-  2. CrossEncoder reranker: only the 5 most relevant chunks reach the LLM
-  3. Relevance grader: LLM yes/no filter removes off-topic chunks
-  4. RAG answer prompt: "use ONLY the retrieved documents"
-  5. Hallucination checker: verifies the answer is grounded in the docs
+  2. CrossEncoder reranker + score threshold: off-topic chunks are dropped
+     without any LLM call (replaces the old per-chunk LLM relevance grader)
+  3. RAG answer prompt: "use ONLY the retrieved documents"
+  4. Hallucination checker: verifies the answer is grounded in the docs
+  5. Grounding failure: hard "insufficient grounding" message + raw sources
+     (no warned passthrough — prevents confident but ungrounded answers)
   6. "No results" path: says "not found" rather than guessing
 """
 import logging
 
 from rag.intent_parser import parse_intent, build_where_filter
 from rag.query_router import route
-from rag.sql_retriever import lookup as sql_lookup
+from rag.sql_retriever import lookup as sql_lookup, analytical_lookup
 from rag.vectorstore import search, search_bm25
 from rag.llm_client import call_llm
 from config import settings
@@ -95,53 +101,44 @@ def _rerank(query: str, documents: list[dict], top_k: int) -> list[dict]:
         logger.warning("Reranking failed (%s) — using original order", exc)
         return documents[:top_k]
 
-# ── Relevance grader ─────────────────────────────────────────────────────────
+# ── CrossEncoder score-threshold filter ──────────────────────────────────────
+# Replaces the old per-chunk LLM relevance grader.  After reranking, any chunk
+# whose CrossEncoder score falls below RERANKER_SCORE_THRESHOLD is dropped.
+# This eliminates O(N) sequential Ollama calls per query and gives a
+# deterministic, sub-millisecond filter instead of an LLM yes/no judgment.
 
-_RELEVANCE_GRADE_PROMPT = """\
-You are grading whether a retrieved document is relevant to the user's question.
-
-User question: {query}
-
-Retrieved document:
-{document}
-
-Is this document relevant to the question? Reply with ONLY "yes" or "no" — \
-no explanation, no punctuation, nothing else."""
-
-
-def _grade_relevance(query: str, document: dict) -> bool:
+def _filter_by_threshold(documents: list[dict]) -> list[dict]:
     """
-    Binary relevance check for one retrieved chunk.
-    Returns True (relevant) or False (irrelevant).
-    Falls back to True (keep) if the LLM call fails.
-    """
-    try:
-        answer = call_llm(
-            _RELEVANCE_GRADE_PROMPT.format(
-                query=query,
-                document=document.get("content", "")[:800],
-            )
-        )
-        return answer.strip().lower().startswith("yes")
-    except Exception as exc:
-        logger.warning("Relevance grading failed (%s) — keeping document", exc)
-        return True  # keep on error
+    Drop reranked documents whose CrossEncoder score is below the configured
+    threshold.  Documents with no rerank_score (reranker was unavailable) are
+    always kept so the pipeline degrades gracefully rather than returning nothing.
 
-
-def _filter_relevant(query: str, documents: list[dict]) -> list[dict]:
+    If ALL reranked docs fall below the threshold, the top-1 doc is kept as a
+    last-resort fallback — it is better to send the LLM the single best chunk
+    than to produce a "no results" answer when relevant content exists.
     """
-    Run the relevance grader over all documents and return only the relevant ones.
-    If all are filtered out, return the original list (safety fallback).
-    """
-    if not documents:
+    threshold = settings.RERANKER_SCORE_THRESHOLD
+    if threshold <= 0.0:
+        # Threshold disabled — pass everything through
         return documents
 
-    relevant = [doc for doc in documents if _grade_relevance(query, doc)]
-    if not relevant:
-        logger.info("Relevance grader removed all docs — using originals as fallback")
-        return documents  # don't leave the LLM with nothing
-    logger.info("Relevance grader: %d/%d doc(s) kept", len(relevant), len(documents))
-    return relevant
+    filtered = [
+        doc for doc in documents
+        if doc.get("rerank_score", threshold + 1.0) >= threshold
+    ]
+
+    if not filtered:
+        logger.info(
+            "Score threshold %.2f filtered all %d docs — keeping top-1 as fallback",
+            threshold, len(documents),
+        )
+        return documents[:1] if documents else []
+
+    logger.info(
+        "Score threshold %.2f: %d/%d doc(s) passed",
+        threshold, len(filtered), len(documents),
+    )
+    return filtered
 
 
 # ── Hallucination checker ─────────────────────────────────────────────────────
@@ -185,6 +182,29 @@ def _check_hallucination(answer: str, documents: list[dict]) -> bool:
 
 
 # ── Answer prompts ────────────────────────────────────────────────────────────
+
+_GROUNDING_FAILURE_MESSAGE = (
+    "⛔ Insufficient grounding — the retrieved documents do not adequately "
+    "support a confident answer to this query.\n\n"
+    "The raw source documents retrieved are shown in the 'documents' field. "
+    "Please review them directly or rephrase your question to be more specific."
+)
+
+_ANALYTICAL_ANSWER_PROMPT = """\
+You are a medical billing analyst presenting aggregate query results.
+
+User question: {query}
+
+Query results ({row_count} row(s)):
+{results_text}
+
+Instructions:
+- Present the data clearly: use a table if there are multiple rows, or a sentence for a single value.
+- Do NOT add any information not present in the results above.
+- Round monetary amounts to 2 decimal places and prefix with $.
+- If the result is empty, say "No data found for this query."
+
+Answer:"""
 
 _SQL_ANSWER_PROMPT = """\
 You are a medical records assistant presenting exact information retrieved \
@@ -247,6 +267,22 @@ def query(user_query: str) -> dict:
 
     # ── Step 2: route query ───────────────────────────────────────────────────
     path = route(intent)
+
+    # ── Step 2a: analytical path (LLM text-to-SQL) ───────────────────────────
+    if path == "analytical":
+        analytical_docs = analytical_lookup(user_query)
+        if analytical_docs:
+            answer = _format_analytical_answer(analytical_docs, user_query)
+        else:
+            answer = "No analytical data found for this query."
+        return {
+            "answer":        answer,
+            "documents":     analytical_docs,
+            "intent":        intent,
+            "filter_used":   None,
+            "query_path":    "analytical",
+            "sql_generated": analytical_docs[0].get("sql_generated") if analytical_docs else None,
+        }
 
     # ── Step 3a: SQL exact lookup ─────────────────────────────────────────────
     sql_documents = []
@@ -322,12 +358,14 @@ def query(user_query: str) -> dict:
                 "in other patients' records"
             )
 
-    # ── Step 4: rerank + relevance-grade RAG results ─────────────────────────
+    # ── Step 4: rerank + score-threshold filter RAG results ──────────────────
     if rag_documents and path != "sql":
         # CrossEncoder reranker: retrieve INITIAL_K → rerank → top TOP_K
         rag_documents = _rerank(user_query, rag_documents, settings.RERANKER_TOP_K)
-        # Relevance grader: binary yes/no filter (from reliable_rag pattern)
-        rag_documents = _filter_relevant(user_query, rag_documents)
+        # Score threshold filter: drop chunks below RERANKER_SCORE_THRESHOLD
+        # (replaces the old per-chunk LLM relevance grader — eliminates N
+        # sequential Ollama calls and gives a deterministic filter instead)
+        rag_documents = _filter_by_threshold(rag_documents)
 
     # ── Step 5: combine SQL + RAG for hybrid path ─────────────────────────────
     if path == "hybrid":
@@ -366,6 +404,23 @@ def query(user_query: str) -> dict:
 
 
 # ── Answer formatters ─────────────────────────────────────────────────────────
+
+def _format_analytical_answer(documents: list[dict], user_query: str) -> str:
+    """
+    Format an answer from analytical (text-to-SQL) results.
+    The LLM presents the aggregate table; it cannot alter the values.
+    """
+    rows_text = "\n".join(doc["content"] for doc in documents)
+    try:
+        return call_llm(_ANALYTICAL_ANSWER_PROMPT.format(
+            query=user_query,
+            row_count=len(documents),
+            results_text=rows_text,
+        ))
+    except Exception as exc:
+        logger.warning("LLM analytical formatting failed: %s — using raw rows", exc)
+        return f"Query results ({len(documents)} row(s)):\n\n{rows_text}"
+
 
 def _format_sql_answer(documents: list[dict], user_query: str) -> str:
     """
@@ -410,17 +465,16 @@ def _format_rag_answer(documents: list[dict], user_query: str) -> tuple[str, boo
         logger.warning("LLM RAG answer failed: %s — using fallback", exc)
         return _fallback_answer(documents), False
 
-    # Hallucination check
+    # Hallucination / grounding check
     grounded = _check_hallucination(answer, documents)
     if not grounded:
-        logger.warning("Hallucination detected — appending disclaimer to answer")
-        answer = (
-            answer
-            + "\n\n⚠️ *Note: this answer may not be fully supported by the "
-            "retrieved documents — please verify against the source material.*"
-        )
+        # Hard failure: return the raw sources and a clear refusal instead of
+        # a warned passthrough.  A confident but ungrounded answer is worse
+        # than an honest "I cannot verify this" message.
+        logger.warning("Grounding check failed — returning raw sources with failure message")
+        return _GROUNDING_FAILURE_MESSAGE, True
 
-    return answer, not grounded
+    return answer, False
 
 
 # ── Hybrid vector + BM25 search ───────────────────────────────────────────────

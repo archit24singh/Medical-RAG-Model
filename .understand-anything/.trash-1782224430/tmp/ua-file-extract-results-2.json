@@ -1,0 +1,4141 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 4,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "backend/db/operations.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 557,
+      "nonEmptyLines": 481,
+      "functions": [
+        {
+          "name": "_name_tokens",
+          "startLine": 39,
+          "endLine": 44,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "_canonical_name",
+          "startLine": 47,
+          "endLine": 49,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "_name_match_score",
+          "startLine": 52,
+          "endLine": 75,
+          "params": [
+            "query",
+            "candidate"
+          ]
+        },
+        {
+          "name": "find_or_create_patient",
+          "startLine": 80,
+          "endLine": 145,
+          "params": [
+            "name",
+            "patient_id",
+            "dob",
+            "gender",
+            "phone",
+            "address",
+            "insurance_id",
+            "source_file",
+            "subject_id"
+          ]
+        },
+        {
+          "name": "_update_patient",
+          "startLine": 148,
+          "endLine": 170,
+          "params": [
+            "conn",
+            "patient_pk",
+            "dob",
+            "gender",
+            "phone",
+            "address",
+            "insurance_id",
+            "source_file",
+            "subject_id"
+          ]
+        },
+        {
+          "name": "find_or_create_provider",
+          "startLine": 175,
+          "endLine": 224,
+          "params": [
+            "name",
+            "npi",
+            "specialty",
+            "dob",
+            "phone",
+            "address",
+            "license_number",
+            "source_file"
+          ]
+        },
+        {
+          "name": "_update_provider",
+          "startLine": 227,
+          "endLine": 249,
+          "params": [
+            "conn",
+            "provider_pk",
+            "name",
+            "specialty",
+            "dob",
+            "phone",
+            "address",
+            "license_number",
+            "source_file"
+          ]
+        },
+        {
+          "name": "insert_record",
+          "startLine": 254,
+          "endLine": 297,
+          "params": [
+            "patient_id",
+            "record_type",
+            "raw_text",
+            "source_file",
+            "provider_id",
+            "record_date",
+            "total_amount",
+            "claim_number",
+            "diagnosis",
+            "treatment",
+            "medication",
+            "dosage",
+            "test_name",
+            "test_result",
+            "reference_range",
+            "details",
+            "page_number",
+            "chunk_index",
+            "hadm_id",
+            "icd9_code",
+            "icd9_description",
+            "seq_num"
+          ]
+        },
+        {
+          "name": "find_or_create_admission",
+          "startLine": 302,
+          "endLine": 345,
+          "params": [
+            "patient_pk",
+            "subject_id",
+            "hadm_id",
+            "admittime",
+            "dischtime",
+            "deathtime",
+            "admission_type",
+            "diagnosis",
+            "source_file"
+          ]
+        },
+        {
+          "name": "get_admission_info",
+          "startLine": 348,
+          "endLine": 354,
+          "params": [
+            "hadm_id"
+          ]
+        },
+        {
+          "name": "query_records_by_hadm_id",
+          "startLine": 357,
+          "endLine": 379,
+          "params": [
+            "hadm_id",
+            "limit"
+          ]
+        },
+        {
+          "name": "delete_records_by_source_file",
+          "startLine": 384,
+          "endLine": 393,
+          "params": [
+            "source_file"
+          ]
+        },
+        {
+          "name": "query_patient_records",
+          "startLine": 398,
+          "endLine": 436,
+          "params": [
+            "patient_name",
+            "patient_id_str",
+            "record_type",
+            "record_date",
+            "limit",
+            "subject_id"
+          ]
+        },
+        {
+          "name": "query_provider",
+          "startLine": 439,
+          "endLine": 465,
+          "params": [
+            "provider_name",
+            "provider_npi"
+          ]
+        },
+        {
+          "name": "query_all_patient_records",
+          "startLine": 468,
+          "endLine": 478,
+          "params": [
+            "patient_name",
+            "patient_id_str",
+            "limit"
+          ]
+        },
+        {
+          "name": "get_patient_info",
+          "startLine": 481,
+          "endLine": 506,
+          "params": [
+            "patient_name",
+            "patient_id_str",
+            "subject_id"
+          ]
+        },
+        {
+          "name": "_norm",
+          "startLine": 511,
+          "endLine": 514,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "_best_name_match",
+          "startLine": 517,
+          "endLine": 529,
+          "params": [
+            "name",
+            "existing_rows"
+          ]
+        },
+        {
+          "name": "_resolve_patient_pks",
+          "startLine": 532,
+          "endLine": 557,
+          "params": [
+            "conn",
+            "name",
+            "patient_id",
+            "subject_id"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_name_tokens",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "_canonical_name",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "_name_match_score",
+          "line": 52,
+          "isDefault": false
+        },
+        {
+          "name": "find_or_create_patient",
+          "line": 80,
+          "isDefault": false
+        },
+        {
+          "name": "_update_patient",
+          "line": 148,
+          "isDefault": false
+        },
+        {
+          "name": "find_or_create_provider",
+          "line": 175,
+          "isDefault": false
+        },
+        {
+          "name": "_update_provider",
+          "line": 227,
+          "isDefault": false
+        },
+        {
+          "name": "insert_record",
+          "line": 254,
+          "isDefault": false
+        },
+        {
+          "name": "find_or_create_admission",
+          "line": 302,
+          "isDefault": false
+        },
+        {
+          "name": "get_admission_info",
+          "line": 348,
+          "isDefault": false
+        },
+        {
+          "name": "query_records_by_hadm_id",
+          "line": 357,
+          "isDefault": false
+        },
+        {
+          "name": "delete_records_by_source_file",
+          "line": 384,
+          "isDefault": false
+        },
+        {
+          "name": "query_patient_records",
+          "line": 398,
+          "isDefault": false
+        },
+        {
+          "name": "query_provider",
+          "line": 439,
+          "isDefault": false
+        },
+        {
+          "name": "query_all_patient_records",
+          "line": 468,
+          "isDefault": false
+        },
+        {
+          "name": "get_patient_info",
+          "line": 481,
+          "isDefault": false
+        },
+        {
+          "name": "_norm",
+          "line": 511,
+          "isDefault": false
+        },
+        {
+          "name": "_best_name_match",
+          "line": 517,
+          "isDefault": false
+        },
+        {
+          "name": "_resolve_patient_pks",
+          "line": 532,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_name_tokens",
+          "callee": "set",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_name_tokens",
+          "callee": "re.sub",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_name_tokens",
+          "callee": "name.lower",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_name_tokens",
+          "callee": "cleaned.split",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_canonical_name",
+          "callee": "\" \".join",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_canonical_name",
+          "callee": "sorted",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_canonical_name",
+          "callee": "_name_tokens",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "_name_tokens",
+          "lineNumber": 59
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "_name_tokens",
+          "lineNumber": 60
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "len",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "len",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "len",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "difflib.SequenceMatcher(\n        None, _canonical_name(query), _canonical_name(candidate)\n    ).ratio",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "difflib.SequenceMatcher",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "_canonical_name",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_name_match_score",
+          "callee": "_canonical_name",
+          "lineNumber": 74
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "_norm",
+          "lineNumber": 100
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "ValueError",
+          "lineNumber": 102
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "get_db",
+          "lineNumber": 104
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "conn.cursor",
+          "lineNumber": 105
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "cur.execute",
+          "lineNumber": 108
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "fetchone_dict",
+          "lineNumber": 109
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "_update_patient",
+          "lineNumber": 111
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "cur.execute",
+          "lineNumber": 117
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "fetchone_dict",
+          "lineNumber": 118
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "_update_patient",
+          "lineNumber": 120
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "cur.execute",
+          "lineNumber": 125
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "fetchall_dicts",
+          "lineNumber": 126
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "_best_name_match",
+          "lineNumber": 127
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "_update_patient",
+          "lineNumber": 129
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "cur.execute",
+          "lineNumber": 134
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "cur.fetchone",
+          "lineNumber": 143
+        },
+        {
+          "caller": "find_or_create_patient",
+          "callee": "logger.info",
+          "lineNumber": 144
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "conn.cursor",
+          "lineNumber": 151
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "cur.execute",
+          "lineNumber": 156
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "cur.execute",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "cur.fetchone",
+          "lineNumber": 162
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "existing.split",
+          "lineNumber": 164
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "files.append",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "cur.execute",
+          "lineNumber": 167
+        },
+        {
+          "caller": "_update_patient",
+          "callee": "\",\".join",
+          "lineNumber": 169
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "_norm",
+          "lineNumber": 186
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "(npi or \"\").strip",
+          "lineNumber": 187
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "get_db",
+          "lineNumber": 192
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "conn.cursor",
+          "lineNumber": 193
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "cur.execute",
+          "lineNumber": 196
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "fetchone_dict",
+          "lineNumber": 197
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "_update_provider",
+          "lineNumber": 199
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "cur.execute",
+          "lineNumber": 205
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "fetchall_dicts",
+          "lineNumber": 206
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "_best_name_match",
+          "lineNumber": 207
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "_update_provider",
+          "lineNumber": 209
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "cur.execute",
+          "lineNumber": 214
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "cur.fetchone",
+          "lineNumber": 222
+        },
+        {
+          "caller": "find_or_create_provider",
+          "callee": "logger.info",
+          "lineNumber": 223
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "conn.cursor",
+          "lineNumber": 230
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "cur.execute",
+          "lineNumber": 235
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "cur.execute",
+          "lineNumber": 240
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "cur.fetchone",
+          "lineNumber": 241
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "existing.split",
+          "lineNumber": 243
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "files.append",
+          "lineNumber": 245
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "cur.execute",
+          "lineNumber": 246
+        },
+        {
+          "caller": "_update_provider",
+          "callee": "\",\".join",
+          "lineNumber": 248
+        },
+        {
+          "caller": "insert_record",
+          "callee": "json.dumps",
+          "lineNumber": 279
+        },
+        {
+          "caller": "insert_record",
+          "callee": "get_db",
+          "lineNumber": 280
+        },
+        {
+          "caller": "insert_record",
+          "callee": "conn.cursor",
+          "lineNumber": 281
+        },
+        {
+          "caller": "insert_record",
+          "callee": "cur.execute",
+          "lineNumber": 282
+        },
+        {
+          "caller": "insert_record",
+          "callee": "cur.fetchone",
+          "lineNumber": 297
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "ValueError",
+          "lineNumber": 315
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "get_db",
+          "lineNumber": 317
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "conn.cursor",
+          "lineNumber": 318
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "cur.execute",
+          "lineNumber": 319
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "fetchone_dict",
+          "lineNumber": 320
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "cur.execute",
+          "lineNumber": 328
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "cur.execute",
+          "lineNumber": 334
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "cur.fetchone",
+          "lineNumber": 343
+        },
+        {
+          "caller": "find_or_create_admission",
+          "callee": "logger.info",
+          "lineNumber": 344
+        },
+        {
+          "caller": "get_admission_info",
+          "callee": "get_readonly_db",
+          "lineNumber": 351
+        },
+        {
+          "caller": "get_admission_info",
+          "callee": "conn.cursor",
+          "lineNumber": 352
+        },
+        {
+          "caller": "get_admission_info",
+          "callee": "cur.execute",
+          "lineNumber": 353
+        },
+        {
+          "caller": "get_admission_info",
+          "callee": "fetchone_dict",
+          "lineNumber": 354
+        },
+        {
+          "caller": "query_records_by_hadm_id",
+          "callee": "get_readonly_db",
+          "lineNumber": 360
+        },
+        {
+          "caller": "query_records_by_hadm_id",
+          "callee": "conn.cursor",
+          "lineNumber": 361
+        },
+        {
+          "caller": "query_records_by_hadm_id",
+          "callee": "cur.execute",
+          "lineNumber": 362
+        },
+        {
+          "caller": "query_records_by_hadm_id",
+          "callee": "fetchall_dicts",
+          "lineNumber": 379
+        },
+        {
+          "caller": "delete_records_by_source_file",
+          "callee": "get_db",
+          "lineNumber": 390
+        },
+        {
+          "caller": "delete_records_by_source_file",
+          "callee": "conn.cursor",
+          "lineNumber": 391
+        },
+        {
+          "caller": "delete_records_by_source_file",
+          "callee": "cur.execute",
+          "lineNumber": 392
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "get_readonly_db",
+          "lineNumber": 408
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "conn.cursor",
+          "lineNumber": 409
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "_resolve_patient_pks",
+          "lineNumber": 410
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "\",\".join",
+          "lineNumber": 414
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "len",
+          "lineNumber": 414
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "list",
+          "lineNumber": 415
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "params.append",
+          "lineNumber": 428
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "params.append",
+          "lineNumber": 431
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "params.append",
+          "lineNumber": 433
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "cur.execute",
+          "lineNumber": 435
+        },
+        {
+          "caller": "query_patient_records",
+          "callee": "fetchall_dicts",
+          "lineNumber": 436
+        },
+        {
+          "caller": "query_provider",
+          "callee": "get_readonly_db",
+          "lineNumber": 445
+        },
+        {
+          "caller": "query_provider",
+          "callee": "conn.cursor",
+          "lineNumber": 446
+        },
+        {
+          "caller": "query_provider",
+          "callee": "cur.execute",
+          "lineNumber": 448
+        },
+        {
+          "caller": "query_provider",
+          "callee": "fetchall_dicts",
+          "lineNumber": 449
+        },
+        {
+          "caller": "query_provider",
+          "callee": "_norm",
+          "lineNumber": 454
+        },
+        {
+          "caller": "query_provider",
+          "callee": "cur.execute",
+          "lineNumber": 455
+        },
+        {
+          "caller": "query_provider",
+          "callee": "fetchall_dicts",
+          "lineNumber": 456
+        },
+        {
+          "caller": "query_provider",
+          "callee": "_name_match_score",
+          "lineNumber": 459
+        },
+        {
+          "caller": "query_provider",
+          "callee": "row.get",
+          "lineNumber": 459
+        },
+        {
+          "caller": "query_provider",
+          "callee": "scored.append",
+          "lineNumber": 461
+        },
+        {
+          "caller": "query_provider",
+          "callee": "scored.sort",
+          "lineNumber": 462
+        },
+        {
+          "caller": "query_all_patient_records",
+          "callee": "query_patient_records",
+          "lineNumber": 474
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "get_readonly_db",
+          "lineNumber": 488
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "conn.cursor",
+          "lineNumber": 489
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "_resolve_patient_pks",
+          "lineNumber": 490
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "cur.execute",
+          "lineNumber": 496
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "fetchone_dict",
+          "lineNumber": 497
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "row.items",
+          "lineNumber": 503
+        },
+        {
+          "caller": "get_patient_info",
+          "callee": "merged.get",
+          "lineNumber": 504
+        },
+        {
+          "caller": "_norm",
+          "callee": "\" \".join",
+          "lineNumber": 514
+        },
+        {
+          "caller": "_norm",
+          "callee": "name.strip().title().split",
+          "lineNumber": 514
+        },
+        {
+          "caller": "_norm",
+          "callee": "name.strip().title",
+          "lineNumber": 514
+        },
+        {
+          "caller": "_norm",
+          "callee": "name.strip",
+          "lineNumber": 514
+        },
+        {
+          "caller": "_best_name_match",
+          "callee": "_name_match_score",
+          "lineNumber": 523
+        },
+        {
+          "caller": "_best_name_match",
+          "callee": "row.get",
+          "lineNumber": 523
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "set",
+          "lineNumber": 539
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "conn.cursor",
+          "lineNumber": 540
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "cur.execute",
+          "lineNumber": 542
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "pks.update",
+          "lineNumber": 543
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "cur.fetchall",
+          "lineNumber": 543
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "cur.execute",
+          "lineNumber": 546
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "pks.update",
+          "lineNumber": 547
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "cur.fetchall",
+          "lineNumber": 547
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "_norm",
+          "lineNumber": 550
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "cur.execute",
+          "lineNumber": 551
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "cur.fetchall",
+          "lineNumber": 552
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "_name_match_score",
+          "lineNumber": 553
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "pks.add",
+          "lineNumber": 555
+        },
+        {
+          "caller": "_resolve_patient_pks",
+          "callee": "list",
+          "lineNumber": 557
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 19,
+        "functionCount": 19,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/db/schema.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 676,
+      "nonEmptyLines": 583,
+      "functions": [
+        {
+          "name": "_connect",
+          "startLine": 43,
+          "endLine": 47,
+          "params": [
+            "dsn"
+          ]
+        },
+        {
+          "name": "get_db",
+          "startLine": 51,
+          "endLine": 69,
+          "params": []
+        },
+        {
+          "name": "get_readonly_db",
+          "startLine": 73,
+          "endLine": 97,
+          "params": []
+        },
+        {
+          "name": "dict_row",
+          "startLine": 100,
+          "endLine": 103,
+          "params": [
+            "cursor",
+            "row"
+          ]
+        },
+        {
+          "name": "fetchall_dicts",
+          "startLine": 106,
+          "endLine": 110,
+          "params": [
+            "cursor"
+          ]
+        },
+        {
+          "name": "fetchone_dict",
+          "startLine": 113,
+          "endLine": 119,
+          "params": [
+            "cursor"
+          ]
+        },
+        {
+          "name": "_run_migrations",
+          "startLine": 247,
+          "endLine": 258,
+          "params": [
+            "conn"
+          ]
+        },
+        {
+          "name": "init_db",
+          "startLine": 261,
+          "endLine": 273,
+          "params": []
+        },
+        {
+          "name": "_quote_identifier",
+          "startLine": 278,
+          "endLine": 280,
+          "params": [
+            "name"
+          ]
+        },
+        {
+          "name": "_create_staging_table",
+          "startLine": 373,
+          "endLine": 409,
+          "params": [
+            "conn",
+            "staging_table",
+            "stored_cols"
+          ]
+        },
+        {
+          "name": "_sync_staging_columns",
+          "startLine": 412,
+          "endLine": 440,
+          "params": [
+            "conn",
+            "staging_table",
+            "new_cols"
+          ]
+        },
+        {
+          "name": "_build_and_create_view",
+          "startLine": 443,
+          "endLine": 583,
+          "params": [
+            "conn",
+            "stream"
+          ]
+        },
+        {
+          "name": "_reconcile_snapshot_deletions",
+          "startLine": 586,
+          "endLine": 676,
+          "params": [
+            "conn",
+            "staging_table",
+            "filename",
+            "current_hashes",
+            "total_rows"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_connect",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "get_db",
+          "line": 50,
+          "isDefault": false
+        },
+        {
+          "name": "get_readonly_db",
+          "line": 72,
+          "isDefault": false
+        },
+        {
+          "name": "dict_row",
+          "line": 100,
+          "isDefault": false
+        },
+        {
+          "name": "fetchall_dicts",
+          "line": 106,
+          "isDefault": false
+        },
+        {
+          "name": "fetchone_dict",
+          "line": 113,
+          "isDefault": false
+        },
+        {
+          "name": "_run_migrations",
+          "line": 247,
+          "isDefault": false
+        },
+        {
+          "name": "init_db",
+          "line": 261,
+          "isDefault": false
+        },
+        {
+          "name": "_quote_identifier",
+          "line": 278,
+          "isDefault": false
+        },
+        {
+          "name": "_create_staging_table",
+          "line": 373,
+          "isDefault": false
+        },
+        {
+          "name": "_sync_staging_columns",
+          "line": 412,
+          "isDefault": false
+        },
+        {
+          "name": "_build_and_create_view",
+          "line": 443,
+          "isDefault": false
+        },
+        {
+          "name": "_reconcile_snapshot_deletions",
+          "line": 586,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_connect",
+          "callee": "psycopg2.connect",
+          "lineNumber": 45
+        },
+        {
+          "caller": "get_db",
+          "callee": "_connect",
+          "lineNumber": 61
+        },
+        {
+          "caller": "get_db",
+          "callee": "conn.commit",
+          "lineNumber": 64
+        },
+        {
+          "caller": "get_db",
+          "callee": "conn.rollback",
+          "lineNumber": 66
+        },
+        {
+          "caller": "get_db",
+          "callee": "conn.close",
+          "lineNumber": 69
+        },
+        {
+          "caller": "get_readonly_db",
+          "callee": "logger.warning",
+          "lineNumber": 84
+        },
+        {
+          "caller": "get_readonly_db",
+          "callee": "_connect",
+          "lineNumber": 89
+        },
+        {
+          "caller": "get_readonly_db",
+          "callee": "conn.commit",
+          "lineNumber": 92
+        },
+        {
+          "caller": "get_readonly_db",
+          "callee": "conn.rollback",
+          "lineNumber": 94
+        },
+        {
+          "caller": "get_readonly_db",
+          "callee": "conn.close",
+          "lineNumber": 97
+        },
+        {
+          "caller": "dict_row",
+          "callee": "dict",
+          "lineNumber": 103
+        },
+        {
+          "caller": "dict_row",
+          "callee": "zip",
+          "lineNumber": 103
+        },
+        {
+          "caller": "fetchall_dicts",
+          "callee": "cursor.fetchall",
+          "lineNumber": 108
+        },
+        {
+          "caller": "fetchall_dicts",
+          "callee": "dict",
+          "lineNumber": 110
+        },
+        {
+          "caller": "fetchall_dicts",
+          "callee": "zip",
+          "lineNumber": 110
+        },
+        {
+          "caller": "fetchone_dict",
+          "callee": "cursor.fetchone",
+          "lineNumber": 115
+        },
+        {
+          "caller": "fetchone_dict",
+          "callee": "dict",
+          "lineNumber": 119
+        },
+        {
+          "caller": "fetchone_dict",
+          "callee": "zip",
+          "lineNumber": 119
+        },
+        {
+          "caller": "_run_migrations",
+          "callee": "conn.cursor",
+          "lineNumber": 249
+        },
+        {
+          "caller": "_run_migrations",
+          "callee": "cur.execute",
+          "lineNumber": 252
+        },
+        {
+          "caller": "_run_migrations",
+          "callee": "conn.commit",
+          "lineNumber": 255
+        },
+        {
+          "caller": "_run_migrations",
+          "callee": "conn.rollback",
+          "lineNumber": 257
+        },
+        {
+          "caller": "_run_migrations",
+          "callee": "logger.warning",
+          "lineNumber": 258
+        },
+        {
+          "caller": "init_db",
+          "callee": "get_db",
+          "lineNumber": 266
+        },
+        {
+          "caller": "init_db",
+          "callee": "conn.cursor",
+          "lineNumber": 267
+        },
+        {
+          "caller": "init_db",
+          "callee": "cur.execute",
+          "lineNumber": 268
+        },
+        {
+          "caller": "init_db",
+          "callee": "_run_migrations",
+          "lineNumber": 269
+        },
+        {
+          "caller": "init_db",
+          "callee": "conn.cursor",
+          "lineNumber": 270
+        },
+        {
+          "caller": "init_db",
+          "callee": "cur.execute",
+          "lineNumber": 271
+        },
+        {
+          "caller": "init_db",
+          "callee": "conn.commit",
+          "lineNumber": 272
+        },
+        {
+          "caller": "init_db",
+          "callee": "logger.info",
+          "lineNumber": 273
+        },
+        {
+          "caller": "_quote_identifier",
+          "callee": "name.replace",
+          "lineNumber": 280
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "_quote_identifier",
+          "lineNumber": 379
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "\",\\n    \".join",
+          "lineNumber": 380
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "_quote_identifier",
+          "lineNumber": 381
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "staging_table.replace",
+          "lineNumber": 393
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "conn.cursor",
+          "lineNumber": 394
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "cur.execute",
+          "lineNumber": 395
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "cur.execute",
+          "lineNumber": 396
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "cur.execute",
+          "lineNumber": 400
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "cur.execute",
+          "lineNumber": 404
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "conn.commit",
+          "lineNumber": 408
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "logger.info",
+          "lineNumber": 409
+        },
+        {
+          "caller": "_create_staging_table",
+          "callee": "len",
+          "lineNumber": 409
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "conn.cursor",
+          "lineNumber": 419
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "cur.execute",
+          "lineNumber": 420
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "cur.fetchall",
+          "lineNumber": 425
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "col.startswith",
+          "lineNumber": 429
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "conn.cursor",
+          "lineNumber": 431
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "cur.execute",
+          "lineNumber": 432
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "_quote_identifier",
+          "lineNumber": 433
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "_quote_identifier",
+          "lineNumber": 434
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "added.append",
+          "lineNumber": 436
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "conn.commit",
+          "lineNumber": 439
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "logger.info",
+          "lineNumber": 440
+        },
+        {
+          "caller": "_sync_staging_columns",
+          "callee": "len",
+          "lineNumber": 440
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "stream.get",
+          "lineNumber": 464
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "ValueError",
+          "lineNumber": 466
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "stream.get",
+          "lineNumber": 467
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "stream.get",
+          "lineNumber": 471
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "ValueError",
+          "lineNumber": 473
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "re.sub(r\"[^a-z0-9]+\", \"_\", label.lower()).strip",
+          "lineNumber": 479
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "re.sub",
+          "lineNumber": 479
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "label.lower",
+          "lineNumber": 479
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "stream.get",
+          "lineNumber": 480
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "stream.get",
+          "lineNumber": 481
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "set",
+          "lineNumber": 485
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_json.loads",
+          "lineNumber": 485
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "isinstance",
+          "lineNumber": 485
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "set",
+          "lineNumber": 486
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_json.loads",
+          "lineNumber": 486
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "isinstance",
+          "lineNumber": 486
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "set",
+          "lineNumber": 488
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "set",
+          "lineNumber": 489
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.cursor",
+          "lineNumber": 492
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "cur.execute",
+          "lineNumber": 493
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "cur.fetchall",
+          "lineNumber": 498
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "missing_in_table.append",
+          "lineNumber": 505
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "missing_in_table.append",
+          "lineNumber": 509
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "ValueError",
+          "lineNumber": 513
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "\"\\n\".join",
+          "lineNumber": 515
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "mapping.items",
+          "lineNumber": 523
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_quote_identifier",
+          "lineNumber": 524
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_quote_identifier",
+          "lineNumber": 525
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "(spec.get(\"type\") or \"text\").lower",
+          "lineNumber": 526
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "spec.get",
+          "lineNumber": 526
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "spec.get",
+          "lineNumber": 527
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "select_parts.append",
+          "lineNumber": 540
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "\",\\n\".join",
+          "lineNumber": 542
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_quote_identifier",
+          "lineNumber": 543
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_quote_identifier",
+          "lineNumber": 544
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.cursor",
+          "lineNumber": 552
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "cur.execute",
+          "lineNumber": 553
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.commit",
+          "lineNumber": 554
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "logger.info",
+          "lineNumber": 555
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "(settings.POSTGRES_READONLY_ROLE or \"\").strip",
+          "lineNumber": 558
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.cursor",
+          "lineNumber": 560
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "cur.execute",
+          "lineNumber": 561
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "_quote_identifier",
+          "lineNumber": 562
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.commit",
+          "lineNumber": 564
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "logger.info",
+          "lineNumber": 565
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "logger.warning",
+          "lineNumber": 567
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.cursor",
+          "lineNumber": 575
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "cur.execute",
+          "lineNumber": 576
+        },
+        {
+          "caller": "_build_and_create_view",
+          "callee": "conn.commit",
+          "lineNumber": 582
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "float",
+          "lineNumber": 607
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "int",
+          "lineNumber": 608
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "_quote_identifier",
+          "lineNumber": 609
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "conn.cursor",
+          "lineNumber": 611
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "cur.execute",
+          "lineNumber": 612
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "cur.fetchone",
+          "lineNumber": 617
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "logger.info",
+          "lineNumber": 620
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "logger.warning",
+          "lineNumber": 627
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "logger.warning",
+          "lineNumber": 635
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "conn.cursor",
+          "lineNumber": 646
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "cur.execute",
+          "lineNumber": 647
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "execute_values",
+          "lineNumber": 652
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "cur.execute",
+          "lineNumber": 658
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "conn.commit",
+          "lineNumber": 671
+        },
+        {
+          "caller": "_reconcile_snapshot_deletions",
+          "callee": "logger.info",
+          "lineNumber": 672
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 13,
+        "functionCount": 13,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/rag/sql_retriever.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 803,
+      "nonEmptyLines": 681,
+      "functions": [
+        {
+          "name": "_is_demographic_field",
+          "startLine": 76,
+          "endLine": 80,
+          "params": [
+            "specific_field"
+          ]
+        },
+        {
+          "name": "lookup",
+          "startLine": 83,
+          "endLine": 161,
+          "params": [
+            "intent"
+          ]
+        },
+        {
+          "name": "_record_to_result",
+          "startLine": 166,
+          "endLine": 261,
+          "params": [
+            "row",
+            "specific_field"
+          ]
+        },
+        {
+          "name": "_admission_to_result",
+          "startLine": 264,
+          "endLine": 304,
+          "params": [
+            "row",
+            "specific_field"
+          ]
+        },
+        {
+          "name": "_provider_to_result",
+          "startLine": 307,
+          "endLine": 342,
+          "params": [
+            "row",
+            "specific_field"
+          ]
+        },
+        {
+          "name": "_patient_demographics_result",
+          "startLine": 345,
+          "endLine": 369,
+          "params": [
+            "row",
+            "specific_field"
+          ]
+        },
+        {
+          "name": "_merge_details",
+          "startLine": 372,
+          "endLine": 399,
+          "params": [
+            "row"
+          ]
+        },
+        {
+          "name": "_load_schema_yaml",
+          "startLine": 428,
+          "endLine": 432,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "_score_table",
+          "startLine": 446,
+          "endLine": 471,
+          "params": [
+            "table_name",
+            "col_names",
+            "query_tokens"
+          ]
+        },
+        {
+          "name": "_build_schema_from_catalog",
+          "startLine": 474,
+          "endLine": 554,
+          "params": [
+            "conn",
+            "user_query"
+          ]
+        },
+        {
+          "name": "_build_examples_text",
+          "startLine": 557,
+          "endLine": 565,
+          "params": [
+            "schema_data"
+          ]
+        },
+        {
+          "name": "_extract_sql_from_response",
+          "startLine": 568,
+          "endLine": 575,
+          "params": [
+            "text"
+          ]
+        },
+        {
+          "name": "_validate_and_limit_sql",
+          "startLine": 578,
+          "endLine": 629,
+          "params": [
+            "sql_text",
+            "max_rows"
+          ]
+        },
+        {
+          "name": "analytical_lookup",
+          "startLine": 632,
+          "endLine": 742,
+          "params": [
+            "user_query"
+          ]
+        },
+        {
+          "name": "_extract_specific_field",
+          "startLine": 745,
+          "endLine": 803,
+          "params": [
+            "row",
+            "field"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_is_demographic_field",
+          "line": 76,
+          "isDefault": false
+        },
+        {
+          "name": "lookup",
+          "line": 83,
+          "isDefault": false
+        },
+        {
+          "name": "_record_to_result",
+          "line": 166,
+          "isDefault": false
+        },
+        {
+          "name": "_admission_to_result",
+          "line": 264,
+          "isDefault": false
+        },
+        {
+          "name": "_provider_to_result",
+          "line": 307,
+          "isDefault": false
+        },
+        {
+          "name": "_patient_demographics_result",
+          "line": 345,
+          "isDefault": false
+        },
+        {
+          "name": "_merge_details",
+          "line": 372,
+          "isDefault": false
+        },
+        {
+          "name": "_load_schema_yaml",
+          "line": 428,
+          "isDefault": false
+        },
+        {
+          "name": "_score_table",
+          "line": 446,
+          "isDefault": false
+        },
+        {
+          "name": "_build_schema_from_catalog",
+          "line": 474,
+          "isDefault": false
+        },
+        {
+          "name": "_build_examples_text",
+          "line": 557,
+          "isDefault": false
+        },
+        {
+          "name": "_extract_sql_from_response",
+          "line": 568,
+          "isDefault": false
+        },
+        {
+          "name": "_validate_and_limit_sql",
+          "line": 578,
+          "isDefault": false
+        },
+        {
+          "name": "analytical_lookup",
+          "line": 632,
+          "isDefault": false
+        },
+        {
+          "name": "_extract_specific_field",
+          "line": 745,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_is_demographic_field",
+          "callee": "specific_field.lower",
+          "lineNumber": 79
+        },
+        {
+          "caller": "_is_demographic_field",
+          "callee": "any",
+          "lineNumber": 80
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 89
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 90
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 91
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 92
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 93
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 94
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 95
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 96
+        },
+        {
+          "caller": "lookup",
+          "callee": "intent.get",
+          "lineNumber": 97
+        },
+        {
+          "caller": "lookup",
+          "callee": "_DOC_TYPE_MAP.get",
+          "lineNumber": 99
+        },
+        {
+          "caller": "lookup",
+          "callee": "query_provider",
+          "lineNumber": 103
+        },
+        {
+          "caller": "lookup",
+          "callee": "_provider_to_result",
+          "lineNumber": 107
+        },
+        {
+          "caller": "lookup",
+          "callee": "get_admission_info",
+          "lineNumber": 116
+        },
+        {
+          "caller": "lookup",
+          "callee": "results.append",
+          "lineNumber": 118
+        },
+        {
+          "caller": "lookup",
+          "callee": "_admission_to_result",
+          "lineNumber": 118
+        },
+        {
+          "caller": "lookup",
+          "callee": "query_records_by_hadm_id",
+          "lineNumber": 120
+        },
+        {
+          "caller": "lookup",
+          "callee": "results.extend",
+          "lineNumber": 121
+        },
+        {
+          "caller": "lookup",
+          "callee": "_record_to_result",
+          "lineNumber": 121
+        },
+        {
+          "caller": "lookup",
+          "callee": "query_patient_records",
+          "lineNumber": 127
+        },
+        {
+          "caller": "lookup",
+          "callee": "r.get",
+          "lineNumber": 138
+        },
+        {
+          "caller": "lookup",
+          "callee": "_record_to_result",
+          "lineNumber": 140
+        },
+        {
+          "caller": "lookup",
+          "callee": "_is_demographic_field",
+          "lineNumber": 148
+        },
+        {
+          "caller": "lookup",
+          "callee": "get_patient_info",
+          "lineNumber": 149
+        },
+        {
+          "caller": "lookup",
+          "callee": "_patient_demographics_result",
+          "lineNumber": 151
+        },
+        {
+          "caller": "lookup",
+          "callee": "_is_demographic_field",
+          "lineNumber": 152
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 168
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 169
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 170
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 179
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 180
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 181
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 182
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 186
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 187
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 188
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 189
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 192
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 193
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 194
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 195
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 198
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 199
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 200
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 201
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 204
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 205
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 206
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 207
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 208
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 209
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 212
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 213
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 214
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 216
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 218
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 219
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 220
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "_extract_specific_field",
+          "lineNumber": 227
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "_merge_details",
+          "lineNumber": 227
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.insert",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "specific_field.upper",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 231
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 231
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 232
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "\"\\n\".join",
+          "lineNumber": 236
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 237
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 242
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 245
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 246
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 247
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 248
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 249
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 250
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 251
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 252
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 253
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 254
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 256
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 257
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 258
+        },
+        {
+          "caller": "_record_to_result",
+          "callee": "row.get",
+          "lineNumber": 259
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 267
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 269
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 270
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 271
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 272
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 273
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 274
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 275
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 276
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 277
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 278
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 279
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 280
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "_extract_specific_field",
+          "lineNumber": 283
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "content_lines.insert",
+          "lineNumber": 285
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "specific_field.upper",
+          "lineNumber": 285
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 288
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "\"\\n\".join",
+          "lineNumber": 289
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 294
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 295
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 296
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 297
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 298
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 299
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 300
+        },
+        {
+          "caller": "_admission_to_result",
+          "callee": "row.get",
+          "lineNumber": 302
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 310
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 312
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 313
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 315
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 316
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 318
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 319
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 320
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "content_lines.append",
+          "lineNumber": 321
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "_extract_specific_field",
+          "lineNumber": 324
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "content_lines.insert",
+          "lineNumber": 326
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "specific_field.upper",
+          "lineNumber": 326
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "\"\\n\".join",
+          "lineNumber": 330
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 335
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 336
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 337
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 338
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get(\"source_files\", \"\").split",
+          "lineNumber": 340
+        },
+        {
+          "caller": "_provider_to_result",
+          "callee": "row.get",
+          "lineNumber": 340
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "row.get",
+          "lineNumber": 347
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "row.get",
+          "lineNumber": 349
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "content_lines.append",
+          "lineNumber": 350
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "field.replace('_', ' ').title",
+          "lineNumber": 350
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "field.replace",
+          "lineNumber": 350
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "_extract_specific_field",
+          "lineNumber": 353
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "content_lines.insert",
+          "lineNumber": 355
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "specific_field.upper",
+          "lineNumber": 355
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "\"\\n\".join",
+          "lineNumber": 359
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "row.get",
+          "lineNumber": 364
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "row.get",
+          "lineNumber": 365
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "row.get(\"source_files\", \"\").split",
+          "lineNumber": 367
+        },
+        {
+          "caller": "_patient_demographics_result",
+          "callee": "row.get",
+          "lineNumber": 367
+        },
+        {
+          "caller": "_merge_details",
+          "callee": "row.get",
+          "lineNumber": 384
+        },
+        {
+          "caller": "_merge_details",
+          "callee": "json.loads",
+          "lineNumber": 389
+        },
+        {
+          "caller": "_merge_details",
+          "callee": "dict",
+          "lineNumber": 393
+        },
+        {
+          "caller": "_merge_details",
+          "callee": "details.items",
+          "lineNumber": 394
+        },
+        {
+          "caller": "_merge_details",
+          "callee": "merged.get",
+          "lineNumber": 397
+        },
+        {
+          "caller": "_load_schema_yaml",
+          "callee": "open",
+          "lineNumber": 431
+        },
+        {
+          "caller": "_load_schema_yaml",
+          "callee": "yaml.safe_load",
+          "lineNumber": 432
+        },
+        {
+          "caller": "_score_table",
+          "callee": "set",
+          "lineNumber": 460
+        },
+        {
+          "caller": "_score_table",
+          "callee": "re.sub(r\"^v_\", \"\", table_name).split",
+          "lineNumber": 460
+        },
+        {
+          "caller": "_score_table",
+          "callee": "re.sub",
+          "lineNumber": 460
+        },
+        {
+          "caller": "_score_table",
+          "callee": "col.split",
+          "lineNumber": 465
+        },
+        {
+          "caller": "_score_table",
+          "callee": "len",
+          "lineNumber": 466
+        },
+        {
+          "caller": "_score_table",
+          "callee": "len",
+          "lineNumber": 471
+        },
+        {
+          "caller": "_score_table",
+          "callee": "len",
+          "lineNumber": 471
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "set",
+          "lineNumber": 489
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "re.sub(r\"[^a-z0-9]\", \" \", user_query.lower()).split",
+          "lineNumber": 490
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "re.sub",
+          "lineNumber": 490
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "user_query.lower",
+          "lineNumber": 490
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "conn.cursor",
+          "lineNumber": 495
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "cur.execute",
+          "lineNumber": 496
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "list",
+          "lineNumber": 505
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "cur.fetchall",
+          "lineNumber": 507
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "logger.warning",
+          "lineNumber": 509
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "conn.cursor",
+          "lineNumber": 514
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "cur.execute",
+          "lineNumber": 515
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "cur.fetchall",
+          "lineNumber": 527
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "logger.warning",
+          "lineNumber": 529
+        },
+        {
+          "caller": "_group",
+          "callee": "out.setdefault(tname, []).append",
+          "lineNumber": 536
+        },
+        {
+          "caller": "_group",
+          "callee": "out.setdefault",
+          "lineNumber": 536
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "_group",
+          "lineNumber": 539
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "_group",
+          "lineNumber": 540
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "sorted",
+          "lineNumber": 543
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "views.items",
+          "lineNumber": 544
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "_score_table",
+          "lineNumber": 545
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "list",
+          "lineNumber": 549
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "canonical.items",
+          "lineNumber": 549
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "lines.append",
+          "lineNumber": 550
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "lines.append",
+          "lineNumber": 552
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "lines.append",
+          "lineNumber": 553
+        },
+        {
+          "caller": "_build_schema_from_catalog",
+          "callee": "\"\\n\".join",
+          "lineNumber": 554
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "enumerate",
+          "lineNumber": 560
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "schema_data.get",
+          "lineNumber": 560
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "lines.append",
+          "lineNumber": 561
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "lines.append",
+          "lineNumber": 562
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "lines.append",
+          "lineNumber": 563
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "ex['sql'].strip",
+          "lineNumber": 563
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "lines.append",
+          "lineNumber": 564
+        },
+        {
+          "caller": "_build_examples_text",
+          "callee": "\"\\n\".join",
+          "lineNumber": 565
+        },
+        {
+          "caller": "_extract_sql_from_response",
+          "callee": "text.strip",
+          "lineNumber": 570
+        },
+        {
+          "caller": "_extract_sql_from_response",
+          "callee": "re.search",
+          "lineNumber": 572
+        },
+        {
+          "caller": "_extract_sql_from_response",
+          "callee": "m.group(1).strip",
+          "lineNumber": 574
+        },
+        {
+          "caller": "_extract_sql_from_response",
+          "callee": "m.group",
+          "lineNumber": 574
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "ImportError",
+          "lineNumber": 589
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "sqlglot.parse",
+          "lineNumber": 592
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "ValueError",
+          "lineNumber": 594
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "ValueError",
+          "lineNumber": 597
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "len",
+          "lineNumber": 599
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "ValueError",
+          "lineNumber": 600
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "len",
+          "lineNumber": 601
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "isinstance",
+          "lineNumber": 608
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "ValueError",
+          "lineNumber": 609
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "type",
+          "lineNumber": 610
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "stmt.walk",
+          "lineNumber": 619
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "isinstance",
+          "lineNumber": 620
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "ValueError",
+          "lineNumber": 621
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "type",
+          "lineNumber": 622
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "stmt.args.get",
+          "lineNumber": 626
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "stmt.limit",
+          "lineNumber": 627
+        },
+        {
+          "caller": "_validate_and_limit_sql",
+          "callee": "stmt.sql",
+          "lineNumber": 629
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "get_readonly_db",
+          "lineNumber": 657
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "_build_schema_from_catalog",
+          "lineNumber": 658
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.warning",
+          "lineNumber": 660
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "_load_schema_yaml",
+          "lineNumber": 664
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "_build_examples_text",
+          "lineNumber": 665
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.warning",
+          "lineNumber": 667
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.warning",
+          "lineNumber": 674
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "_TEXT_TO_SQL_PROMPT.format",
+          "lineNumber": 678
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "call_llm",
+          "lineNumber": 685
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.warning",
+          "lineNumber": 687
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "_extract_sql_from_response",
+          "lineNumber": 690
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.info",
+          "lineNumber": 691
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "_validate_and_limit_sql",
+          "lineNumber": 695
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.warning",
+          "lineNumber": 697
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.info",
+          "lineNumber": 700
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "get_readonly_db",
+          "lineNumber": 704
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "conn.cursor",
+          "lineNumber": 705
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "cur.execute",
+          "lineNumber": 707
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "cur.execute",
+          "lineNumber": 710
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "fetchall_dicts",
+          "lineNumber": 711
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.warning",
+          "lineNumber": 713
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "logger.info",
+          "lineNumber": 716
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "len",
+          "lineNumber": 716
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "enumerate",
+          "lineNumber": 723
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "row.items",
+          "lineNumber": 724
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "\" | \".join",
+          "lineNumber": 725
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "str",
+          "lineNumber": 733
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "row.items",
+          "lineNumber": 733
+        },
+        {
+          "caller": "analytical_lookup",
+          "callee": "results.append",
+          "lineNumber": 740
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "field.lower",
+          "lineNumber": 747
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "aliases.items",
+          "lineNumber": 792
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "row.get",
+          "lineNumber": 795
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "str",
+          "lineNumber": 796
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "row.items",
+          "lineNumber": 799
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "col.lower",
+          "lineNumber": 800
+        },
+        {
+          "caller": "_extract_specific_field",
+          "callee": "str",
+          "lineNumber": 801
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 15,
+        "functionCount": 15,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/scripts/catalog_admin.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 406,
+      "nonEmptyLines": 335,
+      "functions": [
+        {
+          "name": "_read_sources_yaml",
+          "startLine": 46,
+          "endLine": 55,
+          "params": []
+        },
+        {
+          "name": "_apply_config_to_catalog",
+          "startLine": 58,
+          "endLine": 89,
+          "params": [
+            "conn",
+            "sig",
+            "cfg"
+          ]
+        },
+        {
+          "name": "_sync_yaml",
+          "startLine": 92,
+          "endLine": 127,
+          "params": [
+            "conn"
+          ]
+        },
+        {
+          "name": "_get_by_sig8",
+          "startLine": 132,
+          "endLine": 156,
+          "params": [
+            "conn",
+            "sig8"
+          ]
+        },
+        {
+          "name": "_parse_json_field",
+          "startLine": 159,
+          "endLine": 167,
+          "params": [
+            "val"
+          ]
+        },
+        {
+          "name": "cmd_list",
+          "startLine": 172,
+          "endLine": 213,
+          "params": [
+            "conn"
+          ]
+        },
+        {
+          "name": "cmd_label",
+          "startLine": 216,
+          "endLine": 230,
+          "params": [
+            "conn",
+            "sig8",
+            "human_label"
+          ]
+        },
+        {
+          "name": "cmd_alias",
+          "startLine": 233,
+          "endLine": 290,
+          "params": [
+            "conn",
+            "new_sig8",
+            "target_sig8"
+          ]
+        },
+        {
+          "name": "cmd_expose",
+          "startLine": 293,
+          "endLine": 330,
+          "params": [
+            "conn",
+            "sig8"
+          ]
+        },
+        {
+          "name": "cmd_unexpose",
+          "startLine": 333,
+          "endLine": 357,
+          "params": [
+            "conn",
+            "sig8"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 362,
+          "endLine": 402,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_read_sources_yaml",
+          "line": 46,
+          "isDefault": false
+        },
+        {
+          "name": "_apply_config_to_catalog",
+          "line": 58,
+          "isDefault": false
+        },
+        {
+          "name": "_sync_yaml",
+          "line": 92,
+          "isDefault": false
+        },
+        {
+          "name": "_get_by_sig8",
+          "line": 132,
+          "isDefault": false
+        },
+        {
+          "name": "_parse_json_field",
+          "line": 159,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_list",
+          "line": 172,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_label",
+          "line": 216,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_alias",
+          "line": 233,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_expose",
+          "line": 293,
+          "isDefault": false
+        },
+        {
+          "name": "cmd_unexpose",
+          "line": 333,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 362,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_read_sources_yaml",
+          "callee": "open",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_read_sources_yaml",
+          "callee": "yaml.safe_load",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_read_sources_yaml",
+          "callee": "print",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_add",
+          "callee": "set_clauses.append",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_add",
+          "callee": "values.append",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_add",
+          "callee": "json.dumps",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_add",
+          "callee": "set_clauses.append",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_add",
+          "callee": "values.append",
+          "lineNumber": 71
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "_add",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "_add",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "_add",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "cfg.get",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "_add",
+          "lineNumber": 76
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "_add",
+          "lineNumber": 77
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "cfg.get",
+          "lineNumber": 77
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "values.append",
+          "lineNumber": 82
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "conn.cursor",
+          "lineNumber": 83
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "cur.execute",
+          "lineNumber": 84
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "', '.join",
+          "lineNumber": 85
+        },
+        {
+          "caller": "_apply_config_to_catalog",
+          "callee": "conn.commit",
+          "lineNumber": 89
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "_read_sources_yaml",
+          "lineNumber": 98
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "data.get",
+          "lineNumber": 99
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "(cfg.get(\"column_signature\") or \"\").strip",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "cfg.get",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "len",
+          "lineNumber": 104
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "print",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "conn.cursor",
+          "lineNumber": 110
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "cur.execute",
+          "lineNumber": 111
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "cur.fetchone",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "print",
+          "lineNumber": 118
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "_apply_config_to_catalog",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_sync_yaml",
+          "callee": "print",
+          "lineNumber": 126
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "conn.cursor",
+          "lineNumber": 137
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "cur.execute",
+          "lineNumber": 138
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "fetchall_dicts",
+          "lineNumber": 143
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "print",
+          "lineNumber": 146
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "len",
+          "lineNumber": 148
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "print",
+          "lineNumber": 149
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "len",
+          "lineNumber": 150
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "print",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_get_by_sig8",
+          "callee": "r.get",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_parse_json_field",
+          "callee": "isinstance",
+          "lineNumber": 162
+        },
+        {
+          "caller": "_parse_json_field",
+          "callee": "json.loads",
+          "lineNumber": 165
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "conn.cursor",
+          "lineNumber": 174
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "cur.execute",
+          "lineNumber": 175
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "fetchall_dicts",
+          "lineNumber": 184
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "print",
+          "lineNumber": 187
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "print",
+          "lineNumber": 190
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "print",
+          "lineNumber": 192
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 195
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 196
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 197
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 198
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 199
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 202
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "notes.append",
+          "lineNumber": 203
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 204
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "notes.append",
+          "lineNumber": 205
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "r.get",
+          "lineNumber": 206
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "notes.append",
+          "lineNumber": 207
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "print",
+          "lineNumber": 209
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "', '.join",
+          "lineNumber": 211
+        },
+        {
+          "caller": "cmd_list",
+          "callee": "print",
+          "lineNumber": 213
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "_get_by_sig8",
+          "lineNumber": 218
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "human_label.lower().strip().replace",
+          "lineNumber": 222
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "human_label.lower().strip",
+          "lineNumber": 222
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "human_label.lower",
+          "lineNumber": 222
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "conn.cursor",
+          "lineNumber": 223
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "cur.execute",
+          "lineNumber": 224
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "conn.commit",
+          "lineNumber": 229
+        },
+        {
+          "caller": "cmd_label",
+          "callee": "print",
+          "lineNumber": 230
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "_get_by_sig8",
+          "lineNumber": 243
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "_get_by_sig8",
+          "lineNumber": 244
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "print",
+          "lineNumber": 249
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "target_row.get",
+          "lineNumber": 251
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "print",
+          "lineNumber": 252
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "new_row.get",
+          "lineNumber": 257
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "print",
+          "lineNumber": 258
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "set",
+          "lineNumber": 264
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "_parse_json_field",
+          "lineNumber": 264
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "new_row.get",
+          "lineNumber": 264
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "set",
+          "lineNumber": 265
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "_parse_json_field",
+          "lineNumber": 265
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "target_row.get",
+          "lineNumber": 265
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "_sync_staging_columns",
+          "lineNumber": 268
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "sorted",
+          "lineNumber": 269
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "set",
+          "lineNumber": 269
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "conn.cursor",
+          "lineNumber": 270
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "cur.execute",
+          "lineNumber": 271
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "json.dumps",
+          "lineNumber": 274
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "conn.commit",
+          "lineNumber": 276
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "print",
+          "lineNumber": 277
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "len",
+          "lineNumber": 277
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "conn.cursor",
+          "lineNumber": 279
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "cur.execute",
+          "lineNumber": 280
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "conn.commit",
+          "lineNumber": 286
+        },
+        {
+          "caller": "cmd_alias",
+          "callee": "print",
+          "lineNumber": 287
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "_get_by_sig8",
+          "lineNumber": 306
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "stream.get",
+          "lineNumber": 310
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "print",
+          "lineNumber": 311
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "_build_and_create_view",
+          "lineNumber": 318
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "print",
+          "lineNumber": 319
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "(settings.POSTGRES_READONLY_ROLE or \"\").strip",
+          "lineNumber": 320
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "print",
+          "lineNumber": 321
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "print",
+          "lineNumber": 327
+        },
+        {
+          "caller": "cmd_expose",
+          "callee": "print",
+          "lineNumber": 329
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "_get_by_sig8",
+          "lineNumber": 338
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "stream.get",
+          "lineNumber": 342
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "print",
+          "lineNumber": 344
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "_quote_identifier",
+          "lineNumber": 347
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "conn.cursor",
+          "lineNumber": 348
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "cur.execute",
+          "lineNumber": 349
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "cur.execute",
+          "lineNumber": 350
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "conn.commit",
+          "lineNumber": 356
+        },
+        {
+          "caller": "cmd_unexpose",
+          "callee": "print",
+          "lineNumber": 357
+        },
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 363
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_subparsers",
+          "lineNumber": 367
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 369
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 371
+        },
+        {
+          "caller": "main",
+          "callee": "p_label.add_argument",
+          "lineNumber": 372
+        },
+        {
+          "caller": "main",
+          "callee": "p_label.add_argument",
+          "lineNumber": 373
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 375
+        },
+        {
+          "caller": "main",
+          "callee": "p_alias.add_argument",
+          "lineNumber": 378
+        },
+        {
+          "caller": "main",
+          "callee": "p_alias.add_argument",
+          "lineNumber": 379
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 381
+        },
+        {
+          "caller": "main",
+          "callee": "p_expose.add_argument",
+          "lineNumber": 382
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 384
+        },
+        {
+          "caller": "main",
+          "callee": "p_unexpose.add_argument",
+          "lineNumber": 385
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 387
+        },
+        {
+          "caller": "main",
+          "callee": "get_db",
+          "lineNumber": 389
+        },
+        {
+          "caller": "main",
+          "callee": "_sync_yaml",
+          "lineNumber": 391
+        },
+        {
+          "caller": "main",
+          "callee": "cmd_list",
+          "lineNumber": 394
+        },
+        {
+          "caller": "main",
+          "callee": "cmd_label",
+          "lineNumber": 396
+        },
+        {
+          "caller": "main",
+          "callee": "cmd_alias",
+          "lineNumber": 398
+        },
+        {
+          "caller": "main",
+          "callee": "cmd_expose",
+          "lineNumber": 400
+        },
+        {
+          "caller": "main",
+          "callee": "cmd_unexpose",
+          "lineNumber": 402
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 11,
+        "functionCount": 11,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": ".env.example",
+      "language": "config",
+      "sizeLines": 25,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": "backend/config.py",
+      "language": "python",
+      "sizeLines": 151,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/db/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/db/operations.py",
+      "language": "python",
+      "sizeLines": 557,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/db/schema.py",
+      "language": "python",
+      "sizeLines": 676,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 25,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "backend/main.py",
+      "language": "python",
+      "sizeLines": 190,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/audit_logger.py",
+      "language": "python",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/chunker.py",
+      "language": "python",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/document_parser.py",
+      "language": "python",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/enricher.py",
+      "language": "python",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/icd9_lookup.py",
+      "language": "python",
+      "sizeLines": 86,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/ingestion.py",
+      "language": "python",
+      "sizeLines": 1274,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/intent_parser.py",
+      "language": "python",
+      "sizeLines": 380,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/llm_client.py",
+      "language": "python",
+      "sizeLines": 85,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/orchestrator.py",
+      "language": "python",
+      "sizeLines": 107,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/query_router.py",
+      "language": "python",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/retriever.py",
+      "language": "python",
+      "sizeLines": 546,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/sql_retriever.py",
+      "language": "python",
+      "sizeLines": 803,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/structured_extractor.py",
+      "language": "python",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/rag/vectorstore.py",
+      "language": "python",
+      "sizeLines": 415,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/requirements.txt",
+      "language": "txt",
+      "sizeLines": 46,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "backend/scripts/catalog_admin.py",
+      "language": "python",
+      "sizeLines": 406,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "language": "python",
+      "sizeLines": 326,
+      "fileCategory": "code"
+    },
+    {
+      "path": "backend/scripts/purge_structured_chroma.py",
+      "language": "python",
+      "sizeLines": 188,
+      "fileCategory": "code"
+    },
+    {
+      "path": "data/patients/alice_johnson_bill_2025-10-27.json",
+      "language": "json",
+      "sizeLines": 23,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/patients/john_smith_record_2025-09-15.json",
+      "language": "json",
+      "sizeLines": 25,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/providers/dr_robert_chen.json",
+      "language": "json",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/providers/dr_sarah_williams.json",
+      "language": "json",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/sources.yaml",
+      "language": "yaml",
+      "sizeLines": 57,
+      "fileCategory": "config"
+    },
+    {
+      "path": "data/sql_schema_metadata.yaml",
+      "language": "yaml",
+      "sizeLines": 113,
+      "fileCategory": "config"
+    },
+    {
+      "path": "docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 99,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "frontend/app.py",
+      "language": "python",
+      "sizeLines": 345,
+      "fileCategory": "code"
+    },
+    {
+      "path": "frontend/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 15,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "frontend/requirements.txt",
+      "language": "txt",
+      "sizeLines": 3,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 147,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "scripts/migrate_sqlite_to_postgres.py",
+      "language": "python",
+      "sizeLines": 326,
+      "fileCategory": "code"
+    },
+    {
+      "path": "scripts/purge_structured_chroma.py",
+      "language": "python",
+      "sizeLines": 188,
+      "fileCategory": "code"
+    },
+    {
+      "path": "SETUP_GUIDE.md",
+      "language": "markdown",
+      "sizeLines": 195,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "todo.md",
+      "language": "markdown",
+      "sizeLines": 130,
+      "fileCategory": "docs"
+    }
+  ],
+  "totalFiles": 43,
+  "filteredByIgnore": 3,
+  "estimatedComplexity": "moderate",
+  "stats": {
+    "filesScanned": 43,
+    "byCategory": {
+      "config": 8,
+      "code": 27,
+      "infra": 3,
+      "docs": 5
+    },
+    "byLanguage": {
+      "config": 1,
+      "unknown": 1,
+      "json": 5,
+      "python": 26,
+      "dockerfile": 2,
+      "txt": 2,
+      "yaml": 3,
+      "markdown": 3
+    }
+  }
+}

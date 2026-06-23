@@ -1,0 +1,16 @@
+{
+  "fixedSectionOk": true,
+  "nodesRecovered": 4,
+  "edgesRestored": 12,
+  "crossBatchEdgesAdded": 0,
+  "typesRemapped": 0,
+  "complexityRemapped": 0,
+  "notes": [
+    "Fixed section had no entries \u2014 the merge script reported zero mechanical fixes (no prefix normalization, no complexity remapping), indicating the batch LLM outputs were already well-formed.",
+    "4 function nodes were absent from assembled-graph.json because batch-4 analyzed vectorstore.py but its LLM output omitted add_document, list_all_documents, delete_document, and get_document_count. The functions exist in the source file at lines 298-415. Nodes were recreated from source inspection with accurate line ranges.",
+    "4 call edges referencing the missing functions were restored: main.py:list_documents\u2192list_all_documents, main.py:remove_document\u2192delete_document, main.py:health\u2192get_document_count, ingestion.py:ingest_file\u2192add_document.",
+    "8 structural (contains/exports) edges were added from file:backend/rag/vectorstore.py to each of the 4 recovered function nodes, matching the pattern used for all other vectorstore functions.",
+    "All 16 import-map file pairs were verified against the assembled edge set. All expected imports edges were already present \u2014 0 cross-batch gaps found.",
+    "No unknown node types or unknown complexity values were present; the merge script's Fixed section was empty confirming clean batch output."
+  ]
+}

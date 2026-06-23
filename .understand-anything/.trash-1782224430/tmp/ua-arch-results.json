@@ -1,0 +1,366 @@
+{
+  "scriptCompleted": true,
+  "directoryGroups": {
+    "backend": [
+      "file:backend/config.py",
+      "file:backend/rag/audit_logger.py",
+      "file:backend/rag/icd9_lookup.py",
+      "file:backend/rag/orchestrator.py",
+      "file:backend/db/operations.py",
+      "file:backend/db/schema.py",
+      "file:backend/rag/sql_retriever.py",
+      "file:backend/scripts/catalog_admin.py",
+      "file:backend/rag/intent_parser.py",
+      "file:backend/rag/llm_client.py",
+      "file:backend/rag/query_router.py",
+      "file:backend/rag/retriever.py",
+      "file:backend/main.py",
+      "file:backend/rag/ingestion.py",
+      "file:backend/rag/vectorstore.py",
+      "service:backend/Dockerfile",
+      "file:backend/db/__init__.py",
+      "file:backend/rag/__init__.py",
+      "file:backend/rag/chunker.py",
+      "file:backend/rag/document_parser.py",
+      "file:backend/rag/enricher.py",
+      "file:backend/rag/structured_extractor.py",
+      "document:backend/requirements.txt",
+      "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "file:backend/scripts/purge_structured_chroma.py"
+    ],
+    "frontend": [
+      "service:frontend/Dockerfile",
+      "service:frontend/Dockerfile:python",
+      "file:frontend/app.py",
+      "document:frontend/requirements.txt"
+    ],
+    "root": [
+      "config:.env.example",
+      "document:README.md",
+      "document:SETUP_GUIDE.md",
+      "service:docker-compose.yml",
+      "service:docker-compose.yml:postgres",
+      "service:docker-compose.yml:chromadb",
+      "service:docker-compose.yml:backend",
+      "service:docker-compose.yml:frontend",
+      "document:todo.md"
+    ],
+    ".understand-anything": [
+      "file:.understand-anything/.understandignore",
+      "config:.understand-anything/config.json"
+    ],
+    "data": [
+      "config:data/patients/alice_johnson_bill_2025-10-27.json",
+      "config:data/patients/john_smith_record_2025-09-15.json",
+      "config:data/providers/dr_robert_chen.json",
+      "config:data/providers/dr_sarah_williams.json",
+      "config:data/sources.yaml",
+      "config:data/sql_schema_metadata.yaml"
+    ],
+    "scripts": [
+      "file:scripts/migrate_sqlite_to_postgres.py",
+      "file:scripts/purge_structured_chroma.py"
+    ]
+  },
+  "nodeTypeGroups": {
+    "file": [
+      "file:backend/config.py",
+      "file:backend/rag/audit_logger.py",
+      "file:backend/rag/icd9_lookup.py",
+      "file:backend/rag/orchestrator.py",
+      "file:backend/db/operations.py",
+      "file:backend/db/schema.py",
+      "file:backend/rag/sql_retriever.py",
+      "file:backend/scripts/catalog_admin.py",
+      "file:backend/rag/intent_parser.py",
+      "file:backend/rag/llm_client.py",
+      "file:backend/rag/query_router.py",
+      "file:backend/rag/retriever.py",
+      "file:backend/main.py",
+      "file:backend/rag/ingestion.py",
+      "file:backend/rag/vectorstore.py",
+      "file:.understand-anything/.understandignore",
+      "file:backend/db/__init__.py",
+      "file:backend/rag/__init__.py",
+      "file:backend/rag/chunker.py",
+      "file:backend/rag/document_parser.py",
+      "file:backend/rag/enricher.py",
+      "file:backend/rag/structured_extractor.py",
+      "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "file:backend/scripts/purge_structured_chroma.py",
+      "file:frontend/app.py",
+      "file:scripts/migrate_sqlite_to_postgres.py",
+      "file:scripts/purge_structured_chroma.py"
+    ],
+    "service": [
+      "service:backend/Dockerfile",
+      "service:frontend/Dockerfile",
+      "service:frontend/Dockerfile:python",
+      "service:docker-compose.yml",
+      "service:docker-compose.yml:postgres",
+      "service:docker-compose.yml:chromadb",
+      "service:docker-compose.yml:backend",
+      "service:docker-compose.yml:frontend"
+    ],
+    "config": [
+      "config:.env.example",
+      "config:.understand-anything/config.json",
+      "config:data/patients/alice_johnson_bill_2025-10-27.json",
+      "config:data/patients/john_smith_record_2025-09-15.json",
+      "config:data/providers/dr_robert_chen.json",
+      "config:data/providers/dr_sarah_williams.json",
+      "config:data/sources.yaml",
+      "config:data/sql_schema_metadata.yaml"
+    ],
+    "document": [
+      "document:README.md",
+      "document:SETUP_GUIDE.md",
+      "document:todo.md",
+      "document:backend/requirements.txt",
+      "document:frontend/requirements.txt"
+    ]
+  },
+  "crossCategoryEdges": [
+    {
+      "fromType": "file",
+      "toType": "file",
+      "edgeType": "imports",
+      "count": 24
+    },
+    {
+      "fromType": "service",
+      "toType": "file",
+      "edgeType": "deploys",
+      "count": 2
+    },
+    {
+      "fromType": "service",
+      "toType": "service",
+      "edgeType": "depends_on",
+      "count": 2
+    },
+    {
+      "fromType": "config",
+      "toType": "file",
+      "edgeType": "configures",
+      "count": 1
+    },
+    {
+      "fromType": "document",
+      "toType": "file",
+      "edgeType": "documents",
+      "count": 1
+    },
+    {
+      "fromType": "document",
+      "toType": "service",
+      "edgeType": "documents",
+      "count": 1
+    }
+  ],
+  "interGroupImports": [],
+  "intraGroupDensity": {
+    "backend": {
+      "internalEdges": 24,
+      "totalEdges": 24,
+      "density": 1
+    },
+    "frontend": {
+      "internalEdges": 0,
+      "totalEdges": 0,
+      "density": 0
+    },
+    "root": {
+      "internalEdges": 0,
+      "totalEdges": 0,
+      "density": 0
+    },
+    ".understand-anything": {
+      "internalEdges": 0,
+      "totalEdges": 0,
+      "density": 0
+    },
+    "data": {
+      "internalEdges": 0,
+      "totalEdges": 0,
+      "density": 0
+    },
+    "scripts": {
+      "internalEdges": 0,
+      "totalEdges": 0,
+      "density": 0
+    }
+  },
+  "patternMatches": {
+    "backend": "unknown",
+    "frontend": "ui",
+    "root": "unknown",
+    ".understand-anything": "unknown",
+    "data": "data",
+    "scripts": "utility"
+  },
+  "deploymentTopology": {
+    "hasDockerfile": true,
+    "hasCompose": true,
+    "hasK8s": false,
+    "hasTerraform": false,
+    "hasCI": false,
+    "infraFiles": [
+      "backend/Dockerfile",
+      "frontend/Dockerfile",
+      "frontend/Dockerfile",
+      "docker-compose.yml",
+      "docker-compose.yml",
+      "docker-compose.yml",
+      "docker-compose.yml",
+      "docker-compose.yml"
+    ]
+  },
+  "dataPipeline": {
+    "schemaFiles": [
+      "backend/db/schema.py",
+      "data/sql_schema_metadata.yaml"
+    ],
+    "migrationFiles": [
+      "backend/scripts/migrate_sqlite_to_postgres.py",
+      "scripts/migrate_sqlite_to_postgres.py"
+    ],
+    "dataModelFiles": [
+      "backend/db/operations.py",
+      "backend/db/schema.py",
+      "backend/db/__init__.py"
+    ],
+    "apiHandlerFiles": [
+      "backend/rag/query_router.py",
+      "backend/main.py"
+    ]
+  },
+  "docCoverage": {
+    "groupsWithDocs": 3,
+    "totalGroups": 6,
+    "coverageRatio": 0.5,
+    "undocumentedGroups": [
+      ".understand-anything",
+      "data",
+      "scripts"
+    ]
+  },
+  "dependencyDirection": [],
+  "fileStats": {
+    "totalFileNodes": 48,
+    "filesPerGroup": {
+      "backend": 25,
+      "frontend": 4,
+      "root": 9,
+      ".understand-anything": 2,
+      "data": 6,
+      "scripts": 2
+    },
+    "nodeTypeCounts": {
+      "file": 27,
+      "service": 8,
+      "config": 8,
+      "document": 5
+    }
+  },
+  "fileFanIn": {
+    "file:backend/config.py": 10,
+    "file:backend/rag/audit_logger.py": 1,
+    "file:backend/rag/icd9_lookup.py": 0,
+    "file:backend/rag/orchestrator.py": 1,
+    "file:backend/db/operations.py": 1,
+    "file:backend/db/schema.py": 3,
+    "file:backend/rag/sql_retriever.py": 1,
+    "file:backend/scripts/catalog_admin.py": 0,
+    "file:backend/rag/intent_parser.py": 1,
+    "file:backend/rag/llm_client.py": 1,
+    "file:backend/rag/query_router.py": 1,
+    "file:backend/rag/retriever.py": 0,
+    "file:backend/main.py": 0,
+    "file:backend/rag/ingestion.py": 1,
+    "file:backend/rag/vectorstore.py": 3,
+    "service:backend/Dockerfile": 0,
+    "service:frontend/Dockerfile": 0,
+    "service:frontend/Dockerfile:python": 0,
+    "config:.env.example": 0,
+    "document:README.md": 0,
+    "document:SETUP_GUIDE.md": 0,
+    "service:docker-compose.yml": 0,
+    "service:docker-compose.yml:postgres": 0,
+    "service:docker-compose.yml:chromadb": 0,
+    "service:docker-compose.yml:backend": 0,
+    "service:docker-compose.yml:frontend": 0,
+    "document:todo.md": 0,
+    "file:.understand-anything/.understandignore": 0,
+    "config:.understand-anything/config.json": 0,
+    "file:backend/db/__init__.py": 0,
+    "file:backend/rag/__init__.py": 0,
+    "file:backend/rag/chunker.py": 0,
+    "file:backend/rag/document_parser.py": 0,
+    "file:backend/rag/enricher.py": 0,
+    "file:backend/rag/structured_extractor.py": 0,
+    "document:backend/requirements.txt": 0,
+    "file:backend/scripts/migrate_sqlite_to_postgres.py": 0,
+    "file:backend/scripts/purge_structured_chroma.py": 0,
+    "config:data/patients/alice_johnson_bill_2025-10-27.json": 0,
+    "config:data/patients/john_smith_record_2025-09-15.json": 0,
+    "config:data/providers/dr_robert_chen.json": 0,
+    "config:data/providers/dr_sarah_williams.json": 0,
+    "config:data/sources.yaml": 0,
+    "config:data/sql_schema_metadata.yaml": 0,
+    "file:frontend/app.py": 0,
+    "document:frontend/requirements.txt": 0,
+    "file:scripts/migrate_sqlite_to_postgres.py": 0,
+    "file:scripts/purge_structured_chroma.py": 0
+  },
+  "fileFanOut": {
+    "file:backend/config.py": 0,
+    "file:backend/rag/audit_logger.py": 1,
+    "file:backend/rag/icd9_lookup.py": 1,
+    "file:backend/rag/orchestrator.py": 2,
+    "file:backend/db/operations.py": 1,
+    "file:backend/db/schema.py": 1,
+    "file:backend/rag/sql_retriever.py": 1,
+    "file:backend/scripts/catalog_admin.py": 2,
+    "file:backend/rag/intent_parser.py": 0,
+    "file:backend/rag/llm_client.py": 1,
+    "file:backend/rag/query_router.py": 0,
+    "file:backend/rag/retriever.py": 6,
+    "file:backend/main.py": 5,
+    "file:backend/rag/ingestion.py": 2,
+    "file:backend/rag/vectorstore.py": 1,
+    "service:backend/Dockerfile": 0,
+    "service:frontend/Dockerfile": 0,
+    "service:frontend/Dockerfile:python": 0,
+    "config:.env.example": 0,
+    "document:README.md": 0,
+    "document:SETUP_GUIDE.md": 0,
+    "service:docker-compose.yml": 0,
+    "service:docker-compose.yml:postgres": 0,
+    "service:docker-compose.yml:chromadb": 0,
+    "service:docker-compose.yml:backend": 0,
+    "service:docker-compose.yml:frontend": 0,
+    "document:todo.md": 0,
+    "file:.understand-anything/.understandignore": 0,
+    "config:.understand-anything/config.json": 0,
+    "file:backend/db/__init__.py": 0,
+    "file:backend/rag/__init__.py": 0,
+    "file:backend/rag/chunker.py": 0,
+    "file:backend/rag/document_parser.py": 0,
+    "file:backend/rag/enricher.py": 0,
+    "file:backend/rag/structured_extractor.py": 0,
+    "document:backend/requirements.txt": 0,
+    "file:backend/scripts/migrate_sqlite_to_postgres.py": 0,
+    "file:backend/scripts/purge_structured_chroma.py": 0,
+    "config:data/patients/alice_johnson_bill_2025-10-27.json": 0,
+    "config:data/patients/john_smith_record_2025-09-15.json": 0,
+    "config:data/providers/dr_robert_chen.json": 0,
+    "config:data/providers/dr_sarah_williams.json": 0,
+    "config:data/sources.yaml": 0,
+    "config:data/sql_schema_metadata.yaml": 0,
+    "file:frontend/app.py": 0,
+    "document:frontend/requirements.txt": 0,
+    "file:scripts/migrate_sqlite_to_postgres.py": 0,
+    "file:scripts/purge_structured_chroma.py": 0
+  }
+}

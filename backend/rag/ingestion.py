@@ -11,8 +11,10 @@ TEXT DOCUMENT pipeline (PDF / DOCX / TXT / MD):
   structured_extractor chain that made 200+ Ollama calls per PDF.
 
 TABULAR pipeline (CSV / Excel):
-  ChromaDB  — one doc per row, text = "Col1: Val1 | Col2: Val2 | …"
-  SQLite    — direct columnar mapping via _write_rows_to_sql (no LLM)
+  PostgreSQL — direct columnar mapping via _write_rows_to_sql (no LLM)
+  ChromaDB   — NOT USED for tabular data.  Structured rows go to PostgreSQL
+               only; this keeps ChromaDB clean for unstructured knowledge PDFs
+               and eliminates confusion when billing rows appear in RAG results.
 
 JSON pipeline:
   Direct field-map extraction, stored as a single ChromaDB doc.
@@ -28,6 +30,9 @@ import logging
 import math
 import re
 from pathlib import Path
+from typing import Optional
+
+import yaml
 
 from config import settings
 from rag.vectorstore import add_document, add_documents_batch
@@ -49,7 +54,8 @@ SUPPORTED_EXTENSIONS = {
 _NULL_VALUES = {"", "nan", "none", "n/a", "na", "-", "--", "null", "undefined"}
 
 
-# ── Field maps ─────────────────────────────────────────────────────────────────
+# ── Field map (kept for JSON / text pipeline metadata extraction) ─────────────
+# Not used by the tabular path — tabular uses structure-defined streams.
 
 _FIELD_MAP = {
     "patient_name":  ["patient_name", "patient", "name", "full_name", "member_name"],
@@ -66,37 +72,24 @@ _FIELD_MAP = {
                       "total payment", "balance", "amount_due"],
 }
 
-# Additional column candidates used for per-row SQLite ingestion
-_ROW_FIELD_MAP = {
-    "patient_dob":    ["patient dob", "date_of_birth", "dob"],
-    "patient_gender": ["patient gender", "gender", "sex"],
-    "claim_number":   ["claim no", "claim number", "claim_no", "claim id"],
-    "address_line1":  ["patient address line 1", "address line 1", "address", "patient address"],
-    "address_line2":  ["patient address line 2", "address line 2"],
-    "city":           ["patient city", "city"],
-    "state":          ["patient state", "state"],
-    "zip":            ["patient zip code", "patient zip", "zip", "zip code", "postal code"],
-    "phone":          ["patient cell phone", "patient home phone", "patient phone",
-                       "phone", "telephone"],
-    "insurance_id":   ["primary payer subscriber no", "insurance id", "policy number"],
-    "diagnosis_code": ["icd1 code", "icd code", "diagnosis code"],
-    "diagnosis_name": ["icd1 name", "diagnosis name", "diagnosis"],
-    "cpt_code":       ["cpt code", "procedure code"],
-    "cpt_name":       ["cpt description", "procedure description"],
-    # MIMIC-III admission / diagnosis fields
-    "hadm_id":        ["hadm_id"],
-    "icd9_code":      ["icd9_code"],
-    "seq_num":        ["seq_num"],
-    "admittime":      ["admittime"],
-    "dischtime":      ["dischtime"],
-    "deathtime":      ["deathtime"],
-    "admission_type": ["admission_type"],
-}
+
+# ── PHI denylist — columns that must NEVER be stored (global defaults) ────────
+# Per-stream extra denylists are configured in sources.yaml → phi_denylist.
+# NOTE: The denylist controls what is STORED, not stream identity.
+# Stream identity (column_signature) is computed BEFORE the denylist is applied.
+
+_GLOBAL_PHI_DENYLIST: frozenset[str] = frozenset({
+    "ssn",
+    "social_security",
+    "social_sec",
+    "password",
+    "passwd",
+})
 
 
 # ── Data cleaning utilities ───────────────────────────────────────────────────
 
-def _clean_str(val) -> str | None:
+def _clean_str(val) -> Optional[str]:
     """Normalize a cell value to a clean string or None."""
     if val is None:
         return None
@@ -108,7 +101,7 @@ def _clean_str(val) -> str | None:
     return s
 
 
-def _normalize_date(val: str) -> str | None:
+def _normalize_date(val: str) -> Optional[str]:
     """Parse a date string into YYYY-MM-DD; return original if parsing fails."""
     if not val:
         return None
@@ -120,7 +113,7 @@ def _normalize_date(val: str) -> str | None:
         return val
 
 
-def _safe_cell(val) -> str | None:
+def _safe_cell(val) -> Optional[str]:
     """Extract a scalar string from a cell, handling NaN and Series edge cases."""
     import pandas as pd
     if isinstance(val, pd.Series):
@@ -128,77 +121,418 @@ def _safe_cell(val) -> str | None:
     return _clean_str(val)
 
 
-# ── Fuzzy column-header matching ──────────────────────────────────────────────
+# ── Safe SQL identifier ───────────────────────────────────────────────────────
 
-_FUZZY_HEADER_THRESHOLD = 0.5
-
-
-def _header_tokens(header: str) -> set[str]:
-    """Tokenize a column header into normalized lowercase tokens."""
-    if not header:
-        return set()
-    s = str(header)
-    s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
-    s = re.sub(r"(?<=[A-Za-z])(?=\d)", " ", s)
-    s = re.sub(r"(?<=\d)(?=[A-Za-z])", " ", s)
-    s = re.sub(r"[_\-/.,#:()]+", " ", s)
-    return {t for t in s.lower().split() if t}
-
-
-def _header_match_score(header_tokens: set[str], candidate: str) -> float:
-    """Jaccard similarity between a header's tokens and a candidate's tokens."""
-    cand = _header_tokens(candidate)
-    if not header_tokens or not cand:
-        return 0.0
-    union = header_tokens | cand
-    return len(header_tokens & cand) / len(union) if union else 0.0
+def _safe_identifier(raw: str) -> str:
+    """
+    Convert a raw column header to a safe lowercase PostgreSQL identifier.
+    Raises ValueError if the result is empty (empty or all-punctuation headers).
+    Leading digits are prefixed with 'c' (not '_' — that prefix is reserved
+    for system columns like _source_file, _row_hash, _deleted_at).
+    """
+    s = str(raw).strip().lower()
+    s = re.sub(r"[^a-z0-9]+", "_", s)  # non-alphanum → underscore
+    s = s.strip("_")                    # strip leading/trailing underscores
+    if not s:
+        raise ValueError(f"Header {raw!r} produced an empty identifier")
+    if s[0].isdigit():
+        s = "c" + s
+    return s
 
 
-def _find_best_fuzzy_column(
-    columns: list, candidates: list[str],
-    threshold: float = _FUZZY_HEADER_THRESHOLD,
-) -> str | None:
-    """Return the column whose tokens best overlap with any candidate, above threshold."""
-    best_col, best_score = None, 0.0
-    for col in columns:
-        tokens = _header_tokens(col)
-        if not tokens:
+# ── Structure-defined stream infrastructure ───────────────────────────────────
+
+_DRIFT_THRESHOLD = 0.70    # Jaccard similarity above which we flag potential drift
+
+# Module-level YAML config cache; invalidated by catalog_admin and force_reload
+_sources_yaml_cache: Optional[dict] = None
+
+
+def _load_sources_yaml(force_reload: bool = False) -> dict:
+    """
+    Load (or return cached) data/sources.yaml.
+    Returns {} if the file does not exist.
+    """
+    global _sources_yaml_cache
+    if _sources_yaml_cache is not None and not force_reload:
+        return _sources_yaml_cache
+
+    yaml_path = settings.SOURCES_YAML_FILE
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        _sources_yaml_cache = data
+        logger.info(
+            "Loaded %d stream config(s) from %s",
+            len(data.get("streams", [])), yaml_path,
+        )
+    except FileNotFoundError:
+        logger.info(
+            "sources.yaml not found at %s — no pre-declared stream configs",
+            yaml_path,
+        )
+        _sources_yaml_cache = {}
+    except Exception as exc:
+        logger.warning("Failed to load sources.yaml (%s): %s", yaml_path, exc)
+        _sources_yaml_cache = {}
+    return _sources_yaml_cache
+
+
+def _get_yaml_config_for_signature(signature: str) -> dict:
+    """Return the sources.yaml entry for this full signature, or {}."""
+    data = _load_sources_yaml()
+    for stream in data.get("streams", []):
+        # Fix 4: full 32-char signature match, not 8-char prefix
+        if stream.get("column_signature") == signature:
+            return stream
+    return {}
+
+
+def _apply_yaml_config_to_catalog(conn, signature: str, config: Optional[dict] = None) -> None:
+    """
+    Apply sources.yaml config overlay to source_catalog for the given signature.
+    If config is None, fetches it from the YAML file.
+    Only updates fields explicitly present in config (never NULLs an existing value).
+    """
+    from db.schema import fetchone_dict
+    if config is None:
+        config = _get_yaml_config_for_signature(signature)
+    if not config:
+        return
+
+    set_clauses: list[str] = []
+    values: list = []
+
+    def _add(col: str, val, as_jsonb: bool = False) -> None:
+        if val is None:
+            return
+        if as_jsonb:
+            set_clauses.append(f"{col} = %s::jsonb")
+            values.append(json.dumps(val))
+        else:
+            set_clauses.append(f"{col} = %s")
+            values.append(val)
+
+    if "human_label"    in config: _add("human_label",    config["human_label"])
+    if "load_mode"      in config: _add("load_mode",      config["load_mode"])
+    if "natural_key"    in config: _add("natural_key",    config["natural_key"],    as_jsonb=True)
+    if "query_exposed"  in config: _add("query_exposed",  config["query_exposed"])
+    if "column_mapping" in config: _add("column_mapping", config["column_mapping"], as_jsonb=True)
+
+    if not set_clauses:
+        return
+
+    values.append(signature)
+    with conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE source_catalog SET {', '.join(set_clauses)} "
+            f"WHERE column_signature = %s",
+            values,
+        )
+    conn.commit()
+
+
+def _compute_signature(raw_columns: list[str]) -> tuple[str, list[str]]:
+    """
+    Pass 1 — denylist-free.
+
+    Sanitise ALL headers → safe identifiers → sort + dedupe → md5.
+    This is the stream identity.  Denylist changes never change this value.
+
+    Returns (signature_hex, sorted_safe_columns_pre_denylist).
+    Raises ValueError if zero valid identifiers result.
+    """
+    safe: list[str] = []
+    for col in raw_columns:
+        try:
+            safe.append(_safe_identifier(col))
+        except ValueError:
+            logger.warning(
+                "Empty identifier from header %r — excluded from signature", col
+            )
+    if not safe:
+        raise ValueError(
+            "All headers produced empty identifiers — rejecting file"
+        )
+    unique_sorted = sorted(set(safe))
+    sig = hashlib.md5("|".join(unique_sorted).encode()).hexdigest()
+    return sig, unique_sorted
+
+
+def _apply_denylist(
+    all_safe:        list[str],
+    extra_denylist:  frozenset[str] = frozenset(),
+) -> tuple[list[str], list[str]]:
+    """
+    Pass 2 — controls what lands in PostgreSQL.  Never touches the signature.
+
+    Returns (stored_columns, dropped_columns).
+    Raises ValueError if zero stored columns remain (file is 100 % denylist).
+    """
+    denylist = _GLOBAL_PHI_DENYLIST | extra_denylist
+    stored: list[str] = []
+    dropped: list[str] = []
+    for col in all_safe:
+        if any(token in col for token in denylist):
+            logger.warning("PHI denylist: column %r will not be stored", col)
+            dropped.append(col)
+        else:
+            stored.append(col)
+    if not stored:
+        raise ValueError(
+            f"All columns dropped by PHI denylist — rejecting file. "
+            f"Dropped: {dropped}"
+        )
+    return stored, dropped
+
+
+def _detect_drift(
+    new_sig:   str,
+    new_safe:  set[str],
+    conn,
+) -> Optional[str]:
+    """
+    Return the column_signature of an existing stream whose columns overlap
+    ≥ DRIFT_THRESHOLD (Jaccard) with new_safe, or None.
+    Does NOT auto-merge — records the candidate for admin review only.
+    """
+    from db.schema import fetchall_dicts
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT column_signature, safe_columns "
+            "FROM source_catalog "
+            "WHERE aliased_to IS NULL AND staging_table IS NOT NULL"
+        )
+        rows = cur.fetchall()
+
+    for existing_sig, safe_cols_json in rows:
+        if existing_sig == new_sig:
             continue
-        for candidate in candidates:
-            score = _header_match_score(tokens, candidate)
-            if score > best_score:
-                best_score, best_col = score, col
-    return best_col if best_score >= threshold else None
+        try:
+            existing_safe = set(
+                json.loads(safe_cols_json)
+                if isinstance(safe_cols_json, str)
+                else (safe_cols_json or [])
+            )
+        except Exception:
+            continue
+        if not existing_safe:
+            continue
+        union = new_safe | existing_safe
+        jaccard = len(new_safe & existing_safe) / len(union) if union else 0.0
+        if jaccard >= _DRIFT_THRESHOLD:
+            logger.warning(
+                "Drift detected: new sig %s overlaps %.0f%% with existing "
+                "stream %s — run `catalog_admin alias` if these are the same "
+                "stream, or ignore if they are intentionally different",
+                new_sig[:8], jaccard * 100, existing_sig[:8],
+            )
+            return existing_sig
+    return None
 
 
-def _find_patient_column(columns: list) -> str | None:
-    lower_map = {c.lower().strip(): c for c in columns}
-    for candidate in _FIELD_MAP["patient_name"]:
-        if candidate in lower_map:
-            return lower_map[candidate]
-    for candidate in _FIELD_MAP["patient_id"]:
-        if candidate in lower_map:
-            return lower_map[candidate]
-    fuzzy = _find_best_fuzzy_column(columns, _FIELD_MAP["patient_name"])
-    if fuzzy:
-        return fuzzy
-    return _find_best_fuzzy_column(columns, _FIELD_MAP["patient_id"])
+def _resolve_stream(
+    signature:    str,
+    all_safe:     list[str],
+    stored_cols:  list[str],
+    raw_headers:  list[str],
+    conn,
+) -> dict:
+    """
+    Look up signature in source_catalog.
+
+    HIT + aliased_to  → follow alias to target; sync extra cols; return target.
+    HIT no alias      → apply YAML config overlay (Fix 4); return updated row.
+    MISS              → detect drift; register new stream; create table; return.
+
+    Never auto-merges — alias must be set explicitly by catalog_admin.
+    """
+    from db.schema import (
+        fetchone_dict, _create_staging_table, _sync_staging_columns,
+    )
+
+    def _parse_json_field(val):
+        if val is None:
+            return []
+        if isinstance(val, (list, dict)):
+            return val
+        try:
+            return json.loads(val)
+        except Exception:
+            return []
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT * FROM source_catalog WHERE column_signature = %s",
+            [signature],
+        )
+        row = fetchone_dict(cur)
+
+    if row:
+        # ── Alias ────────────────────────────────────────────────────────────
+        if row.get("aliased_to"):
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT * FROM source_catalog WHERE column_signature = %s",
+                    [row["aliased_to"]],
+                )
+                target = fetchone_dict(cur)
+            if not target or target.get("aliased_to"):
+                raise RuntimeError(
+                    f"Alias target {(row.get('aliased_to') or '')[:8]!r} "
+                    "not found or is itself an alias — chained aliases are not allowed"
+                )
+            # Ensure any columns carried by this sig exist in the target table
+            my_stored     = set(_parse_json_field(row.get("stored_columns")))
+            target_stored = set(_parse_json_field(target.get("stored_columns")))
+            extra         = [c for c in all_safe if c in my_stored and c not in target_stored]
+            if extra:
+                _sync_staging_columns(conn, target["staging_table"], extra)
+                new_stored = sorted(target_stored | set(extra))
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE source_catalog SET stored_columns = %s::jsonb "
+                        "WHERE column_signature = %s",
+                        [json.dumps(new_stored), target["column_signature"]],
+                    )
+                conn.commit()
+            return dict(target)
+
+        # ── Known stream — apply YAML overlay at lookup time (Fix 4) ─────────
+        _apply_yaml_config_to_catalog(conn, signature)
+
+        # Ensure stored_cols (post-denylist from THIS file) are all present
+        if row.get("staging_table"):
+            _sync_staging_columns(conn, row["staging_table"], stored_cols)
+
+        # Re-fetch to pick up YAML-applied changes
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM source_catalog WHERE column_signature = %s",
+                [signature],
+            )
+            row = fetchone_dict(cur)
+        return dict(row)
+
+    # ── New signature ─────────────────────────────────────────────────────────
+    staging_table = "stg_" + signature[:8]
+
+    # Load any pre-declared YAML config for this signature (config may pre-date first file)
+    yaml_config = _get_yaml_config_for_signature(signature)
+
+    # Drift detection — logs a warning, never auto-merges
+    candidate_drift = _detect_drift(signature, set(all_safe), conn)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO source_catalog
+                (column_signature, staging_table, representative_headers,
+                 safe_columns, stored_columns, load_mode, query_exposed,
+                 candidate_drift_of, first_ingested_at)
+            VALUES (%s, %s, %s::jsonb, %s::jsonb, %s::jsonb,
+                    %s, %s, %s, NOW())
+            ON CONFLICT (column_signature) DO NOTHING
+            """,
+            [
+                signature,
+                staging_table,
+                json.dumps(raw_headers),
+                json.dumps(all_safe),
+                json.dumps(stored_cols),
+                yaml_config.get("load_mode", "append"),
+                yaml_config.get("query_exposed", False),
+                candidate_drift,
+            ],
+        )
+    conn.commit()
+
+    # Apply any remaining YAML fields (human_label, column_mapping, natural_key …)
+    _apply_yaml_config_to_catalog(conn, signature, yaml_config)
+
+    _create_staging_table(conn, staging_table, stored_cols)
+
+    return {
+        "column_signature": signature,
+        "staging_table":    staging_table,
+        "aliased_to":       None,
+        "safe_columns":     json.dumps(all_safe),
+        "stored_columns":   json.dumps(stored_cols),
+        "load_mode":        yaml_config.get("load_mode", "append"),
+        "natural_key":      yaml_config.get("natural_key"),
+        "query_exposed":    yaml_config.get("query_exposed", False),
+        "column_mapping":   yaml_config.get("column_mapping"),
+        "view_name":        None,
+    }
 
 
-def _find_column(columns: list, field_key: str) -> str | None:
-    lower_map = {c.lower().strip(): c for c in columns}
-    for candidate in _FIELD_MAP[field_key]:
-        if candidate in lower_map:
-            return lower_map[candidate]
-    return _find_best_fuzzy_column(columns, _FIELD_MAP[field_key])
+def _write_rows_to_staging(
+    conn,
+    staging_table:  str,
+    stored_cols:    list[str],
+    safe_rows:      list[dict],
+    row_hashes:     list[str],
+    filename:       str,
+    load_mode:      str,
+) -> int:
+    """
+    Insert rows into the staging table, skipping exact duplicates.
 
+    append mode   : skip rows whose (hash, file) combo already exists.
+    snapshot mode : skip rows whose hash already exists for this file with
+                    _deleted_at IS NULL.  Reconciliation (soft-delete of
+                    absent rows) is handled separately by
+                    _reconcile_snapshot_deletions in schema.py.
 
-def _find_row_column(columns: list, field_key: str) -> str | None:
-    lower_map = {c.lower().strip(): c for c in columns}
-    for candidate in _ROW_FIELD_MAP[field_key]:
-        if candidate in lower_map:
-            return lower_map[candidate]
-    return _find_best_fuzzy_column(columns, _ROW_FIELD_MAP[field_key])
+    Returns number of rows inserted.
+    """
+    from psycopg2.extras import execute_values
+    from db.schema import _quote_identifier
+
+    qtable = _quote_identifier(staging_table)
+
+    # Fetch existing hashes to determine what to skip
+    with conn.cursor() as cur:
+        if load_mode == "snapshot":
+            cur.execute(
+                f"SELECT _row_hash FROM {qtable} "
+                f"WHERE _source_file = %s AND _deleted_at IS NULL",
+                [filename],
+            )
+        else:
+            # append: never re-insert the exact same row from the same file
+            cur.execute(
+                f"SELECT _row_hash FROM {qtable} WHERE _source_file = %s",
+                [filename],
+            )
+        existing = {row[0] for row in cur.fetchall()}
+
+    # Build quoted column list
+    col_quoted = (
+        [_quote_identifier(c) for c in stored_cols]
+        + ['"_source_file"', '"_row_hash"']
+    )
+    insert_sql = (
+        f"INSERT INTO {qtable} ({', '.join(col_quoted)}) VALUES %s"
+    )
+
+    batch = []
+    seen_this_run: set[str] = set()
+    for safe_row, rh in zip(safe_rows, row_hashes):
+        if rh in existing or rh in seen_this_run:
+            continue
+        batch.append([safe_row.get(c) for c in stored_cols] + [filename, rh])
+        seen_this_run.add(rh)
+
+    if not batch:
+        return 0
+
+    with conn.cursor() as cur:
+        execute_values(cur, insert_sql, batch)
+        count = cur.rowcount
+
+    conn.commit()
+    return count
 
 
 # ── Metadata helpers ──────────────────────────────────────────────────────────
@@ -329,46 +663,6 @@ def _doc_id(file_path: str) -> str:
     return hashlib.md5(str(Path(file_path).resolve()).encode()).hexdigest()
 
 
-# ── Address helper ────────────────────────────────────────────────────────────
-
-def _compose_address(row: dict, cols: dict) -> str | None:
-    """Combine address-related columns into a single human-readable string."""
-    line1 = _safe_cell(row.get(cols.get("address_line1"))) if cols.get("address_line1") else None
-    line2 = _safe_cell(row.get(cols.get("address_line2"))) if cols.get("address_line2") else None
-    city  = _safe_cell(row.get(cols.get("city")))  if cols.get("city")  else None
-    state = _safe_cell(row.get(cols.get("state"))) if cols.get("state") else None
-    zipc  = _safe_cell(row.get(cols.get("zip")))   if cols.get("zip")   else None
-
-    parts = [p for p in (line1, line2) if p]
-    city_state = ", ".join(p for p in (city, state) if p)
-    if zipc:
-        city_state = f"{city_state} {zipc}".strip()
-    if city_state:
-        parts.append(city_state)
-    return ", ".join(parts) if parts else None
-
-
-def _build_patient_text(
-    patient_name: str, rows: list[dict], filename: str, max_chars: int = 4000,
-) -> str:
-    """Build a readable text blob for a patient's rows (used by _write_rows_to_sql)."""
-    header = (
-        f"Patient: {patient_name}\n"
-        f"Source:  {filename}\n"
-        f"Records: {len(rows)} rows\n\n"
-    )
-    body_lines = [
-        f"Row {i + 1}: " + " | ".join(f"{k}: {v}" for k, v in row.items() if v)
-        for i, row in enumerate(rows)
-    ]
-    body = "\n".join(body_lines)
-    full = header + body
-    if len(full) > max_chars:
-        truncated = body[:max_chars - len(header) - 60]
-        last_nl = truncated.rfind("\n")
-        truncated = truncated[:last_nl] if last_nl > 0 else truncated
-        full = header + truncated + f"\n... ({len(rows)} rows total, truncated)"
-    return full
 
 
 # ── Text-document helpers ─────────────────────────────────────────────────────
@@ -427,6 +721,125 @@ def _split_text_into_chunks(
         # Step forward; overlap pulls start back but never below last cut
         next_start = cut - chunk_overlap
         start = next_start if next_start > start else cut
+
+    return chunks
+
+
+# ── Table-aware PDF chunker ───────────────────────────────────────────────────
+
+def _page_has_table(page) -> bool:
+    """
+    Heuristic: a PDF page looks like a data table if it contains many short
+    text blocks arranged in a grid (as opposed to long flowing prose paragraphs).
+
+    This catches ICD/CPT code tables, billing grids, HCPCS fee schedules, and
+    other structured data layouts that should NOT be split across chunk boundaries.
+
+    Thresholds (empirically tuned on medical billing PDFs):
+      • ≥ 8 text blocks on the page
+      • average block length ≤ 200 characters
+      • ≥ 70 % of blocks are "short" (≤ 120 chars, i.e. a code + description)
+    """
+    try:
+        # fitz block tuple: (x0, y0, x1, y1, text, block_no, block_type)
+        # block_type 0 = text, 1 = image
+        blocks = page.get_text("blocks")
+        text_blocks = [b for b in blocks if b[6] == 0 and b[4].strip()]
+    except Exception:
+        return False
+
+    if len(text_blocks) < 8:
+        return False
+
+    total_len = sum(len(b[4]) for b in text_blocks)
+    avg_len   = total_len / len(text_blocks)
+    short_frac = sum(1 for b in text_blocks if len(b[4]) <= 120) / len(text_blocks)
+
+    return avg_len <= 200 and short_frac >= 0.70
+
+
+def _split_pdf_table_aware(
+    file_path:    str,
+    chunk_size:   int = 1000,
+    chunk_overlap: int = 200,
+) -> list[str]:
+    """
+    Table-aware PDF chunker — keeps table pages atomic, splits prose normally.
+
+    Algorithm
+    ---------
+    1. Open with PyMuPDF and process the PDF page by page.
+    2. For each page, classify it as "table" or "prose" using _page_has_table().
+    3. Accumulate consecutive prose pages; when a table page is reached (or at
+       EOF), flush the prose buffer through the standard sliding-window splitter,
+       then add the table page as one atomic chunk.
+    4. Repeat until all pages are processed.
+
+    ICD/CPT code preservation
+    --------------------------
+    Because table pages are kept whole, lines like:
+        "410.0   Acute myocardial infarction of anterolateral wall"
+    always stay in the same chunk as their code — the code and description can
+    never be separated by a chunk boundary.
+
+    Falls back to plain text extraction + sliding-window splitting if PyMuPDF
+    is unavailable or the file cannot be opened as a structured PDF.
+    """
+    try:
+        import fitz  # PyMuPDF
+        doc = fitz.open(file_path)
+    except Exception as exc:
+        logger.warning(
+            "Table-aware chunker: PyMuPDF could not open %s (%s) — "
+            "falling back to plain text extraction",
+            file_path, exc,
+        )
+        text = _extract_text_from_file(file_path, ".pdf")
+        return _split_text_into_chunks(text, chunk_size, chunk_overlap)
+
+    # Classify each page as "table" or "prose"
+    segments: list[tuple[str, str]] = []  # (type, page_text)
+    try:
+        for page in doc:
+            page_text = page.get_text().strip()
+            if not page_text:
+                continue
+            seg_type = "table" if _page_has_table(page) else "prose"
+            segments.append((seg_type, page_text))
+    finally:
+        doc.close()
+
+    if not segments:
+        return []
+
+    chunks: list[str] = []
+    prose_buffer: list[str] = []
+
+    for seg_type, seg_text in segments:
+        if seg_type == "prose":
+            prose_buffer.append(seg_text)
+        else:
+            # Flush accumulated prose before the table
+            if prose_buffer:
+                prose_full = "\n\n".join(prose_buffer)
+                chunks.extend(
+                    _split_text_into_chunks(prose_full, chunk_size, chunk_overlap)
+                )
+                prose_buffer = []
+
+            # Keep the table page as one atomic chunk (never split mid-table).
+            # If the page is larger than chunk_size, still keep it whole —
+            # splitting a table risks separating a code from its description.
+            if seg_text.strip():
+                chunks.append(seg_text.strip())
+
+    # Flush any remaining prose after the last table (or the entire document
+    # if it contained no table pages at all).
+    if prose_buffer:
+        prose_full = "\n\n".join(prose_buffer)
+        chunks.extend(
+            _split_text_into_chunks(prose_full, chunk_size, chunk_overlap)
+        )
 
     return chunks
 
@@ -491,275 +904,161 @@ def _row_to_chroma_text(row: dict, filename: str) -> str:
     return f"[Source: {filename}] {body}" if body else ""
 
 
-# ── Direct per-row SQLite ingestion ──────────────────────────────────────────
-
-def _write_rows_to_sql(
-    clean_rows:   list[dict],
-    patient_col:  str | None,
-    date_col:     str | None,
-    amount_col:   str | None,
-    columns:      list,
-    filename:     str,
-) -> int:
-    """
-    Write each spreadsheet row directly to SQLite as a claim/visit record.
-    Deterministic, no LLM, scales to tens of thousands of rows.
-    Returns the number of records inserted.
-    """
-    from db.operations import (
-        find_or_create_patient, find_or_create_provider, find_or_create_admission,
-        insert_record,
-    )
-    from rag.icd9_lookup import lookup_icd9
-
-    if not patient_col:
-        return 0
-
-    row_cols = {key: _find_row_column(columns, key) for key in _ROW_FIELD_MAP}
-    id_col            = _find_column(columns, "patient_id")
-    provider_name_col = _find_column(columns, "provider_name")
-    provider_npi_col  = _find_column(columns, "provider_npi")
-
-    _lower_col_map = {c.lower().strip(): c for c in columns if c}
-    subject_id_col = _lower_col_map.get("subject_id")
-
-    _consumed_cols = {
-        patient_col, id_col, date_col, amount_col,
-        provider_name_col, provider_npi_col, subject_id_col,
-    }
-    _consumed_cols.update(c for c in row_cols.values() if c)
-    extra_cols = [c for c in columns if c and c not in _consumed_cols]
-
-    patient_pk_cache:  dict[str, int] = {}
-    provider_pk_cache: dict[str, int] = {}
-    count = 0
-
-    for idx, row in enumerate(clean_rows):
-        patient_name = (row.get(patient_col) or "").strip().title()
-        if not patient_name:
-            continue
-
-        subject_id_val = _safe_cell(row.get(subject_id_col)) if subject_id_col else None
-
-        if patient_name not in patient_pk_cache:
-            try:
-                patient_pk_cache[patient_name] = find_or_create_patient(
-                    name=patient_name,
-                    patient_id=_safe_cell(row.get(id_col)) if id_col else None,
-                    dob=_normalize_date(_safe_cell(row.get(row_cols["patient_dob"])))
-                        if row_cols["patient_dob"] else None,
-                    gender=_safe_cell(row.get(row_cols["patient_gender"]))
-                        if row_cols["patient_gender"] else None,
-                    phone=_safe_cell(row.get(row_cols["phone"]))
-                        if row_cols["phone"] else None,
-                    address=_compose_address(row, row_cols),
-                    insurance_id=_safe_cell(row.get(row_cols["insurance_id"]))
-                        if row_cols["insurance_id"] else None,
-                    subject_id=subject_id_val,
-                    source_file=filename,
-                )
-            except Exception as exc:
-                logger.warning("find_or_create_patient failed for %s: %s", patient_name, exc)
-                continue
-        patient_pk = patient_pk_cache[patient_name]
-
-        provider_pk = None
-        provider_name = _safe_cell(row.get(provider_name_col)) if provider_name_col else None
-        if provider_name:
-            provider_key = provider_name.title()
-            if provider_key not in provider_pk_cache:
-                try:
-                    provider_pk_cache[provider_key] = find_or_create_provider(
-                        name=provider_key,
-                        npi=_safe_cell(row.get(provider_npi_col)) if provider_npi_col else None,
-                        source_file=filename,
-                    )
-                except Exception as exc:
-                    logger.warning("find_or_create_provider failed for %s: %s", provider_key, exc)
-                    provider_pk_cache[provider_key] = None
-            provider_pk = provider_pk_cache[provider_key]
-
-        hadm_id_val       = _safe_cell(row.get(row_cols["hadm_id"]))  if row_cols["hadm_id"]  else None
-        icd9_code_val     = _safe_cell(row.get(row_cols["icd9_code"])) if row_cols["icd9_code"] else None
-        seq_num_val       = _safe_cell(row.get(row_cols["seq_num"]))  if row_cols["seq_num"]  else None
-        icd9_description  = lookup_icd9(icd9_code_val) if icd9_code_val else None
-
-        admittime_val      = _safe_cell(row.get(row_cols["admittime"]))      if row_cols["admittime"]      else None
-        dischtime_val      = _safe_cell(row.get(row_cols["dischtime"]))      if row_cols["dischtime"]      else None
-        deathtime_val      = _safe_cell(row.get(row_cols["deathtime"]))      if row_cols["deathtime"]      else None
-        admission_type_val = _safe_cell(row.get(row_cols["admission_type"])) if row_cols["admission_type"] else None
-
-        diag_code = _safe_cell(row.get(row_cols["diagnosis_code"])) if row_cols["diagnosis_code"] else None
-        diag_name = _safe_cell(row.get(row_cols["diagnosis_name"])) if row_cols["diagnosis_name"] else None
-        diagnosis = " - ".join(
-            p for p in (diag_code or icd9_code_val, diag_name or icd9_description) if p
-        ) or None
-
-        cpt_code  = _safe_cell(row.get(row_cols["cpt_code"])) if row_cols["cpt_code"] else None
-        cpt_name  = _safe_cell(row.get(row_cols["cpt_name"])) if row_cols["cpt_name"] else None
-        treatment = " - ".join(p for p in (cpt_code, cpt_name) if p) or None
-
-        claim_number = _safe_cell(row.get(row_cols["claim_number"])) if row_cols["claim_number"] else None
-        total_amount = _safe_cell(row.get(amount_col)) if amount_col else None
-        record_date  = _normalize_date(_safe_cell(row.get(date_col))) if date_col else None
-        record_type  = "bill" if amount_col else "visit"
-
-        raw_text = _build_patient_text(patient_name, [row], filename, max_chars=4000)
-
-        details: dict = {}
-        if row_cols["address_line2"] and row.get(row_cols["address_line2"]):
-            details["address_line_2"] = _safe_cell(row.get(row_cols["address_line2"]))
-        for col in extra_cols:
-            val = _safe_cell(row.get(col))
-            if val:
-                details[col] = val
-
-        try:
-            insert_record(
-                patient_id=patient_pk,
-                record_type=record_type,
-                raw_text=raw_text,
-                source_file=filename,
-                provider_id=provider_pk,
-                record_date=record_date,
-                total_amount=total_amount,
-                claim_number=claim_number,
-                diagnosis=diagnosis,
-                treatment=treatment,
-                details=details or None,
-                page_number=None,
-                chunk_index=str(idx),
-                hadm_id=hadm_id_val,
-                icd9_code=icd9_code_val,
-                icd9_description=icd9_description,
-                seq_num=seq_num_val,
-            )
-            count += 1
-        except Exception as exc:
-            logger.warning("insert_record failed for row %d (%s): %s", idx, patient_name, exc)
-
-        if hadm_id_val:
-            try:
-                find_or_create_admission(
-                    patient_pk=patient_pk,
-                    subject_id=subject_id_val,
-                    hadm_id=hadm_id_val,
-                    admittime=admittime_val,
-                    dischtime=dischtime_val,
-                    deathtime=deathtime_val,
-                    admission_type=admission_type_val,
-                    diagnosis=diag_name or icd9_description,
-                    source_file=filename,
-                )
-            except Exception as exc:
-                logger.warning(
-                    "find_or_create_admission failed for hadm_id %s: %s", hadm_id_val, exc
-                )
-
-    return count
-
-
-# ── Tabular ingestion (CSV / Excel) ──────────────────────────────────────────
+# ── Tabular ingestion (CSV / Excel) — structure-defined streams ───────────────
 
 def _ingest_tabular(file_path: str, ext: str) -> dict:
     """
-    Ingest a CSV or Excel file.
+    Ingest a CSV or Excel file into a per-stream staging table in PostgreSQL.
 
-    ChromaDB: one document per row — text = "Col1: Val1 | Col2: Val2 | …"
-              This matches the reference-repo CSVLoader pattern and makes every
-              individual row retrievable via semantic search.
+    Stream identity is derived from the column signature (md5 of pre-denylist
+    safe identifiers) so every unique schema gets its own stg_* table.
+    ChromaDB is NOT written — tabular rows are structured data only.
 
-    SQLite:   direct columnar mapping via _write_rows_to_sql — no LLM,
-              captures every field for exact ID-based queries.
+    Pipeline
+    --------
+    1. Load file → pandas DataFrame
+    2. Compute column_signature (pre-denylist — stream identity never changes)
+    3. Apply PHI denylist → stored_cols (subset kept in Postgres)
+    4. Resolve stream via source_catalog (create stg_* on first sight)
+    5. Build safe-identifier row dicts + row hashes
+    6. INSERT new rows (skip exact duplicates)
+    7. Reconcile soft-deletions for snapshot streams
+    8. Update catalog watermarks
     """
     import pandas as pd
+    from db.schema import (
+        get_db, _reconcile_snapshot_deletions,
+    )
 
-    path = Path(file_path)
+    path     = Path(file_path)
     filename = path.name
 
+    # 1. Load
     try:
-        if ext == ".csv":
-            df = pd.read_csv(file_path)
-        else:
-            df = pd.read_excel(file_path)
-    except Exception as e:
-        return {"status": "error", "message": f"Failed to load {filename}: {e}"}
+        df = pd.read_csv(file_path) if ext == ".csv" else pd.read_excel(file_path)
+    except Exception as exc:
+        return {"status": "error", "message": f"Failed to load {filename}: {exc}"}
 
     if df.empty:
         return {"status": "error", "message": f"No data found in {filename}"}
 
-    df.columns = [str(c).strip() for c in df.columns]
-    df = df.dropna(how="all").reset_index(drop=True)
-    total_rows = len(df)
+    df.columns  = [str(c).strip() for c in df.columns]
+    df          = df.dropna(how="all").reset_index(drop=True)
+    total_rows  = len(df)
     if total_rows == 0:
         return {"status": "error", "message": f"No data rows in {filename}"}
 
+    raw_headers = list(df.columns)
     logger.info("Loaded %d rows from %s", total_rows, filename)
 
-    patient_col = _find_patient_column(list(df.columns))
-    date_col    = _find_column(list(df.columns), "date")
-    amount_col  = _find_column(list(df.columns), "total_amount")
-
-    # Build clean row dicts
-    clean_rows: list[dict] = []
-    for idx in range(total_rows):
-        row_dict: dict = {}
-        for col in df.columns:
-            try:
-                row_dict[col] = _safe_cell(df.at[idx, col])
-            except Exception:
-                row_dict[col] = None
-        clean_rows.append(row_dict)
-
-    # ── ChromaDB: one document per row ───────────────────────────────────────
-    all_ids:   list[str] = []
-    all_texts: list[str] = []
-    all_metas: list[dict] = []
-
-    for idx, row in enumerate(clean_rows):
-        text = _row_to_chroma_text(row, filename)
-        if not text.strip():
-            continue
-
-        meta = _extract_meta_from_row(row, filename, idx, total_rows)
-        meta["file_name"] = filename
-        meta["file_type"] = ext.lstrip(".")
-
-        all_ids.append(_row_doc_id(file_path, idx))
-        all_texts.append(text)
-        all_metas.append(meta)
-
-    if not all_ids:
-        return {"status": "error", "message": f"No non-empty rows in {filename}"}
-
-    ingested = add_documents_batch(all_ids, all_texts, all_metas)
-    logger.info("ChromaDB: %d/%d row doc(s) stored from %s", ingested, total_rows, filename)
-
-    # ── SQLite: clear old records, then write all rows ────────────────────────
+    # 2. Compute signature (pre-denylist — Fix 3)
     try:
-        from db.operations import delete_records_by_source_file
-        deleted = delete_records_by_source_file(filename)
-        if deleted:
-            logger.info("Removed %d existing record(s) for %s before re-ingest", deleted, filename)
-    except Exception as exc:
-        logger.warning("Failed to clear old records for %s: %s", filename, exc)
+        signature, all_safe = _compute_signature(raw_headers)
+    except ValueError as exc:
+        return {"status": "error", "message": str(exc)}
 
+    # 3. Apply PHI denylist (post-signature — Fix 3)
     try:
-        sql_count = _write_rows_to_sql(
-            clean_rows, patient_col, date_col, amount_col, list(df.columns), filename
+        stored_cols, dropped_cols = _apply_denylist(all_safe)
+    except ValueError as exc:
+        return {"status": "error", "message": str(exc)}
+
+    if dropped_cols:
+        logger.info(
+            "PHI denylist dropped %d column(s) from %s: %s",
+            len(dropped_cols), filename, dropped_cols,
         )
-        logger.info("SQLite: %d record(s) stored from %s", sql_count, filename)
-    except Exception as exc:
-        logger.warning("SQLite ingestion failed for %s: %s", filename, exc)
 
-    return {
-        "status":         "success",
-        "doc_id":         _doc_id(file_path),
-        "file_name":      filename,
-        "rows_ingested":  ingested,
-        "rows_processed": total_rows,
-        "metadata":       {"doc_type": _doc_type_from_filename(filename), "file_name": filename},
+    # 4. Resolve stream
+    try:
+        with get_db() as conn:
+            stream = _resolve_stream(signature, all_safe, stored_cols, raw_headers, conn)
+    except Exception as exc:
+        return {
+            "status":  "error",
+            "message": f"Stream resolution failed for {filename}: {exc}",
+        }
+
+    staging_table = stream["staging_table"]
+    load_mode     = stream.get("load_mode") or "append"
+
+    # Build raw-header → safe-identifier mapping
+    raw_to_safe: dict[str, str] = {}
+    for raw_h in raw_headers:
+        try:
+            safe = _safe_identifier(raw_h)
+            raw_to_safe[raw_h] = safe
+        except ValueError:
+            pass
+
+    # 5. Build safe-identifier row dicts + row hashes
+    safe_rows:  list[dict] = []
+    row_hashes: list[str]  = []
+
+    for idx in range(total_rows):
+        safe_row: dict = {}
+        for raw_h in raw_headers:
+            safe_h = raw_to_safe.get(raw_h)
+            if safe_h and safe_h in stored_cols:
+                try:
+                    safe_row[safe_h] = _safe_cell(df.at[idx, raw_h])
+                except Exception:
+                    safe_row[safe_h] = None
+
+        hash_content = "|".join(
+            f"{c}={safe_row.get(c) or ''}" for c in sorted(stored_cols)
+        )
+        safe_rows.append(safe_row)
+        row_hashes.append(hashlib.md5(hash_content.encode()).hexdigest())
+
+    # 6 & 7. Insert + reconcile
+    with get_db() as conn:
+        inserted = _write_rows_to_staging(
+            conn, staging_table, stored_cols, safe_rows, row_hashes, filename, load_mode,
+        )
+        logger.info(
+            "Staging insert: %d/%d row(s) → %s (%s)",
+            inserted, total_rows, staging_table, load_mode,
+        )
+
+        deleted = -1
+        if load_mode == "snapshot":
+            deleted = _reconcile_snapshot_deletions(
+                conn, staging_table, filename, row_hashes, total_rows,
+            )
+
+        # 8. Update catalog watermarks
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE source_catalog
+                SET rows_total         = rows_total + %s,
+                    rows_last_inserted = %s,
+                    last_ingested_at   = NOW()
+                WHERE column_signature = %s
+                """,
+                [inserted, inserted, signature],
+            )
+        conn.commit()
+
+    result: dict = {
+        "status":            "success",
+        "doc_id":            _doc_id(file_path),
+        "file_name":         filename,
+        "rows_ingested":     inserted,
+        "rows_processed":    total_rows,
+        "staging_table":     staging_table,
+        "column_signature":  signature[:8],
+        "load_mode":         load_mode,
+        "metadata": {
+            "doc_type":  "tabular",
+            "file_name": filename,
+            "load_mode": load_mode,
+        },
     }
+    if deleted >= 0:
+        result["rows_reconciled"] = deleted
+    return result
 
 
 # ── Text-document ingestion (PDF / DOCX / TXT / MD) ──────────────────────────
@@ -794,7 +1093,13 @@ def _ingest_text_document(file_path: str, ext: str) -> dict:
         return {"status": "error", "message": f"No text extracted from {filename}"}
 
     # 2. Chunk
-    chunks = _split_text_into_chunks(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
+    # PDFs use the table-aware chunker which keeps table pages atomic so that
+    # ICD/CPT codes are never split from their descriptions.  All other document
+    # types use the standard sliding-window splitter.
+    if ext == ".pdf":
+        chunks = _split_pdf_table_aware(file_path, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
+    else:
+        chunks = _split_text_into_chunks(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
     if not chunks:
         return {"status": "error", "message": f"Chunking produced no output for {filename}"}
 

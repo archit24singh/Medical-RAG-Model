@@ -1,0 +1,2107 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 21,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "fileCategory": "code",
+      "totalLines": 49,
+      "nonEmptyLines": 42,
+      "metrics": {}
+    },
+    {
+      "path": ".understand-anything/config.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 1,
+      "nonEmptyLines": 1,
+      "sections": [
+        {
+          "heading": "outputLanguage",
+          "level": 1,
+          "line": 1
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 1
+      }
+    },
+    {
+      "path": "backend/db/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 1,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/rag/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 1,
+      "nonEmptyLines": 1,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/rag/chunker.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 11,
+      "nonEmptyLines": 11,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/rag/document_parser.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 10,
+      "nonEmptyLines": 10,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/rag/enricher.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 14,
+      "nonEmptyLines": 14,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/rag/structured_extractor.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 13,
+      "nonEmptyLines": 13,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/requirements.txt",
+      "language": "txt",
+      "fileCategory": "docs",
+      "totalLines": 46,
+      "nonEmptyLines": 39,
+      "metrics": {}
+    },
+    {
+      "path": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 326,
+      "nonEmptyLines": 277,
+      "functions": [
+        {
+          "name": "_sqlite_batches",
+          "startLine": 152,
+          "endLine": 166,
+          "params": [
+            "conn",
+            "query"
+          ]
+        },
+        {
+          "name": "_pad_row",
+          "startLine": 169,
+          "endLine": 173,
+          "params": [
+            "row",
+            "ncols"
+          ]
+        },
+        {
+          "name": "_reset_sequence",
+          "startLine": 176,
+          "endLine": 180,
+          "params": [
+            "pg_cur",
+            "sequence",
+            "table"
+          ]
+        },
+        {
+          "name": "migrate",
+          "startLine": 185,
+          "endLine": 267,
+          "params": [
+            "sqlite_path",
+            "postgres_dsn",
+            "dry_run"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 272,
+          "endLine": 322,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_sqlite_batches",
+          "line": 152,
+          "isDefault": false
+        },
+        {
+          "name": "_pad_row",
+          "line": 169,
+          "isDefault": false
+        },
+        {
+          "name": "_reset_sequence",
+          "line": 176,
+          "isDefault": false
+        },
+        {
+          "name": "migrate",
+          "line": 185,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 272,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_sqlite_batches",
+          "callee": "conn.cursor",
+          "lineNumber": 155
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "cur.execute",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "logger.warning",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "query.split",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "cur.fetchmany",
+          "lineNumber": 163
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "tuple",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_pad_row",
+          "callee": "len",
+          "lineNumber": 171
+        },
+        {
+          "caller": "_pad_row",
+          "callee": "len",
+          "lineNumber": 172
+        },
+        {
+          "caller": "_reset_sequence",
+          "callee": "pg_cur.execute",
+          "lineNumber": 178
+        },
+        {
+          "caller": "migrate",
+          "callee": "os.path.exists",
+          "lineNumber": 197
+        },
+        {
+          "caller": "migrate",
+          "callee": "FileNotFoundError",
+          "lineNumber": 198
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 200
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 201
+        },
+        {
+          "caller": "migrate",
+          "callee": "postgres_dsn.split",
+          "lineNumber": 201
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 203
+        },
+        {
+          "caller": "migrate",
+          "callee": "sqlite3.connect",
+          "lineNumber": 205
+        },
+        {
+          "caller": "migrate",
+          "callee": "psycopg2.connect",
+          "lineNumber": 206
+        },
+        {
+          "caller": "migrate",
+          "callee": "sqlite_conn.cursor",
+          "lineNumber": 219
+        },
+        {
+          "caller": "migrate",
+          "callee": "cur.execute",
+          "lineNumber": 220
+        },
+        {
+          "caller": "migrate",
+          "callee": "cur.fetchone",
+          "lineNumber": 221
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 223
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 228
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 232
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.cursor",
+          "lineNumber": 239
+        },
+        {
+          "caller": "migrate",
+          "callee": "_sqlite_batches",
+          "lineNumber": 241
+        },
+        {
+          "caller": "migrate",
+          "callee": "_pad_row",
+          "lineNumber": 242
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_cur.executemany",
+          "lineNumber": 243
+        },
+        {
+          "caller": "migrate",
+          "callee": "len",
+          "lineNumber": 244
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 246
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.commit",
+          "lineNumber": 251
+        },
+        {
+          "caller": "migrate",
+          "callee": "_reset_sequence",
+          "lineNumber": 255
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.commit",
+          "lineNumber": 256
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 258
+        },
+        {
+          "caller": "migrate",
+          "callee": "sqlite_conn.close",
+          "lineNumber": 264
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.close",
+          "lineNumber": 265
+        },
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 273
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 277
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 282
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 284
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 288
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 293
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 296
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 300
+        },
+        {
+          "caller": "main",
+          "callee": "migrate",
+          "lineNumber": 302
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 308
+        },
+        {
+          "caller": "main",
+          "callee": "totals.items",
+          "lineNumber": 309
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 311
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 312
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 315
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/scripts/purge_structured_chroma.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 188,
+      "nonEmptyLines": 160,
+      "functions": [
+        {
+          "name": "purge_tabular_docs",
+          "startLine": 41,
+          "endLine": 122,
+          "params": [
+            "host",
+            "port",
+            "collection_name",
+            "dry_run",
+            "rebuild"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 125,
+          "endLine": 184,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "purge_tabular_docs",
+          "line": 41,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 125,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "chromadb.HttpClient",
+          "lineNumber": 63
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 66
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "client.delete_collection",
+          "lineNumber": 69
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 70
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 72
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "client.create_collection",
+          "lineNumber": 74
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 78
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 79
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 85
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "client.get_collection",
+          "lineNumber": 88
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 92
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "collection.get",
+          "lineNumber": 94
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 99
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "result.get",
+          "lineNumber": 102
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 104
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 107
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 107
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 110
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 110
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 111
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "range",
+          "lineNumber": 115
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 115
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "collection.delete",
+          "lineNumber": 117
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 118
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 119
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 119
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 120
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 120
+        },
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 126
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 130
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 135
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 140
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 142
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 145
+        },
+        {
+          "caller": "main",
+          "callee": "int",
+          "lineNumber": 148
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 148
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 151
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 153
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 156
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 158
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 159
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 161
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 163
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 165
+        },
+        {
+          "caller": "main",
+          "callee": "purge_tabular_docs",
+          "lineNumber": 168
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 176
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 177
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 179
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 181
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "data/patients/alice_johnson_bill_2025-10-27.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 23,
+      "nonEmptyLines": 23,
+      "sections": [
+        {
+          "heading": "patient_name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "patient_id",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "date",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "doc_type",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "bill_number",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "items",
+          "level": 1,
+          "line": 7
+        },
+        {
+          "heading": "subtotal",
+          "level": 1,
+          "line": 14
+        },
+        {
+          "heading": "insurance_provider",
+          "level": 1,
+          "line": 15
+        },
+        {
+          "heading": "insurance_coverage",
+          "level": 1,
+          "line": 16
+        },
+        {
+          "heading": "total_amount",
+          "level": 1,
+          "line": 17
+        },
+        {
+          "heading": "patient_due",
+          "level": 1,
+          "line": 18
+        },
+        {
+          "heading": "provider_name",
+          "level": 1,
+          "line": 19
+        },
+        {
+          "heading": "provider_npi",
+          "level": 1,
+          "line": 20
+        },
+        {
+          "heading": "payment_due_date",
+          "level": 1,
+          "line": 21
+        },
+        {
+          "heading": "status",
+          "level": 1,
+          "line": 22
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 15
+      }
+    },
+    {
+      "path": "data/patients/john_smith_record_2025-09-15.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 25,
+      "nonEmptyLines": 25,
+      "sections": [
+        {
+          "heading": "patient_name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "patient_id",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "date",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "doc_type",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "visit_type",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "chief_complaint",
+          "level": 1,
+          "line": 7
+        },
+        {
+          "heading": "diagnosis",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "treatment_plan",
+          "level": 1,
+          "line": 9
+        },
+        {
+          "heading": "vitals",
+          "level": 1,
+          "line": 15
+        },
+        {
+          "heading": "allergies",
+          "level": 1,
+          "line": 21
+        },
+        {
+          "heading": "provider_name",
+          "level": 1,
+          "line": 22
+        },
+        {
+          "heading": "provider_npi",
+          "level": 1,
+          "line": 23
+        },
+        {
+          "heading": "facility",
+          "level": 1,
+          "line": 24
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 13
+      }
+    },
+    {
+      "path": "data/providers/dr_robert_chen.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 24,
+      "nonEmptyLines": 24,
+      "sections": [
+        {
+          "heading": "provider_name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "doc_type",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "provider_npi",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "provider_dob",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "specialty",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "sub_specialty",
+          "level": 1,
+          "line": 7
+        },
+        {
+          "heading": "license_number",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "license_state",
+          "level": 1,
+          "line": 9
+        },
+        {
+          "heading": "license_expiry",
+          "level": 1,
+          "line": 10
+        },
+        {
+          "heading": "address",
+          "level": 1,
+          "line": 11
+        },
+        {
+          "heading": "phone",
+          "level": 1,
+          "line": 12
+        },
+        {
+          "heading": "fax",
+          "level": 1,
+          "line": 13
+        },
+        {
+          "heading": "email",
+          "level": 1,
+          "line": 14
+        },
+        {
+          "heading": "hospital_affiliations",
+          "level": 1,
+          "line": 15
+        },
+        {
+          "heading": "accepting_patients",
+          "level": 1,
+          "line": 19
+        },
+        {
+          "heading": "languages",
+          "level": 1,
+          "line": 20
+        },
+        {
+          "heading": "medical_school",
+          "level": 1,
+          "line": 21
+        },
+        {
+          "heading": "residency",
+          "level": 1,
+          "line": 22
+        },
+        {
+          "heading": "board_certified",
+          "level": 1,
+          "line": 23
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 19
+      }
+    },
+    {
+      "path": "data/providers/dr_sarah_williams.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 24,
+      "nonEmptyLines": 24,
+      "sections": [
+        {
+          "heading": "provider_name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "doc_type",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "provider_npi",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "provider_dob",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "specialty",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "sub_specialty",
+          "level": 1,
+          "line": 7
+        },
+        {
+          "heading": "license_number",
+          "level": 1,
+          "line": 8
+        },
+        {
+          "heading": "license_state",
+          "level": 1,
+          "line": 9
+        },
+        {
+          "heading": "license_expiry",
+          "level": 1,
+          "line": 10
+        },
+        {
+          "heading": "address",
+          "level": 1,
+          "line": 11
+        },
+        {
+          "heading": "phone",
+          "level": 1,
+          "line": 12
+        },
+        {
+          "heading": "fax",
+          "level": 1,
+          "line": 13
+        },
+        {
+          "heading": "email",
+          "level": 1,
+          "line": 14
+        },
+        {
+          "heading": "hospital_affiliations",
+          "level": 1,
+          "line": 15
+        },
+        {
+          "heading": "accepting_patients",
+          "level": 1,
+          "line": 19
+        },
+        {
+          "heading": "languages",
+          "level": 1,
+          "line": 20
+        },
+        {
+          "heading": "medical_school",
+          "level": 1,
+          "line": 21
+        },
+        {
+          "heading": "residency",
+          "level": 1,
+          "line": 22
+        },
+        {
+          "heading": "board_certified",
+          "level": 1,
+          "line": 23
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 19
+      }
+    },
+    {
+      "path": "data/sources.yaml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 57,
+      "nonEmptyLines": 55,
+      "sections": [
+        {
+          "heading": "streams",
+          "level": 1,
+          "line": 41
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 1
+      }
+    },
+    {
+      "path": "data/sql_schema_metadata.yaml",
+      "language": "yaml",
+      "fileCategory": "config",
+      "totalLines": 113,
+      "nonEmptyLines": 104,
+      "sections": [
+        {
+          "heading": "few_shot_examples",
+          "level": 1,
+          "line": 13
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 1
+      }
+    },
+    {
+      "path": "frontend/app.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 345,
+      "nonEmptyLines": 301,
+      "functions": [
+        {
+          "name": "api",
+          "startLine": 19,
+          "endLine": 31,
+          "params": [
+            "method",
+            "endpoint",
+            "**kwargs"
+          ]
+        },
+        {
+          "name": "relevance_label",
+          "startLine": 34,
+          "endLine": 40,
+          "params": [
+            "score"
+          ]
+        },
+        {
+          "name": "render_sources",
+          "startLine": 43,
+          "endLine": 99,
+          "params": [
+            "documents",
+            "msg_key"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "api",
+          "line": 19,
+          "isDefault": false
+        },
+        {
+          "name": "relevance_label",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "render_sources",
+          "line": 43,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "api",
+          "callee": "endpoint.lstrip",
+          "lineNumber": 20
+        },
+        {
+          "caller": "api",
+          "callee": "getattr",
+          "lineNumber": 22
+        },
+        {
+          "caller": "api",
+          "callee": "resp.raise_for_status",
+          "lineNumber": 23
+        },
+        {
+          "caller": "api",
+          "callee": "resp.json",
+          "lineNumber": 24
+        },
+        {
+          "caller": "api",
+          "callee": "st.error",
+          "lineNumber": 26
+        },
+        {
+          "caller": "api",
+          "callee": "st.error",
+          "lineNumber": 28
+        },
+        {
+          "caller": "api",
+          "callee": "st.error",
+          "lineNumber": 30
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.expander",
+          "lineNumber": 60
+        },
+        {
+          "caller": "render_sources",
+          "callee": "len",
+          "lineNumber": 60
+        },
+        {
+          "caller": "render_sources",
+          "callee": "enumerate",
+          "lineNumber": 61
+        },
+        {
+          "caller": "render_sources",
+          "callee": "doc.get",
+          "lineNumber": 62
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.columns",
+          "lineNumber": 63
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.markdown",
+          "lineNumber": 65
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 65
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 67
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 68
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 69
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 70
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 71
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 72
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 73
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 74
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 75
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 76
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 77
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 78
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 79
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 80
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 81
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 82
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 83
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 85
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 87
+        },
+        {
+          "caller": "render_sources",
+          "callee": "m.get",
+          "lineNumber": 88
+        },
+        {
+          "caller": "render_sources",
+          "callee": "tags.append",
+          "lineNumber": 89
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.caption",
+          "lineNumber": 90
+        },
+        {
+          "caller": "render_sources",
+          "callee": "\"  |  \".join",
+          "lineNumber": 90
+        },
+        {
+          "caller": "render_sources",
+          "callee": "doc.get",
+          "lineNumber": 92
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.markdown",
+          "lineNumber": 93
+        },
+        {
+          "caller": "render_sources",
+          "callee": "relevance_label",
+          "lineNumber": 93
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.checkbox",
+          "lineNumber": 95
+        },
+        {
+          "caller": "render_sources",
+          "callee": "doc.get",
+          "lineNumber": 95
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.code",
+          "lineNumber": 96
+        },
+        {
+          "caller": "render_sources",
+          "callee": "doc.get",
+          "lineNumber": 96
+        },
+        {
+          "caller": "render_sources",
+          "callee": "len",
+          "lineNumber": 98
+        },
+        {
+          "caller": "render_sources",
+          "callee": "st.divider",
+          "lineNumber": 99
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/requirements.txt",
+      "language": "txt",
+      "fileCategory": "docs",
+      "totalLines": 3,
+      "nonEmptyLines": 3,
+      "metrics": {}
+    },
+    {
+      "path": "scripts/migrate_sqlite_to_postgres.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 326,
+      "nonEmptyLines": 277,
+      "functions": [
+        {
+          "name": "_sqlite_batches",
+          "startLine": 152,
+          "endLine": 166,
+          "params": [
+            "conn",
+            "query"
+          ]
+        },
+        {
+          "name": "_pad_row",
+          "startLine": 169,
+          "endLine": 173,
+          "params": [
+            "row",
+            "ncols"
+          ]
+        },
+        {
+          "name": "_reset_sequence",
+          "startLine": 176,
+          "endLine": 180,
+          "params": [
+            "pg_cur",
+            "sequence",
+            "table"
+          ]
+        },
+        {
+          "name": "migrate",
+          "startLine": 185,
+          "endLine": 267,
+          "params": [
+            "sqlite_path",
+            "postgres_dsn",
+            "dry_run"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 272,
+          "endLine": 322,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_sqlite_batches",
+          "line": 152,
+          "isDefault": false
+        },
+        {
+          "name": "_pad_row",
+          "line": 169,
+          "isDefault": false
+        },
+        {
+          "name": "_reset_sequence",
+          "line": 176,
+          "isDefault": false
+        },
+        {
+          "name": "migrate",
+          "line": 185,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 272,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_sqlite_batches",
+          "callee": "conn.cursor",
+          "lineNumber": 155
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "cur.execute",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "logger.warning",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "query.split",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "cur.fetchmany",
+          "lineNumber": 163
+        },
+        {
+          "caller": "_sqlite_batches",
+          "callee": "tuple",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_pad_row",
+          "callee": "len",
+          "lineNumber": 171
+        },
+        {
+          "caller": "_pad_row",
+          "callee": "len",
+          "lineNumber": 172
+        },
+        {
+          "caller": "_reset_sequence",
+          "callee": "pg_cur.execute",
+          "lineNumber": 178
+        },
+        {
+          "caller": "migrate",
+          "callee": "os.path.exists",
+          "lineNumber": 197
+        },
+        {
+          "caller": "migrate",
+          "callee": "FileNotFoundError",
+          "lineNumber": 198
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 200
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 201
+        },
+        {
+          "caller": "migrate",
+          "callee": "postgres_dsn.split",
+          "lineNumber": 201
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 203
+        },
+        {
+          "caller": "migrate",
+          "callee": "sqlite3.connect",
+          "lineNumber": 205
+        },
+        {
+          "caller": "migrate",
+          "callee": "psycopg2.connect",
+          "lineNumber": 206
+        },
+        {
+          "caller": "migrate",
+          "callee": "sqlite_conn.cursor",
+          "lineNumber": 219
+        },
+        {
+          "caller": "migrate",
+          "callee": "cur.execute",
+          "lineNumber": 220
+        },
+        {
+          "caller": "migrate",
+          "callee": "cur.fetchone",
+          "lineNumber": 221
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 223
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 228
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 232
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.cursor",
+          "lineNumber": 239
+        },
+        {
+          "caller": "migrate",
+          "callee": "_sqlite_batches",
+          "lineNumber": 241
+        },
+        {
+          "caller": "migrate",
+          "callee": "_pad_row",
+          "lineNumber": 242
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_cur.executemany",
+          "lineNumber": 243
+        },
+        {
+          "caller": "migrate",
+          "callee": "len",
+          "lineNumber": 244
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 246
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.commit",
+          "lineNumber": 251
+        },
+        {
+          "caller": "migrate",
+          "callee": "_reset_sequence",
+          "lineNumber": 255
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.commit",
+          "lineNumber": 256
+        },
+        {
+          "caller": "migrate",
+          "callee": "logger.info",
+          "lineNumber": 258
+        },
+        {
+          "caller": "migrate",
+          "callee": "sqlite_conn.close",
+          "lineNumber": 264
+        },
+        {
+          "caller": "migrate",
+          "callee": "pg_conn.close",
+          "lineNumber": 265
+        },
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 273
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 277
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 282
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 284
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 288
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 293
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 296
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 300
+        },
+        {
+          "caller": "main",
+          "callee": "migrate",
+          "lineNumber": 302
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 308
+        },
+        {
+          "caller": "main",
+          "callee": "totals.items",
+          "lineNumber": 309
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 311
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 312
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 315
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "scripts/purge_structured_chroma.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 188,
+      "nonEmptyLines": 160,
+      "functions": [
+        {
+          "name": "purge_tabular_docs",
+          "startLine": 41,
+          "endLine": 122,
+          "params": [
+            "host",
+            "port",
+            "collection_name",
+            "dry_run",
+            "rebuild"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 125,
+          "endLine": 184,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "purge_tabular_docs",
+          "line": 41,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 125,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "chromadb.HttpClient",
+          "lineNumber": 63
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 66
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "client.delete_collection",
+          "lineNumber": 69
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 70
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 72
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "client.create_collection",
+          "lineNumber": 74
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 78
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 79
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 85
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "client.get_collection",
+          "lineNumber": 88
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 92
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "collection.get",
+          "lineNumber": 94
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 99
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "result.get",
+          "lineNumber": 102
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 104
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 107
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 107
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 110
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 110
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 111
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "range",
+          "lineNumber": 115
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 115
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "collection.delete",
+          "lineNumber": 117
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 118
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 119
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 119
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "print",
+          "lineNumber": 120
+        },
+        {
+          "caller": "purge_tabular_docs",
+          "callee": "len",
+          "lineNumber": 120
+        },
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 126
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 130
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 135
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 140
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 142
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 145
+        },
+        {
+          "caller": "main",
+          "callee": "int",
+          "lineNumber": 148
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 148
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 151
+        },
+        {
+          "caller": "main",
+          "callee": "os.getenv",
+          "lineNumber": 153
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 156
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 158
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 159
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 161
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 163
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 165
+        },
+        {
+          "caller": "main",
+          "callee": "purge_tabular_docs",
+          "lineNumber": 168
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 176
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 177
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 179
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 181
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    }
+  ]
+}

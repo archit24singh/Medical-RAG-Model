@@ -1,0 +1,106 @@
+[
+  {
+    "id": "layer:api",
+    "name": "API Layer",
+    "description": "FastAPI application entry point that exposes REST endpoints for document ingestion, clinical querying, record listing, and deletion \u2014 the single HTTP surface through which external clients interact with the RAG system.",
+    "nodeIds": [
+      "file:backend/main.py"
+    ]
+  },
+  {
+    "id": "layer:rag-pipeline",
+    "name": "RAG Pipeline",
+    "description": "Core retrieval-augmented generation modules responsible for orchestrating queries through intent parsing, strategy routing, cross-encoder reranking, LLM invocation, and answer synthesis \u2014 including deprecated stubs and package initializers for the rag module.",
+    "nodeIds": [
+      "file:backend/rag/orchestrator.py",
+      "file:backend/rag/retriever.py",
+      "file:backend/rag/query_router.py",
+      "file:backend/rag/intent_parser.py",
+      "file:backend/rag/llm_client.py",
+      "file:backend/rag/chunker.py",
+      "file:backend/rag/document_parser.py",
+      "file:backend/rag/enricher.py",
+      "file:backend/rag/structured_extractor.py",
+      "file:backend/rag/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:data",
+    "name": "Data Layer",
+    "description": "All data storage, retrieval, and persistence concerns: PostgreSQL schema management and CRUD operations, ChromaDB vector store with hybrid BM25+dense search, document ingestion pipeline, ICD-9 lookup table, SQL-based entity retrieval, database migration scripts, and sample patient/provider fixture data driving the clinical RAG system.",
+    "nodeIds": [
+      "file:backend/db/schema.py",
+      "file:backend/db/operations.py",
+      "file:backend/db/__init__.py",
+      "file:backend/rag/vectorstore.py",
+      "file:backend/rag/ingestion.py",
+      "file:backend/rag/icd9_lookup.py",
+      "file:backend/rag/sql_retriever.py",
+      "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "file:backend/scripts/purge_structured_chroma.py",
+      "file:scripts/migrate_sqlite_to_postgres.py",
+      "file:scripts/purge_structured_chroma.py",
+      "config:data/patients/alice_johnson_bill_2025-10-27.json",
+      "config:data/patients/john_smith_record_2025-09-15.json",
+      "config:data/providers/dr_robert_chen.json",
+      "config:data/providers/dr_sarah_williams.json",
+      "config:data/sources.yaml",
+      "config:data/sql_schema_metadata.yaml"
+    ]
+  },
+  {
+    "id": "layer:service",
+    "name": "Service & Admin Layer",
+    "description": "Cross-cutting operational services including HIPAA-compliant audit logging that records every query event to a rotating JSON log, and the CLI catalog-admin tool that manages the dynamic data-stream catalog powering the text-to-SQL query layer.",
+    "nodeIds": [
+      "file:backend/rag/audit_logger.py",
+      "file:backend/scripts/catalog_admin.py"
+    ]
+  },
+  {
+    "id": "layer:frontend",
+    "name": "Frontend Layer",
+    "description": "Streamlit chat interface that allows clinicians to query patient records, billing, and provider information in plain English, together with its Docker build definition and Python dependency manifest.",
+    "nodeIds": [
+      "file:frontend/app.py",
+      "service:frontend/Dockerfile",
+      "service:frontend/Dockerfile:python",
+      "document:frontend/requirements.txt"
+    ]
+  },
+  {
+    "id": "layer:infrastructure",
+    "name": "Infrastructure Layer",
+    "description": "Docker Compose orchestration and container build definitions that assemble the four-service deployment topology: PostgreSQL, ChromaDB, FastAPI backend, and Streamlit frontend into a single locally-run, privacy-preserving stack.",
+    "nodeIds": [
+      "service:backend/Dockerfile",
+      "service:docker-compose.yml",
+      "service:docker-compose.yml:postgres",
+      "service:docker-compose.yml:chromadb",
+      "service:docker-compose.yml:backend",
+      "service:docker-compose.yml:frontend"
+    ]
+  },
+  {
+    "id": "layer:config",
+    "name": "Configuration Layer",
+    "description": "Environment-driven configuration for the entire system: the central Pydantic Settings module that aggregates all runtime parameters, the environment variable template, and tooling configuration files for the Understand-Anything analysis plugin.",
+    "nodeIds": [
+      "file:backend/config.py",
+      "config:.env.example",
+      "config:.understand-anything/config.json",
+      "file:.understand-anything/.understandignore"
+    ]
+  },
+  {
+    "id": "layer:documentation",
+    "name": "Documentation",
+    "description": "Project documentation including the architecture overview and privacy rationale in the README, Docker deployment setup guide, development task tracker, and Python dependency manifests for the backend and frontend services.",
+    "nodeIds": [
+      "document:README.md",
+      "document:SETUP_GUIDE.md",
+      "document:todo.md",
+      "document:backend/requirements.txt"
+    ]
+  }
+]

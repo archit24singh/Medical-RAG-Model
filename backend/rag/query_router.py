@@ -1,31 +1,33 @@
 """
-Query router — decides whether a user query should be answered by:
+Query router — decides which path answers a user query:
 
-  'sql'    — precise factual lookup from SQLite (zero hallucination)
-             Used when the query names a specific entity AND asks for a
-             specific fact or event (date, amount, DOB, NPI, medication …).
-             Example: "What is Alice's visit date on 6 May 2020?"
+  'analytical' — text-to-SQL via LLM for aggregate / trend questions
+                 Checked FIRST.  Triggered when the intent has is_analytical=True.
+                 Example: "How many claims by payer this quarter?"
+                 Example: "Top 10 ICD-9 codes by frequency"
 
-  'rag'    — semantic / similarity search via ChromaDB + LLM synthesis
-             Used for open-ended, summary, or exploratory questions where
-             exact match is less important than relevance.
-             Example: "Summarise Alice's medical history"
+  'sql'        — precise factual lookup (zero hallucination)
+                 Used when the query names a specific entity AND requests a
+                 specific fact or event (date, amount, DOB, NPI, medication …).
+                 Example: "What is Alice Johnson's total bill for 6 May 2025?"
 
-  'hybrid' — SQL first for grounding, RAG for enrichment
-             Used when there is a named entity but no specific field.
-             Example: "Show me everything about Alice Johnson"
+  'hybrid'     — SQL first for grounding, RAG for enrichment
+                 Used when there is a named entity but no specific field.
+                 Example: "Show me everything about Alice Johnson"
+
+  'rag'        — semantic / similarity search via ChromaDB + LLM synthesis
+                 Used for open-ended, summary, or exploratory questions.
+                 Example: "What ICD-10 code covers essential hypertension?"
 
 Decision logic
 --------------
-The router works from the structured intent dict already produced by
+The router works from the structured intent dict produced by
 intent_parser.parse_intent().  No additional LLM call is needed.
 
-  has_entity   = patient_name / patient_id / provider_name / provider_npi present
-  has_specific = specific_field OR date requested
-
-  has_entity + has_specific  → sql
-  has_entity only            → hybrid
-  neither                    → rag
+  is_analytical                → analytical  (checked first)
+  has_entity + has_specific    → sql
+  has_entity only              → hybrid
+  neither                      → rag
 """
 
 import logging
@@ -44,14 +46,25 @@ _EXACT_DOC_TYPES = {"bill", "prescription", "lab_result", "provider_info"}
 
 def route(intent: dict) -> str:
     """
-    Return 'sql', 'rag', or 'hybrid' based on the parsed intent.
+    Return 'analytical', 'sql', 'hybrid', or 'rag' based on the parsed intent.
 
     Args:
         intent: dict produced by intent_parser.parse_intent()
 
     Returns:
-        One of 'sql', 'rag', 'hybrid'
+        One of 'analytical', 'sql', 'hybrid', 'rag'
     """
+    # ── Analytical (checked first) ────────────────────────────────────────────
+    # Aggregate / trending queries bypass the exact-lookup and RAG paths and
+    # go straight to LLM text-to-SQL generation.
+    if intent.get("is_analytical"):
+        logger.info(
+            "Query router → analytical  (is_analytical=True, doc_type=%s)",
+            intent.get("doc_type"),
+        )
+        return "analytical"
+
+    # ── Entity-based exact / hybrid lookups ───────────────────────────────────
     has_entity = bool(
         intent.get("patient_name") or
         intent.get("patient_id") or

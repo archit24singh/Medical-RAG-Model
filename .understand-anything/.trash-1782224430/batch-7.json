@@ -1,0 +1,201 @@
+{
+  "nodes": [
+    {
+      "id": "config:.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": ".env.example",
+      "summary": "Template environment configuration file documenting all runtime settings for the medical RAG system, including LLM provider selection (Ollama or OpenAI), model names, storage paths, and auto-ingestion flag.",
+      "tags": ["configuration", "environment", "security", "deployment"],
+      "complexity": "simple",
+      "languageNotes": "Supports a dual-provider strategy: Ollama for fully local/private inference and OpenAI as a cloud fallback — the LLM_PROVIDER variable switches between them at runtime without code changes."
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Primary project documentation covering the medical RAG system's purpose, hybrid retrieval architecture, privacy rationale for local LLM inference, supported file formats, setup instructions, and development roadmap across 8 sections.",
+      "tags": ["documentation", "entry-point", "architecture", "overview"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:SETUP_GUIDE.md",
+      "type": "document",
+      "name": "SETUP_GUIDE.md",
+      "filePath": "SETUP_GUIDE.md",
+      "summary": "Comprehensive step-by-step setup guide covering Docker-based deployment, Ollama LLM installation, environment configuration, file ingestion methods, example queries, troubleshooting tips, and project structure overview across 19 sections.",
+      "tags": ["documentation", "deployment", "configuration", "infrastructure"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:docker-compose.yml",
+      "type": "service",
+      "name": "docker-compose.yml",
+      "filePath": "docker-compose.yml",
+      "summary": "Docker Compose orchestration defining four services — PostgreSQL, ChromaDB, FastAPI backend, and Streamlit frontend — on a shared bridge network with persistent volumes and health checks for the medical RAG system.",
+      "tags": ["orchestration", "infrastructure", "containerization", "deployment"],
+      "complexity": "moderate",
+      "languageNotes": "Uses a host.docker.internal gateway pattern so the containerised backend can reach Ollama running on the host machine without containerising the LLM itself, preserving GPU access and avoiding model duplication."
+    },
+    {
+      "id": "service:docker-compose.yml:postgres",
+      "type": "service",
+      "name": "postgres",
+      "filePath": "docker-compose.yml",
+      "summary": "PostgreSQL 16 service providing structured relational storage for patient facts and structured records, exposed on port 5432 with a health check and persistent volume.",
+      "tags": ["database", "infrastructure", "containerization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:chromadb",
+      "type": "service",
+      "name": "chromadb",
+      "filePath": "docker-compose.yml",
+      "summary": "ChromaDB 0.5.3 vector database service providing semantic similarity search for the RAG pipeline, exposed on port 8001 with a persistent volume for indexed documents.",
+      "tags": ["database", "infrastructure", "containerization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:backend",
+      "type": "service",
+      "name": "backend",
+      "filePath": "docker-compose.yml",
+      "summary": "FastAPI backend service built from the ./backend context, exposing the RAG API on port 8080 and mounting the bucket and data directories for document ingestion and schema metadata.",
+      "tags": ["api-handler", "infrastructure", "containerization", "deployment"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:docker-compose.yml:frontend",
+      "type": "service",
+      "name": "frontend",
+      "filePath": "docker-compose.yml",
+      "summary": "Streamlit frontend service built from the ./frontend context, serving the chat UI on port 8501 with live-reload volume mount and a backend URL environment variable.",
+      "tags": ["infrastructure", "containerization", "deployment"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:todo.md",
+      "type": "document",
+      "name": "todo.md",
+      "filePath": "todo.md",
+      "summary": "Development task tracker documenting planned architectural improvements including schema-on-read with concept-map architecture, Text-to-SQL fallback, MIMIC-III dataset integration, and a completed-items reference section.",
+      "tags": ["documentation", "development", "roadmap"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:chromadb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:backend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:frontend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "service:docker-compose.yml:chromadb",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:frontend",
+      "target": "service:docker-compose.yml:backend",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "file:backend/main.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:.env.example",
+      "target": "service:docker-compose.yml:backend",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.env.example",
+      "target": "file:backend/config.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:backend/main.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "service:docker-compose.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SETUP_GUIDE.md",
+      "target": "service:docker-compose.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SETUP_GUIDE.md",
+      "target": "config:.env.example",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:todo.md",
+      "target": "file:backend/rag/ingestion.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:todo.md",
+      "target": "file:backend/rag/sql_retriever.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

@@ -30,3 +30,17 @@ rank-bm25>=0.2.2
 
 # ── Numpy ─────────────────────────────────────────────────────────────────────
 numpy>=1.24.0
+
+# ── PostgreSQL driver ──────────────────────────────────────────────────────────
+# Replaces sqlite3 for the structured facts database. The -binary variant
+# bundles libpq so no system libraries are required inside the container.
+psycopg2-binary>=2.9.9
+
+# ── SQL AST parser / validator ─────────────────────────────────────────────────
+# Pure-Python SQL parser used to validate LLM-generated SQL before execution.
+# Ensures statements are single SELECTs (no DML/DDL), and injects LIMIT clauses.
+sqlglot>=23.0.0
+
+# ── YAML ───────────────────────────────────────────────────────────────────────
+# Parses data/sql_schema_metadata.yaml for text-to-SQL grounding context.
+PyYAML>=6.0.1

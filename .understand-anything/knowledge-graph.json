@@ -1,0 +1,4652 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "medical-rag-system",
+    "languages": [
+      "Python",
+      "YAML",
+      "JSON",
+      "Markdown",
+      "Dockerfile"
+    ],
+    "frameworks": [
+      "FastAPI",
+      "ChromaDB",
+      "Ollama",
+      "OpenAI",
+      "PostgreSQL",
+      "Streamlit",
+      "Docker",
+      "Docker Compose"
+    ],
+    "description": "A privacy-preserving Retrieval-Augmented Generation (RAG) system for clinical records that answers plain-English questions about patient bills, medical records, and provider information using a hybrid retrieval architecture.",
+    "analyzedAt": "2026-06-23T14:18:57.526405+00:00",
+    "gitCommitHash": "8e4bc62db740fee00bf16ce44c7bd8175b1dc5f2"
+  },
+  "nodes": [
+    {
+      "id": "file:backend/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "backend/config.py",
+      "summary": "Central configuration module defining a Pydantic `Settings` class that aggregates all environment-driven parameters for the RAG system, including vector store, LLM provider, PostgreSQL DSN, chunking, hybrid search, reranker, text-to-SQL, and audit log settings.",
+      "tags": [
+        "configuration",
+        "entry-point",
+        "singleton",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/config.py:Settings",
+      "type": "class",
+      "name": "Settings",
+      "filePath": "backend/config.py",
+      "lineRange": [
+        11,
+        131
+      ],
+      "summary": "Pydantic Settings class declaring 31 typed configuration fields covering ChromaDB connection, LLM provider selection (Ollama vs OpenAI), PostgreSQL DSNs, bucket directory, chunking parameters, hybrid search alpha, reranker options, text-to-SQL schema, and rotating audit log settings.",
+      "tags": [
+        "configuration",
+        "singleton",
+        "data-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/audit_logger.py",
+      "type": "file",
+      "name": "audit_logger.py",
+      "filePath": "backend/rag/audit_logger.py",
+      "summary": "Provides HIPAA-oriented audit logging for the RAG pipeline, writing structured JSON records of every query event \u2014 including route, generated SQL, source document IDs, latency, and errors \u2014 to a rotating log file configured via `Settings`.",
+      "tags": [
+        "utility",
+        "service",
+        "event-handler",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "function",
+      "name": "_get_audit_log",
+      "filePath": "backend/rag/audit_logger.py",
+      "lineRange": [
+        43,
+        69
+      ],
+      "summary": "Lazily initializes and caches a `RotatingFileHandler`-backed Python logger for audit events, creating the log directory if absent and formatting records as JSON strings.",
+      "tags": [
+        "utility",
+        "singleton",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "function",
+      "name": "log_query_event",
+      "filePath": "backend/rag/audit_logger.py",
+      "lineRange": [
+        72,
+        109
+      ],
+      "summary": "Serializes and writes a single audit log entry for a RAG query event, capturing timestamp (UTC), query text, routing decision, SQL statement, source document IDs, latency in milliseconds, and any error message.",
+      "tags": [
+        "event-handler",
+        "service",
+        "serialization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/icd9_lookup.py",
+      "type": "file",
+      "name": "icd9_lookup.py",
+      "filePath": "backend/rag/icd9_lookup.py",
+      "summary": "Implements a lazy-loaded, in-memory lookup table for ICD-9 diagnosis codes, scanning the configured bucket directory for CSV files matching the MIMIC-III `D_ICD_DIAGNOSES` schema and exposing a `lookup_icd9` function that resolves a code to its long-title description.",
+      "tags": [
+        "utility",
+        "data-model",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "function",
+      "name": "_load_d_icd_diagnoses",
+      "filePath": "backend/rag/icd9_lookup.py",
+      "lineRange": [
+        27,
+        67
+      ],
+      "summary": "Scans the bucket directory recursively for CSV files matching the MIMIC-III `D_ICD_DIAGNOSES` column schema, parses them into a `{code: title}` dictionary, and returns the populated cache; handles missing columns and logs warnings for malformed rows.",
+      "tags": [
+        "utility",
+        "data-model",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "type": "function",
+      "name": "lookup_icd9",
+      "filePath": "backend/rag/icd9_lookup.py",
+      "lineRange": [
+        70,
+        86
+      ],
+      "summary": "Public entry point for ICD-9 code resolution: triggers lazy loading of the diagnosis cache on first call, then returns the long-title string for the given code or `None` if not found.",
+      "tags": [
+        "utility",
+        "api-handler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/orchestrator.py",
+      "type": "file",
+      "name": "orchestrator.py",
+      "filePath": "backend/rag/orchestrator.py",
+      "summary": "Top-level RAG query orchestrator that routes incoming natural-language queries through intent parsing, dispatches to either the vector retriever or the SQL retriever, records audit events, and returns a normalized result dict with answer, sources, route, and SQL; also stubs a compound query loop.",
+      "tags": [
+        "service",
+        "middleware",
+        "api-handler",
+        "entry-point"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/orchestrator.py:query",
+      "type": "function",
+      "name": "query",
+      "filePath": "backend/rag/orchestrator.py",
+      "lineRange": [
+        40,
+        86
+      ],
+      "summary": "Orchestrates a full RAG query cycle: parses intent, selects retrieval route (compound loop, SQL, or vector), invokes the appropriate retriever, measures latency, logs the audit event via `log_query_event`, and returns a standardized result dictionary.",
+      "tags": [
+        "api-handler",
+        "service",
+        "middleware"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "function",
+      "name": "_compound_query",
+      "filePath": "backend/rag/orchestrator.py",
+      "lineRange": [
+        89,
+        107
+      ],
+      "summary": "Stub implementation for a multi-step compound query loop intended to combine SQL and vector retrieval in a single pass; currently raises `NotImplementedError` as a placeholder.",
+      "tags": [
+        "service",
+        "middleware"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/db/operations.py",
+      "type": "file",
+      "name": "operations.py",
+      "filePath": "backend/db/operations.py",
+      "summary": "Provides all PostgreSQL data-access operations for the medical RAG system: upsert and fuzzy-match resolution for patients, providers, and admissions, plus record insertion and multi-criteria querying against the clinical records table.",
+      "tags": [
+        "data-model",
+        "service",
+        "utility",
+        "database"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/operations.py:find_or_create_patient",
+      "type": "function",
+      "name": "find_or_create_patient",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        80,
+        145
+      ],
+      "summary": "Resolves an incoming patient record to an existing database row using exact patient_id, subject_id, or fuzzy name matching, creating a new row only when no match is found and updating demographic fields otherwise.",
+      "tags": [
+        "data-model",
+        "database",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/operations.py:find_or_create_provider",
+      "type": "function",
+      "name": "find_or_create_provider",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        175,
+        224
+      ],
+      "summary": "Resolves a provider by NPI exact match or fuzzy name similarity, inserting a new provider row when no existing match exceeds the confidence threshold.",
+      "tags": [
+        "data-model",
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:insert_record",
+      "type": "function",
+      "name": "insert_record",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        254,
+        297
+      ],
+      "summary": "Inserts a single clinical record row into the records table with all medical fields (diagnosis, treatment, medication, ICD-9 codes, lab results) serialized as appropriate.",
+      "tags": [
+        "data-model",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:find_or_create_admission",
+      "type": "function",
+      "name": "find_or_create_admission",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        302,
+        345
+      ],
+      "summary": "Looks up a hospital admission by hadm_id and creates it with admit/discharge times and diagnosis if not found, returning the internal admission primary key.",
+      "tags": [
+        "data-model",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_patient_records",
+      "type": "function",
+      "name": "query_patient_records",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        398,
+        436
+      ],
+      "summary": "Queries clinical records for a patient resolved by name or ID, optionally filtering by record type and date, and returns rows as dicts.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_provider",
+      "type": "function",
+      "name": "query_provider",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        439,
+        465
+      ],
+      "summary": "Looks up providers by NPI or fuzzy name match with scored ranking, returning the best matching provider rows sorted by similarity score.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:get_patient_info",
+      "type": "function",
+      "name": "get_patient_info",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        481,
+        506
+      ],
+      "summary": "Retrieves merged demographic information for a patient resolved by name, ID, or subject_id, coalescing multiple matched rows into a single dict.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_resolve_patient_pks",
+      "type": "function",
+      "name": "_resolve_patient_pks",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        532,
+        557
+      ],
+      "summary": "Internal helper that resolves a set of patient primary keys from patient_id, subject_id, or fuzzy name matching, used to fanout queries across merged patient records.",
+      "tags": [
+        "utility",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_name_match_score",
+      "type": "function",
+      "name": "_name_match_score",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        52,
+        75
+      ],
+      "summary": "Computes a combined token-overlap and sequence-similarity score between two name strings to support fuzzy patient and provider matching.",
+      "tags": [
+        "utility",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_update_patient",
+      "type": "function",
+      "name": "_update_patient",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        148,
+        170
+      ],
+      "summary": "Updates non-null demographic fields on an existing patient row and appends the new source file to the comma-separated source_files column.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_update_provider",
+      "type": "function",
+      "name": "_update_provider",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        227,
+        249
+      ],
+      "summary": "Updates non-null fields on an existing provider row and accumulates source file provenance in the source_files column.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "function",
+      "name": "query_records_by_hadm_id",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        357,
+        379
+      ],
+      "summary": "Fetches all clinical records associated with a specific hospital admission ID, joining against the patient table and applying a row limit.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_all_patient_records",
+      "type": "function",
+      "name": "query_all_patient_records",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        468,
+        478
+      ],
+      "summary": "Convenience wrapper that calls query_patient_records without record type or date filters to return all records for a patient.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/db/operations.py:_best_name_match",
+      "type": "function",
+      "name": "_best_name_match",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [
+        517,
+        529
+      ],
+      "summary": "Selects the best-matching row from a list of database records by name similarity score, returning the row only if it exceeds a minimum threshold.",
+      "tags": [
+        "utility",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/db/schema.py",
+      "type": "file",
+      "name": "schema.py",
+      "filePath": "backend/db/schema.py",
+      "summary": "Defines the PostgreSQL database schema initialization, connection management, migration runner, and the dynamic staging-table and view-creation system that powers the catalog-driven SQL query layer.",
+      "tags": [
+        "database",
+        "data-model",
+        "service",
+        "migration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/schema.py:get_db",
+      "type": "function",
+      "name": "get_db",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        51,
+        69
+      ],
+      "summary": "Context manager yielding a write-capable PostgreSQL connection that automatically commits on success and rolls back on exception.",
+      "tags": [
+        "database",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/db/schema.py:get_readonly_db",
+      "type": "function",
+      "name": "get_readonly_db",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        73,
+        97
+      ],
+      "summary": "Context manager yielding a read-only PostgreSQL connection with automatic fallback from the dedicated replica DSN to the primary DSN when the replica is unavailable.",
+      "tags": [
+        "database",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/schema.py:init_db",
+      "type": "function",
+      "name": "init_db",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        261,
+        273
+      ],
+      "summary": "Initializes the database by executing the full DDL to create all tables (patients, providers, records, admissions, catalog) and then running any pending migrations.",
+      "tags": [
+        "database",
+        "migration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "function",
+      "name": "_build_and_create_view",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        443,
+        583
+      ],
+      "summary": "Dynamically constructs and creates (or replaces) a PostgreSQL view over a staging table using the stream's column mapping from the catalog, validates that mapped columns exist, and optionally grants read access to a configured role.",
+      "tags": [
+        "database",
+        "data-model"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Dynamically generates SQL DDL from catalog metadata at runtime, using GRANT/REVOKE for role-based access control on the generated view."
+    },
+    {
+      "id": "function:backend/db/schema.py:_reconcile_snapshot_deletions",
+      "type": "function",
+      "name": "_reconcile_snapshot_deletions",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        586,
+        676
+      ],
+      "summary": "Detects rows deleted from a source file since the last ingestion snapshot by comparing content hashes and deletes them from the staging table, with safety checks to prevent mass-delete on suspiciously large changes.",
+      "tags": [
+        "database",
+        "data-model",
+        "migration"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/schema.py:_create_staging_table",
+      "type": "function",
+      "name": "_create_staging_table",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        373,
+        409
+      ],
+      "summary": "Creates a new staging table for a data stream with the appropriate column definitions derived from the catalog's stored_cols configuration, including hash and metadata columns.",
+      "tags": [
+        "database",
+        "data-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "function",
+      "name": "_sync_staging_columns",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        412,
+        440
+      ],
+      "summary": "Adds any missing columns to an existing staging table by comparing current schema columns against the desired new column set, enabling schema evolution without full table rebuilds.",
+      "tags": [
+        "database",
+        "migration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/schema.py:_run_migrations",
+      "type": "function",
+      "name": "_run_migrations",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [
+        247,
+        258
+      ],
+      "summary": "Applies a sequence of ALTER TABLE migration statements to evolve the database schema, logging and swallowing errors for idempotent re-runs.",
+      "tags": [
+        "database",
+        "migration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/sql_retriever.py",
+      "type": "file",
+      "name": "sql_retriever.py",
+      "filePath": "backend/rag/sql_retriever.py",
+      "summary": "Implements the SQL-based retrieval branch of the RAG pipeline with two modes: a structured entity lookup (patients, providers, admissions) driven by parsed query intent, and an LLM-generated text-to-SQL analytical query path for ad-hoc aggregate questions.",
+      "tags": [
+        "service",
+        "api-handler",
+        "database",
+        "middleware"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses sqlglot for SQL AST validation and LIMIT injection to guard against runaway LLM-generated queries before execution."
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "function",
+      "name": "lookup",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        83,
+        161
+      ],
+      "summary": "Routes a parsed query intent to the appropriate database query function (provider, admission, or patient records) and serializes results into retrieval-context dicts.",
+      "tags": [
+        "service",
+        "api-handler"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_record_to_result",
+      "type": "function",
+      "name": "_record_to_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        166,
+        261
+      ],
+      "summary": "Converts a raw clinical record row dict into a standardized retrieval result object, assembling human-readable content lines for all medical fields and attaching metadata.",
+      "tags": [
+        "serialization",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_admission_to_result",
+      "type": "function",
+      "name": "_admission_to_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        264,
+        304
+      ],
+      "summary": "Converts a hospital admission row into a retrieval result dict with formatted content lines for admit/discharge times, diagnosis, and death time.",
+      "tags": [
+        "serialization",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_provider_to_result",
+      "type": "function",
+      "name": "_provider_to_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        307,
+        342
+      ],
+      "summary": "Converts a provider row into a retrieval result dict with content lines for name, specialty, contact details, NPI, and license number.",
+      "tags": [
+        "serialization",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_patient_demographics_result",
+      "type": "function",
+      "name": "_patient_demographics_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        345,
+        369
+      ],
+      "summary": "Converts a patient row into a retrieval result dict surfacing all demographic fields, with special handling when a specific demographic field is requested.",
+      "tags": [
+        "serialization",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_merge_details",
+      "type": "function",
+      "name": "_merge_details",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        372,
+        399
+      ],
+      "summary": "Parses and flattens the JSON details column from a record row into a merged dict, combining keys from multiple sources without overwriting existing values.",
+      "tags": [
+        "utility",
+        "serialization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_build_schema_from_catalog",
+      "type": "function",
+      "name": "_build_schema_from_catalog",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        474,
+        554
+      ],
+      "summary": "Dynamically builds a schema description string from the live PostgreSQL catalog, scoring tables by keyword relevance to the user query and returning the top-ranked tables for the LLM text-to-SQL prompt.",
+      "tags": [
+        "database",
+        "service"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_validate_and_limit_sql",
+      "type": "function",
+      "name": "_validate_and_limit_sql",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        578,
+        629
+      ],
+      "summary": "Parses LLM-generated SQL with sqlglot, rejects non-SELECT statements and DDL/DML operations for safety, and injects a LIMIT clause if none is present.",
+      "tags": [
+        "validation",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "function",
+      "name": "analytical_lookup",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        632,
+        742
+      ],
+      "summary": "Executes the full LLM text-to-SQL pipeline: builds schema context from the live catalog, prompts the LLM, validates and executes the generated SQL, and formats rows into retrieval result objects.",
+      "tags": [
+        "service",
+        "api-handler"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_score_table",
+      "type": "function",
+      "name": "_score_table",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        446,
+        471
+      ],
+      "summary": "Scores a database table's relevance to a user query by counting keyword token overlaps between the query and the table name plus its column names.",
+      "tags": [
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_extract_specific_field",
+      "type": "function",
+      "name": "_extract_specific_field",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [
+        745,
+        803
+      ],
+      "summary": "Extracts a specific named field value from a database row dict using a comprehensive alias map that maps natural-language field names to actual column names across patient, provider, and record schemas.",
+      "tags": [
+        "utility",
+        "serialization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/scripts/catalog_admin.py",
+      "type": "file",
+      "name": "catalog_admin.py",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "summary": "CLI administration tool for managing the data stream catalog that drives the dynamic SQL query layer, providing commands to list streams, assign human labels, create stream aliases, and expose or unexpose streams as queryable PostgreSQL views.",
+      "tags": [
+        "entry-point",
+        "service",
+        "database",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:_apply_config_to_catalog",
+      "type": "function",
+      "name": "_apply_config_to_catalog",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        58,
+        89
+      ],
+      "summary": "Applies a YAML stream configuration block to the catalog database row identified by its column signature, updating label, column mapping, examples, and filter conditions.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:_sync_yaml",
+      "type": "function",
+      "name": "_sync_yaml",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        92,
+        127
+      ],
+      "summary": "Reads the sources.yaml configuration file and synchronizes all stream definitions to the catalog database, matching streams by their column signature.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:_get_by_sig8",
+      "type": "function",
+      "name": "_get_by_sig8",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        132,
+        156
+      ],
+      "summary": "Resolves a catalog stream row by 8-character signature prefix, printing diagnostic information and raising an error when zero or multiple matches are found.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_list",
+      "type": "function",
+      "name": "cmd_list",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        172,
+        213
+      ],
+      "summary": "Lists all registered data streams from the catalog with their signature, table name, row count, human label, exposure status, column mapping, and query examples.",
+      "tags": [
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_alias",
+      "type": "function",
+      "name": "cmd_alias",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        233,
+        290
+      ],
+      "summary": "Creates a catalog alias that points one stream signature to another stream's staging table, merging column sets and updating the view definition to cover all aliased columns.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_expose",
+      "type": "function",
+      "name": "cmd_expose",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        293,
+        330
+      ],
+      "summary": "Marks a stream as exposed in the catalog and creates a PostgreSQL view over its staging table using the stream's column mapping, making it available to the SQL query layer.",
+      "tags": [
+        "database",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_unexpose",
+      "type": "function",
+      "name": "cmd_unexpose",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        333,
+        357
+      ],
+      "summary": "Removes a stream's exposure by dropping its PostgreSQL view and marking it as unexposed in the catalog, preventing it from being used in SQL queries.",
+      "tags": [
+        "database",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_label",
+      "type": "function",
+      "name": "cmd_label",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        216,
+        230
+      ],
+      "summary": "Assigns a human-readable label to a catalog stream identified by its 8-character signature, normalizing the label to lowercase slug form before storing.",
+      "tags": [
+        "database",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [
+        362,
+        402
+      ],
+      "summary": "CLI entry point that parses subcommand arguments and dispatches to the appropriate catalog administration command (list, label, alias, expose, unexpose).",
+      "tags": [
+        "entry-point",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/intent_parser.py",
+      "type": "file",
+      "name": "intent_parser.py",
+      "filePath": "backend/rag/intent_parser.py",
+      "summary": "Parses plain-English clinical queries into structured intent dictionaries using regex-based pattern matching, extracting entities such as patient names, provider names, dates, ICD-10 codes, and document types for downstream retrieval filtering.",
+      "tags": [
+        "utility",
+        "validation",
+        "service",
+        "query-parsing",
+        "nlp"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_is_analytical_query",
+      "type": "function",
+      "name": "_is_analytical_query",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        52,
+        62
+      ],
+      "summary": "Detects whether a query is an analytical/aggregation request (e.g., counts, totals, averages) by matching against a compiled regex pattern.",
+      "tags": [
+        "utility",
+        "validation",
+        "query-parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "function",
+      "name": "parse_intent",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        67,
+        74
+      ],
+      "summary": "Top-level intent parsing entry point that delegates to regex-based extraction and normalization, returning a structured intent dictionary from a raw user query string.",
+      "tags": [
+        "entry-point",
+        "utility",
+        "query-parsing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_normalize_intent",
+      "type": "function",
+      "name": "_normalize_intent",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        77,
+        110
+      ],
+      "summary": "Normalizes extracted intent fields by title-casing names and validating ICD-10 code format, ensuring consistent entity representation before retrieval.",
+      "tags": [
+        "utility",
+        "validation",
+        "normalization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "function",
+      "name": "build_where_filter",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        121,
+        166
+      ],
+      "summary": "Constructs a ChromaDB metadata where-filter from a parsed intent dictionary, supporting multi-field AND conditions for patient name, provider, date range, document type, and ICD-10 code.",
+      "tags": [
+        "utility",
+        "validation",
+        "data-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_regex_parse",
+      "type": "function",
+      "name": "_regex_parse",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        171,
+        317
+      ],
+      "summary": "Core regex parsing engine that extracts structured entities from a clinical query, identifying document types, date ranges, NPI numbers, patient/admission IDs, diagnostic codes, structured fields, and patient/provider names through layered pattern matching.",
+      "tags": [
+        "utility",
+        "query-parsing",
+        "nlp",
+        "regex"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_extract_name_after",
+      "type": "function",
+      "name": "_extract_name_after",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        333,
+        355
+      ],
+      "summary": "Extracts a person name following a given keyword pattern in a query string, filtering out stopwords to return a clean multi-token name.",
+      "tags": [
+        "utility",
+        "nlp",
+        "extraction"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_extract_name_before_possessive",
+      "type": "function",
+      "name": "_extract_name_before_possessive",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [
+        358,
+        375
+      ],
+      "summary": "Extracts a person name that precedes a possessive marker (e.g., \"Jane's\") in a query string, removing stopwords to yield a clean name.",
+      "tags": [
+        "utility",
+        "nlp",
+        "extraction"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/llm_client.py",
+      "type": "file",
+      "name": "llm_client.py",
+      "filePath": "backend/rag/llm_client.py",
+      "summary": "Provides a unified LLM invocation interface that dispatches to either a local Ollama endpoint or the OpenAI API based on configuration, with error handling for failed completions.",
+      "tags": [
+        "service",
+        "api-handler",
+        "middleware",
+        "llm"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/llm_client.py:call_llm",
+      "type": "function",
+      "name": "call_llm",
+      "filePath": "backend/rag/llm_client.py",
+      "lineRange": [
+        11,
+        28
+      ],
+      "summary": "Entry point for LLM calls that reads configuration to select between Ollama and OpenAI backends, routing the prompt and optional system message accordingly.",
+      "tags": [
+        "api-handler",
+        "middleware",
+        "llm"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/llm_client.py:_call_ollama",
+      "type": "function",
+      "name": "_call_ollama",
+      "filePath": "backend/rag/llm_client.py",
+      "lineRange": [
+        33,
+        60
+      ],
+      "summary": "Invokes a local Ollama model via the ollama Python client, constructing a chat message list from the system and user prompt and returning the response text.",
+      "tags": [
+        "service",
+        "llm",
+        "api-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/llm_client.py:_call_openai",
+      "type": "function",
+      "name": "_call_openai",
+      "filePath": "backend/rag/llm_client.py",
+      "lineRange": [
+        65,
+        85
+      ],
+      "summary": "Invokes an OpenAI-compatible chat completions endpoint using the OpenAI Python SDK, assembling the message list and extracting the response content.",
+      "tags": [
+        "service",
+        "llm",
+        "api-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/query_router.py",
+      "type": "file",
+      "name": "query_router.py",
+      "filePath": "backend/rag/query_router.py",
+      "summary": "Determines the retrieval strategy for a parsed intent by classifying it as analytical, SQL-lookup, ICD-10, or vector-search, and attaching the appropriate routing metadata for the retriever to act on.",
+      "tags": [
+        "service",
+        "middleware",
+        "routing",
+        "query-parsing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/query_router.py:route",
+      "type": "function",
+      "name": "route",
+      "filePath": "backend/rag/query_router.py",
+      "lineRange": [
+        47,
+        94
+      ],
+      "summary": "Classifies a parsed intent into a retrieval strategy (analytical aggregate, SQL patient lookup, ICD-10 structured lookup, or vector RAG) by inspecting intent fields and setting routing flags in the returned dictionary.",
+      "tags": [
+        "routing",
+        "middleware",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/retriever.py",
+      "type": "file",
+      "name": "retriever.py",
+      "filePath": "backend/rag/retriever.py",
+      "summary": "Core RAG orchestration module that implements the full hybrid retrieval pipeline: intent parsing, query routing, SQL/analytical/vector search dispatching, cross-encoder reranking, relevance thresholding, answer formatting, and hallucination grading.",
+      "tags": [
+        "service",
+        "middleware",
+        "api-handler",
+        "entry-point",
+        "rag"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_get_reranker",
+      "type": "function",
+      "name": "_get_reranker",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        56,
+        66
+      ],
+      "summary": "Lazily initializes and caches a sentence-transformers CrossEncoder model for relevance reranking, returning None on load failure.",
+      "tags": [
+        "service",
+        "utility",
+        "ml-model"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_rerank",
+      "type": "function",
+      "name": "_rerank",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        69,
+        102
+      ],
+      "summary": "Reranks retrieved documents using a cross-encoder model, scoring query-document pairs and returning the top-k results sorted by relevance score.",
+      "tags": [
+        "service",
+        "utility",
+        "ml-model"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_filter_by_threshold",
+      "type": "function",
+      "name": "_filter_by_threshold",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        110,
+        141
+      ],
+      "summary": "Filters retrieved documents below a minimum relevance score threshold, falling back to top results if all candidates fail the threshold to prevent empty result sets.",
+      "tags": [
+        "utility",
+        "validation",
+        "filtering"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_check_hallucination",
+      "type": "function",
+      "name": "_check_hallucination",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        159,
+        181
+      ],
+      "summary": "Grades a generated answer against source documents using an LLM judge prompt, returning a boolean indicating whether the answer is grounded in the retrieved context.",
+      "tags": [
+        "validation",
+        "service",
+        "llm",
+        "safety"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:query",
+      "type": "function",
+      "name": "query",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        249,
+        403
+      ],
+      "summary": "Main retrieval entry point that orchestrates the full pipeline: parses user intent, routes to the appropriate backend (analytical SQL, patient SQL, or hybrid vector search), reranks and filters results, and delegates to the appropriate answer formatter.",
+      "tags": [
+        "entry-point",
+        "service",
+        "api-handler",
+        "rag"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "type": "function",
+      "name": "_format_analytical_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        408,
+        422
+      ],
+      "summary": "Formats analytical/aggregation results from SQL into a natural-language answer using an LLM prompt template.",
+      "tags": [
+        "utility",
+        "formatting",
+        "llm"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_format_sql_answer",
+      "type": "function",
+      "name": "_format_sql_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        425,
+        442
+      ],
+      "summary": "Formats structured SQL lookup results into a natural-language answer using an LLM prompt template.",
+      "tags": [
+        "utility",
+        "formatting",
+        "llm"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_format_rag_answer",
+      "type": "function",
+      "name": "_format_rag_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        445,
+        477
+      ],
+      "summary": "Formats vector-retrieved documents into a natural-language answer via LLM, running hallucination grading on the result and falling back to raw document excerpts if grading fails.",
+      "tags": [
+        "utility",
+        "formatting",
+        "llm",
+        "safety"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_hybrid_search",
+      "type": "function",
+      "name": "_hybrid_search",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        482,
+        503
+      ],
+      "summary": "Executes a hybrid search combining dense vector retrieval and BM25 sparse retrieval against ChromaDB, fusing results using reciprocal rank fusion.",
+      "tags": [
+        "service",
+        "retrieval",
+        "vector-search"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_reciprocal_rank_fusion",
+      "type": "function",
+      "name": "_reciprocal_rank_fusion",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        506,
+        532
+      ],
+      "summary": "Merges vector and BM25 ranked result lists using the reciprocal rank fusion algorithm, returning a unified deduplicated ranking.",
+      "tags": [
+        "utility",
+        "retrieval",
+        "ranking"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_fallback_answer",
+      "type": "function",
+      "name": "_fallback_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [
+        537,
+        546
+      ],
+      "summary": "Generates a raw text fallback answer by joining retrieved document excerpts and metadata when LLM formatting fails.",
+      "tags": [
+        "utility",
+        "formatting",
+        "fallback"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/main.py",
+      "type": "file",
+      "name": "main.py",
+      "filePath": "backend/main.py",
+      "summary": "FastAPI application entry point that bootstraps the RAG system with a lifespan handler, exposes REST endpoints for document ingestion, querying, listing, and deletion, and starts background ingestion on startup.",
+      "tags": [
+        "entry-point",
+        "api-handler",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:lifespan",
+      "type": "function",
+      "name": "lifespan",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        39,
+        65
+      ],
+      "summary": "FastAPI lifespan context manager that initializes the database and launches background document ingestion on application startup.",
+      "tags": [
+        "event-handler",
+        "entry-point",
+        "middleware"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:health",
+      "type": "function",
+      "name": "health",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        89,
+        104
+      ],
+      "summary": "Health-check endpoint that reports the current document count in the vector store and the system's operational status.",
+      "tags": [
+        "api-handler",
+        "utility",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/main.py:ingest_all",
+      "type": "function",
+      "name": "ingest_all",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        108,
+        127
+      ],
+      "summary": "POST endpoint that triggers full directory ingestion in a thread-pool executor and returns counts of successful, skipped, and errored files.",
+      "tags": [
+        "api-handler",
+        "data-pipeline",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:ingest_uploaded_file",
+      "type": "function",
+      "name": "ingest_uploaded_file",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        131,
+        149
+      ],
+      "summary": "POST endpoint that accepts a file upload, saves it to the upload directory, and ingests it into the RAG pipeline via ingest_file.",
+      "tags": [
+        "api-handler",
+        "data-pipeline",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:query_documents",
+      "type": "function",
+      "name": "query_documents",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        153,
+        169
+      ],
+      "summary": "POST endpoint that accepts a natural-language query, delegates to the RAG orchestrator, and returns retrieved results.",
+      "tags": [
+        "api-handler",
+        "service",
+        "middleware"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/main.py:list_documents",
+      "type": "function",
+      "name": "list_documents",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        173,
+        179
+      ],
+      "summary": "GET endpoint that lists all documents currently stored in the vector store.",
+      "tags": [
+        "api-handler",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/main.py:remove_document",
+      "type": "function",
+      "name": "remove_document",
+      "filePath": "backend/main.py",
+      "lineRange": [
+        183,
+        190
+      ],
+      "summary": "DELETE endpoint that removes a document from the vector store by its document ID.",
+      "tags": [
+        "api-handler",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/ingestion.py",
+      "type": "file",
+      "name": "ingestion.py",
+      "filePath": "backend/rag/ingestion.py",
+      "summary": "Core document ingestion pipeline that processes tabular files (CSV, Excel) and unstructured text documents (PDF, TXT, DOCX) into both the PostgreSQL staging tables and the ChromaDB vector store, with schema-drift detection, column deny-listing, YAML-driven metadata configuration, and table-aware PDF chunking.",
+      "tags": [
+        "data-pipeline",
+        "service",
+        "data-model",
+        "serialization"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses MD5 hashing for deterministic document IDs, fitz (PyMuPDF) for table-aware PDF parsing, and psycopg2 execute_values for bulk staging-table writes."
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_resolve_stream",
+      "type": "function",
+      "name": "_resolve_stream",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        334,
+        466
+      ],
+      "summary": "Resolves a tabular file's column schema against the PostgreSQL catalog, detects schema drift, upserts catalog entries, creates or syncs staging tables, and applies YAML-driven column metadata.",
+      "tags": [
+        "data-model",
+        "data-pipeline",
+        "validation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_write_rows_to_staging",
+      "type": "function",
+      "name": "_write_rows_to_staging",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        469,
+        535
+      ],
+      "summary": "Writes sanitized tabular rows to a PostgreSQL staging table, supporting append and snapshot load modes with hash-based deduplication.",
+      "tags": [
+        "data-pipeline",
+        "data-model",
+        "serialization"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_split_pdf_table_aware",
+      "type": "function",
+      "name": "_split_pdf_table_aware",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        761,
+        844
+      ],
+      "summary": "Splits a PDF into semantically coherent chunks by detecting table pages via heuristics and keeping them intact while applying standard chunking to prose sections.",
+      "tags": [
+        "data-pipeline",
+        "utility",
+        "serialization"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_ingest_tabular",
+      "type": "function",
+      "name": "_ingest_tabular",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        909,
+        1061
+      ],
+      "summary": "Ingests a CSV or Excel file into both the PostgreSQL staging table and the ChromaDB vector store, handling column sanitization, schema resolution, row hashing, vector upserts, and snapshot reconciliation.",
+      "tags": [
+        "data-pipeline",
+        "data-model",
+        "service"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_ingest_text_document",
+      "type": "function",
+      "name": "_ingest_text_document",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        1066,
+        1156
+      ],
+      "summary": "Ingests a text-based document (PDF, TXT, DOCX, JSON) by extracting text, splitting it into overlapping chunks, and upserting all chunks with metadata into ChromaDB.",
+      "tags": [
+        "data-pipeline",
+        "service",
+        "serialization"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "function",
+      "name": "ingest_file",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        1161,
+        1217
+      ],
+      "summary": "Public entry point for single-file ingestion; dispatches to the tabular or text-document pipeline based on file extension.",
+      "tags": [
+        "api-handler",
+        "data-pipeline",
+        "service"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "function",
+      "name": "ingest_directory",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        1220,
+        1274
+      ],
+      "summary": "Recursively scans a bucket directory, filters hidden and system files, and calls ingest_file on each eligible file, collecting success/skip/error counts.",
+      "tags": [
+        "data-pipeline",
+        "service",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_apply_yaml_config_to_catalog",
+      "type": "function",
+      "name": "_apply_yaml_config_to_catalog",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        191,
+        232
+      ],
+      "summary": "Applies YAML-sourced metadata (display name, description, category, tags, load mode) to the stream catalog entry in PostgreSQL.",
+      "tags": [
+        "data-model",
+        "configuration",
+        "data-pipeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_detect_drift",
+      "type": "function",
+      "name": "_detect_drift",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        289,
+        331
+      ],
+      "summary": "Compares a file's current column set against the stored catalog signature to detect column additions or removals, logging warnings on drift.",
+      "tags": [
+        "validation",
+        "data-model",
+        "data-pipeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_split_text_into_chunks",
+      "type": "function",
+      "name": "_split_text_into_chunks",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [
+        670,
+        725
+      ],
+      "summary": "Splits a plain-text string into overlapping character-level chunks with sentence-boundary awareness for use in vector store ingestion.",
+      "tags": [
+        "utility",
+        "data-pipeline",
+        "serialization"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/vectorstore.py",
+      "type": "file",
+      "name": "vectorstore.py",
+      "filePath": "backend/rag/vectorstore.py",
+      "summary": "Manages the ChromaDB vector collection and provides a hybrid retrieval layer combining dense semantic search (via Ollama embeddings) with sparse BM25 keyword search, plus CRUD operations for documents.",
+      "tags": [
+        "service",
+        "data-model",
+        "utility"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses a module-level lazy-singleton pattern for the ChromaDB client and BM25 index, with an invalidation hook triggered on every document write to keep the keyword index fresh."
+    },
+    {
+      "id": "class:backend/rag/vectorstore.py:_OllamaEmbeddingFunction",
+      "type": "class",
+      "name": "_OllamaEmbeddingFunction",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        169,
+        212
+      ],
+      "summary": "ChromaDB-compatible embedding function that delegates to an Ollama local model, creating a fresh client per call with lazy initialization.",
+      "tags": [
+        "service",
+        "middleware",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "function",
+      "name": "search_bm25",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        87,
+        143
+      ],
+      "summary": "Performs BM25 keyword search over the full ChromaDB collection, applying optional metadata filters and returning scored result dicts.",
+      "tags": [
+        "service",
+        "utility",
+        "data-pipeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:get_collection",
+      "type": "function",
+      "name": "get_collection",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        220,
+        255
+      ],
+      "summary": "Lazy singleton that initializes the ChromaDB HTTP client and returns the named collection, waiting for ChromaDB to become available before connecting.",
+      "tags": [
+        "singleton",
+        "service",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "function",
+      "name": "add_documents_batch",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        258,
+        295
+      ],
+      "summary": "Upserts a batch of documents into ChromaDB in configurable batch sizes, normalizing metadata values to strings and invalidating the BM25 index on success.",
+      "tags": [
+        "service",
+        "data-pipeline",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:search",
+      "type": "function",
+      "name": "search",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        329,
+        382
+      ],
+      "summary": "Performs semantic vector search against ChromaDB with optional where-filter metadata constraints, returning ranked result dicts with distance scores.",
+      "tags": [
+        "service",
+        "utility",
+        "data-pipeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:_build_bm25_index",
+      "type": "function",
+      "name": "_build_bm25_index",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        34,
+        60
+      ],
+      "summary": "Builds (or rebuilds) the in-memory BM25Okapi index over all documents currently stored in the ChromaDB collection.",
+      "tags": [
+        "data-pipeline",
+        "service",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:backend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "backend/Dockerfile",
+      "summary": "Single-stage Docker build based on python:3.11-slim that installs system and Python dependencies, copies the entire backend application, provisions a local bucket directory structure for patient/provider/upload files, and launches the FastAPI server via uvicorn on port 8000.",
+      "tags": [
+        "containerization",
+        "infrastructure",
+        "deployment",
+        "fastapi"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Uses a slim base image and cleans apt caches in the same RUN layer to keep the image lean. A comment in the Dockerfile notes that the local bucket structure can be replaced with S3/boto3 for cloud storage."
+    },
+    {
+      "id": "service:frontend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Single-stage Docker build for the Streamlit frontend, installing Python dependencies from requirements.txt and launching app.py on port 8501 with headless server settings suitable for containerized deployment.",
+      "tags": [
+        "containerization",
+        "infrastructure",
+        "deployment",
+        "streamlit",
+        "frontend"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Single-stage build using python:3.11-slim base image; Streamlit is launched with --server.headless=true so it runs without a browser in the container."
+    },
+    {
+      "id": "service:frontend/Dockerfile:python",
+      "type": "service",
+      "name": "python",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Python 3.11-slim based service stage that installs pip dependencies and runs the Streamlit app on port 8501.",
+      "tags": [
+        "containerization",
+        "python",
+        "streamlit"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": ".env.example",
+      "summary": "Template environment configuration file documenting all runtime settings for the medical RAG system, including LLM provider selection (Ollama or OpenAI), model names, storage paths, and auto-ingestion flag.",
+      "tags": [
+        "configuration",
+        "environment",
+        "security",
+        "deployment"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Supports a dual-provider strategy: Ollama for fully local/private inference and OpenAI as a cloud fallback \u2014 the LLM_PROVIDER variable switches between them at runtime without code changes."
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Primary project documentation covering the medical RAG system's purpose, hybrid retrieval architecture, privacy rationale for local LLM inference, supported file formats, setup instructions, and development roadmap across 8 sections.",
+      "tags": [
+        "documentation",
+        "entry-point",
+        "architecture",
+        "overview"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:SETUP_GUIDE.md",
+      "type": "document",
+      "name": "SETUP_GUIDE.md",
+      "filePath": "SETUP_GUIDE.md",
+      "summary": "Comprehensive step-by-step setup guide covering Docker-based deployment, Ollama LLM installation, environment configuration, file ingestion methods, example queries, troubleshooting tips, and project structure overview across 19 sections.",
+      "tags": [
+        "documentation",
+        "deployment",
+        "configuration",
+        "infrastructure"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:docker-compose.yml",
+      "type": "service",
+      "name": "docker-compose.yml",
+      "filePath": "docker-compose.yml",
+      "summary": "Docker Compose orchestration defining four services \u2014 PostgreSQL, ChromaDB, FastAPI backend, and Streamlit frontend \u2014 on a shared bridge network with persistent volumes and health checks for the medical RAG system.",
+      "tags": [
+        "orchestration",
+        "infrastructure",
+        "containerization",
+        "deployment"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses a host.docker.internal gateway pattern so the containerised backend can reach Ollama running on the host machine without containerising the LLM itself, preserving GPU access and avoiding model duplication."
+    },
+    {
+      "id": "service:docker-compose.yml:postgres",
+      "type": "service",
+      "name": "postgres",
+      "filePath": "docker-compose.yml",
+      "summary": "PostgreSQL 16 service providing structured relational storage for patient facts and structured records, exposed on port 5432 with a health check and persistent volume.",
+      "tags": [
+        "database",
+        "infrastructure",
+        "containerization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:chromadb",
+      "type": "service",
+      "name": "chromadb",
+      "filePath": "docker-compose.yml",
+      "summary": "ChromaDB 0.5.3 vector database service providing semantic similarity search for the RAG pipeline, exposed on port 8001 with a persistent volume for indexed documents.",
+      "tags": [
+        "database",
+        "infrastructure",
+        "containerization"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:docker-compose.yml:backend",
+      "type": "service",
+      "name": "backend",
+      "filePath": "docker-compose.yml",
+      "summary": "FastAPI backend service built from the ./backend context, exposing the RAG API on port 8080 and mounting the bucket and data directories for document ingestion and schema metadata.",
+      "tags": [
+        "api-handler",
+        "infrastructure",
+        "containerization",
+        "deployment"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:docker-compose.yml:frontend",
+      "type": "service",
+      "name": "frontend",
+      "filePath": "docker-compose.yml",
+      "summary": "Streamlit frontend service built from the ./frontend context, serving the chat UI on port 8501 with live-reload volume mount and a backend URL environment variable.",
+      "tags": [
+        "infrastructure",
+        "containerization",
+        "deployment"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:todo.md",
+      "type": "document",
+      "name": "todo.md",
+      "filePath": "todo.md",
+      "summary": "Development task tracker documenting planned architectural improvements including schema-on-read with concept-map architecture, Text-to-SQL fallback, MIMIC-III dataset integration, and a completed-items reference section.",
+      "tags": [
+        "documentation",
+        "development",
+        "roadmap"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:.understand-anything/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Ignore pattern file for the Understand-Anything analysis tool, specifying directories and file patterns (such as REFERENCE-REPO/, bucket/, and transcript text files) to exclude from knowledge graph generation.",
+      "tags": [
+        "configuration",
+        "build-system",
+        "tooling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.understand-anything/config.json",
+      "type": "config",
+      "name": "config.json",
+      "filePath": ".understand-anything/config.json",
+      "summary": "Minimal Understand-Anything plugin configuration setting the output language to English for all generated knowledge graph textual content.",
+      "tags": [
+        "configuration",
+        "tooling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/db/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/db/__init__.py",
+      "summary": "Empty package initializer that marks the backend/db directory as a Python package, enabling imports from the db module.",
+      "tags": [
+        "entry-point",
+        "barrel"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/rag/__init__.py",
+      "summary": "Empty package initializer that marks the backend/rag directory as a Python package, enabling imports from the rag module.",
+      "tags": [
+        "entry-point",
+        "barrel"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/chunker.py",
+      "type": "file",
+      "name": "chunker.py",
+      "filePath": "backend/rag/chunker.py",
+      "summary": "Deprecated stub file previously implementing an LLM-based semantic chunker for ingestion; replaced by the character-based sliding-window splitter in ingestion.py and kept only to prevent stale import errors.",
+      "tags": [
+        "utility",
+        "deprecated"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "file:backend/rag/document_parser.py",
+      "type": "file",
+      "name": "document_parser.py",
+      "filePath": "backend/rag/document_parser.py",
+      "summary": "Deprecated stub file previously implementing a Docling-based PDF/DOCX parser; replaced by PyMuPDF-based text extraction in ingestion.py and kept only to prevent stale import errors.",
+      "tags": [
+        "utility",
+        "deprecated"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "file:backend/rag/enricher.py",
+      "type": "file",
+      "name": "enricher.py",
+      "filePath": "backend/rag/enricher.py",
+      "summary": "Deprecated stub file previously implementing per-chunk LLM contextual enrichment via Ollama; replaced by a lightweight inline header in ingestion.py and kept only to prevent stale import errors.",
+      "tags": [
+        "utility",
+        "deprecated"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "file:backend/rag/structured_extractor.py",
+      "type": "file",
+      "name": "structured_extractor.py",
+      "filePath": "backend/rag/structured_extractor.py",
+      "summary": "Deprecated stub file previously implementing per-chunk LLM extraction of patient/provider/billing data into SQLite; replaced by direct columnar SQL ingestion in ingestion.py and kept only to prevent stale import errors.",
+      "tags": [
+        "utility",
+        "deprecated"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "document:backend/requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "backend/requirements.txt",
+      "summary": "Backend Python dependency manifest listing FastAPI, ChromaDB, sentence-transformers, PyMuPDF, psycopg2, sqlglot, rank-bm25, and other packages required for the RAG pipeline, structured SQL retrieval, and API server.",
+      "tags": [
+        "documentation",
+        "configuration",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "file",
+      "name": "migrate_sqlite_to_postgres.py",
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "summary": "Command-line database migration script that reads all tables from a SQLite database and bulk-inserts them into PostgreSQL using batch fetching, column padding, and sequence reset; supports dry-run mode to preview the migration without committing.",
+      "tags": [
+        "database",
+        "migration",
+        "script",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "function",
+      "name": "migrate",
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [
+        185,
+        267
+      ],
+      "summary": "Core migration function that opens both SQLite and PostgreSQL connections, iterates all source tables, batch-copies rows with column padding, commits, and resets PostgreSQL sequences; accepts a dry_run flag to skip commits.",
+      "tags": [
+        "database",
+        "migration",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [
+        272,
+        322
+      ],
+      "summary": "Entry point that parses CLI arguments for SQLite path, PostgreSQL DSN, and dry-run flag, invokes migrate(), and prints a per-table row count summary.",
+      "tags": [
+        "entry-point",
+        "script",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/scripts/purge_structured_chroma.py",
+      "type": "file",
+      "name": "purge_structured_chroma.py",
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "summary": "Maintenance script for selectively removing tabular/structured documents from a ChromaDB collection by metadata filter, with optional collection rebuild and dry-run preview mode.",
+      "tags": [
+        "database",
+        "script",
+        "utility",
+        "maintenance"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "function",
+      "name": "purge_tabular_docs",
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "lineRange": [
+        41,
+        122
+      ],
+      "summary": "Connects to ChromaDB over HTTP, retrieves documents matching a tabular source_type filter, optionally deletes them in batches, and can drop and recreate the entire collection when rebuild is requested.",
+      "tags": [
+        "database",
+        "utility",
+        "maintenance"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/purge_structured_chroma.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "lineRange": [
+        125,
+        184
+      ],
+      "summary": "Entry point that parses CLI arguments for ChromaDB host, port, collection name, dry-run, and rebuild flags, then invokes purge_tabular_docs().",
+      "tags": [
+        "entry-point",
+        "script",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:data/patients/alice_johnson_bill_2025-10-27.json",
+      "type": "config",
+      "name": "alice_johnson_bill_2025-10-27.json",
+      "filePath": "data/patients/alice_johnson_bill_2025-10-27.json",
+      "summary": "Sample patient billing record for Alice Johnson containing itemized charges, insurance coverage details, payment status, and provider NPI \u2014 used as test data for the medical RAG ingestion pipeline.",
+      "tags": [
+        "data",
+        "configuration",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/patients/john_smith_record_2025-09-15.json",
+      "type": "config",
+      "name": "john_smith_record_2025-09-15.json",
+      "filePath": "data/patients/john_smith_record_2025-09-15.json",
+      "summary": "Sample patient medical record for John Smith containing visit type, chief complaint, diagnosis, treatment plan, vitals, allergies, and provider information \u2014 used as test data for the medical RAG ingestion pipeline.",
+      "tags": [
+        "data",
+        "configuration",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/providers/dr_robert_chen.json",
+      "type": "config",
+      "name": "dr_robert_chen.json",
+      "filePath": "data/providers/dr_robert_chen.json",
+      "summary": "Sample provider profile for Dr. Robert Chen containing NPI, specialty, license details, hospital affiliations, and contact information \u2014 used as test data for the medical RAG provider lookup pipeline.",
+      "tags": [
+        "data",
+        "configuration",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/providers/dr_sarah_williams.json",
+      "type": "config",
+      "name": "dr_sarah_williams.json",
+      "filePath": "data/providers/dr_sarah_williams.json",
+      "summary": "Sample provider profile for Dr. Sarah Williams containing NPI, specialty, license details, hospital affiliations, and contact information \u2014 used as test data for the medical RAG provider lookup pipeline.",
+      "tags": [
+        "data",
+        "configuration",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/sources.yaml",
+      "type": "config",
+      "name": "sources.yaml",
+      "filePath": "data/sources.yaml",
+      "summary": "Stream ingestion configuration file that maps CSV/Excel column signatures to canonical field names, data types, PHI denylist tokens, and query exposure flags used by the catalog_admin ingestion pipeline.",
+      "tags": [
+        "configuration",
+        "data-pipeline",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:data/sql_schema_metadata.yaml",
+      "type": "config",
+      "name": "sql_schema_metadata.yaml",
+      "filePath": "data/sql_schema_metadata.yaml",
+      "summary": "Few-shot example library providing question-to-SQL pairs for the LLM text-to-SQL generation stage, teaching safe cast patterns, NULL guards, date formatting, and join idioms specific to the medical RAG PostgreSQL schema.",
+      "tags": [
+        "configuration",
+        "database",
+        "api-schema"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/app.py",
+      "type": "file",
+      "name": "app.py",
+      "filePath": "frontend/app.py",
+      "summary": "Streamlit frontend application providing a chat interface for the medical RAG system, enabling users to query patient records, billing data, and provider information with inline source citation and relevance scoring display.",
+      "tags": [
+        "entry-point",
+        "component",
+        "service"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/app.py:api",
+      "type": "function",
+      "name": "api",
+      "filePath": "frontend/app.py",
+      "lineRange": [
+        19,
+        31
+      ],
+      "summary": "Generic HTTP helper that dispatches requests to the backend API, raises status errors, returns parsed JSON, and displays Streamlit error messages on connection or HTTP failures.",
+      "tags": [
+        "utility",
+        "api-handler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/app.py:render_sources",
+      "type": "function",
+      "name": "render_sources",
+      "filePath": "frontend/app.py",
+      "lineRange": [
+        43,
+        99
+      ],
+      "summary": "Renders a collapsible Streamlit expander showing retrieved source documents with metadata tags (patient, provider, record type, date), relevance score labels, and optional raw chunk text display.",
+      "tags": [
+        "component",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:frontend/requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "frontend/requirements.txt",
+      "summary": "Frontend Python dependency manifest listing Streamlit, requests, and pandas \u2014 the minimal packages required for the RAG chat UI.",
+      "tags": [
+        "documentation",
+        "configuration",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/migrate_sqlite_to_postgres.py",
+      "type": "file",
+      "name": "migrate_sqlite_to_postgres.py",
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "summary": "Top-level copy of the database migration script that reads all tables from SQLite and bulk-inserts them into PostgreSQL with batch fetching, column padding, and sequence reset; supports dry-run mode.",
+      "tags": [
+        "database",
+        "migration",
+        "script",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "function",
+      "name": "migrate",
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [
+        185,
+        267
+      ],
+      "summary": "Core migration function that opens both SQLite and PostgreSQL connections, iterates all source tables, batch-copies rows with column padding, commits, and resets PostgreSQL sequences; accepts a dry_run flag to skip commits.",
+      "tags": [
+        "database",
+        "migration",
+        "utility"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [
+        272,
+        322
+      ],
+      "summary": "Entry point that parses CLI arguments for SQLite path, PostgreSQL DSN, and dry-run flag, invokes migrate(), and prints a per-table row count summary.",
+      "tags": [
+        "entry-point",
+        "script",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/purge_structured_chroma.py",
+      "type": "file",
+      "name": "purge_structured_chroma.py",
+      "filePath": "scripts/purge_structured_chroma.py",
+      "summary": "Top-level copy of the ChromaDB maintenance script for selectively removing tabular/structured documents by metadata filter, with optional collection rebuild and dry-run preview mode.",
+      "tags": [
+        "database",
+        "script",
+        "utility",
+        "maintenance"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "function",
+      "name": "purge_tabular_docs",
+      "filePath": "scripts/purge_structured_chroma.py",
+      "lineRange": [
+        41,
+        122
+      ],
+      "summary": "Connects to ChromaDB over HTTP, retrieves documents matching a tabular source_type filter, optionally deletes them in batches, and can drop and recreate the entire collection when rebuild is requested.",
+      "tags": [
+        "database",
+        "utility",
+        "maintenance"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/purge_structured_chroma.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/purge_structured_chroma.py",
+      "lineRange": [
+        125,
+        184
+      ],
+      "summary": "Entry point that parses CLI arguments for ChromaDB host, port, collection name, dry-run, and rebuild flags, then invokes purge_tabular_docs().",
+      "tags": [
+        "entry-point",
+        "script",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:add_document",
+      "type": "function",
+      "name": "add_document",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        298,
+        326
+      ],
+      "summary": "Adds or replaces a single document in the ChromaDB vector store by upserting its ID, text, and metadata, then invalidates the BM25 index.",
+      "tags": [
+        "service",
+        "data-pipeline",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:list_all_documents",
+      "type": "function",
+      "name": "list_all_documents",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        385,
+        400
+      ],
+      "summary": "Returns metadata and a content preview for every document currently stored in the ChromaDB collection.",
+      "tags": [
+        "service",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:delete_document",
+      "type": "function",
+      "name": "delete_document",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        403,
+        410
+      ],
+      "summary": "Removes a document from the ChromaDB vector store by its ID, returning True on success or False on error.",
+      "tags": [
+        "service",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:get_document_count",
+      "type": "function",
+      "name": "get_document_count",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [
+        413,
+        415
+      ],
+      "summary": "Returns the total number of documents currently stored in the ChromaDB collection.",
+      "tags": [
+        "service",
+        "utility"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/config.py",
+      "target": "class:backend/config.py:Settings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/config.py",
+      "target": "class:backend/config.py:Settings",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "file:backend/rag/audit_logger.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/orchestrator.py:query",
+      "target": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/orchestrator.py:query",
+      "target": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "target": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/audit_logger.py:log_query_event",
+      "target": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "file:backend/main.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "file:backend/db/schema.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "file:backend/db/operations.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/db/schema.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_patient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_provider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:insert_record",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_admission",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_patient_records",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_provider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:get_patient_info",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_resolve_patient_pks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_name_match_score",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_update_patient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_update_provider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_all_patient_records",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_best_name_match",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_patient",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_provider",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:insert_record",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_admission",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_patient_records",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_provider",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:get_patient_info",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_resolve_patient_pks",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_all_patient_records",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:init_db",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_reconcile_snapshot_deletions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_create_staging_table",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_run_migrations",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:init_db",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_reconcile_snapshot_deletions",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:query_provider",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:query_patient_records",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:get_patient_info",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "file:backend/db/operations.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_record_to_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_admission_to_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_provider_to_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_patient_demographics_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_merge_details",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_build_schema_from_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_validate_and_limit_sql",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_score_table",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_extract_specific_field",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_build_schema_from_catalog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_validate_and_limit_sql",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_extract_specific_field",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "file:backend/rag/retriever.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:_apply_config_to_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:_sync_yaml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:_get_by_sig8",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_list",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_label",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_alias",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_expose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_unexpose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_list",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_expose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_unexpose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/db/schema.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/config.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/intent_parser.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/llm_client.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/query_router.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/sql_retriever.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/vectorstore.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_is_analytical_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_normalize_intent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_regex_parse",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_extract_name_after",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_extract_name_before_possessive",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:_call_ollama",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:_call_openai",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "file:backend/config.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/rag/query_router.py",
+      "target": "function:backend/rag/query_router.py:route",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/query_router.py",
+      "target": "function:backend/rag/query_router.py:route",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_get_reranker",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_rerank",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_filter_by_threshold",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_check_hallucination",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_format_sql_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_format_rag_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_hybrid_search",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_reciprocal_rank_fusion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_fallback_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/query_router.py:route",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_hybrid_search",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_rerank",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_filter_by_threshold",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_format_sql_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_format_rag_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_rag_answer",
+      "target": "function:backend/rag/retriever.py:_check_hallucination",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_rag_answer",
+      "target": "function:backend/rag/retriever.py:_fallback_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_check_hallucination",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_sql_answer",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_rag_answer",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_hybrid_search",
+      "target": "function:backend/rag/retriever.py:_reciprocal_rank_fusion",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_rerank",
+      "target": "function:backend/rag/retriever.py:_get_reranker",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_hybrid_search",
+      "target": "function:backend/rag/vectorstore.py:search",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_hybrid_search",
+      "target": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/config.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/db/schema.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/rag/ingestion.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/rag/orchestrator.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/rag/vectorstore.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "file:backend/rag/vectorstore.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:lifespan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:health",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_all",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_uploaded_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:query_documents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:list_documents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:remove_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:lifespan",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:health",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_all",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_uploaded_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:query_documents",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:list_documents",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:remove_document",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:lifespan",
+      "target": "function:backend/db/schema.py:init_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:ingest_all",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:ingest_uploaded_file",
+      "target": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:query_documents",
+      "target": "function:backend/rag/orchestrator.py:query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_resolve_stream",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_write_rows_to_staging",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_split_pdf_table_aware",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_ingest_tabular",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_ingest_text_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_apply_yaml_config_to_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_detect_drift",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_split_text_into_chunks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:ingest_file",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:_ingest_tabular",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:_ingest_text_document",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "class:backend/rag/vectorstore.py:_OllamaEmbeddingFunction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:get_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:_build_bm25_index",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:get_collection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "class:backend/rag/vectorstore.py:_OllamaEmbeddingFunction",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "service:backend/Dockerfile",
+      "target": "file:backend/main.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:frontend/Dockerfile",
+      "target": "service:frontend/Dockerfile:python",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:chromadb",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:backend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml",
+      "target": "service:docker-compose.yml:frontend",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "service:docker-compose.yml:postgres",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "service:docker-compose.yml:chromadb",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:frontend",
+      "target": "service:docker-compose.yml:backend",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "service:docker-compose.yml:backend",
+      "target": "file:backend/main.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:.env.example",
+      "target": "service:docker-compose.yml:backend",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.env.example",
+      "target": "file:backend/config.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:backend/main.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "service:docker-compose.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SETUP_GUIDE.md",
+      "target": "service:docker-compose.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:SETUP_GUIDE.md",
+      "target": "config:.env.example",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:todo.md",
+      "target": "file:backend/rag/ingestion.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:todo.md",
+      "target": "file:backend/rag/sql_retriever.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:api",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:render_sources",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:api",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:render_sources",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "document:backend/requirements.txt",
+      "target": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:backend/requirements.txt",
+      "target": "file:backend/scripts/purge_structured_chroma.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:frontend/requirements.txt",
+      "target": "file:frontend/app.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:data/sources.yaml",
+      "target": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:data/sql_schema_metadata.yaml",
+      "target": "file:frontend/app.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "file:backend/scripts/purge_structured_chroma.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "function:backend/main.py:list_documents",
+      "target": "function:backend/rag/vectorstore.py:list_all_documents",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:remove_document",
+      "target": "function:backend/rag/vectorstore.py:delete_document",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:health",
+      "target": "function:backend/rag/vectorstore.py:get_document_count",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:ingest_file",
+      "target": "function:backend/rag/vectorstore.py:add_document",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:add_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:add_document",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:list_all_documents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:list_all_documents",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:delete_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:delete_document",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:get_document_count",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:get_document_count",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:api",
+      "name": "API Layer",
+      "description": "FastAPI application entry point that exposes REST endpoints for document ingestion, clinical querying, record listing, and deletion \u2014 the single HTTP surface through which external clients interact with the RAG system.",
+      "nodeIds": [
+        "file:backend/main.py"
+      ]
+    },
+    {
+      "id": "layer:rag-pipeline",
+      "name": "RAG Pipeline",
+      "description": "Core retrieval-augmented generation modules responsible for orchestrating queries through intent parsing, strategy routing, cross-encoder reranking, LLM invocation, and answer synthesis \u2014 including deprecated stubs and package initializers for the rag module.",
+      "nodeIds": [
+        "file:backend/rag/orchestrator.py",
+        "file:backend/rag/retriever.py",
+        "file:backend/rag/query_router.py",
+        "file:backend/rag/intent_parser.py",
+        "file:backend/rag/llm_client.py",
+        "file:backend/rag/chunker.py",
+        "file:backend/rag/document_parser.py",
+        "file:backend/rag/enricher.py",
+        "file:backend/rag/structured_extractor.py",
+        "file:backend/rag/__init__.py"
+      ]
+    },
+    {
+      "id": "layer:data",
+      "name": "Data Layer",
+      "description": "All data storage, retrieval, and persistence concerns: PostgreSQL schema management and CRUD operations, ChromaDB vector store with hybrid BM25+dense search, document ingestion pipeline, ICD-9 lookup table, SQL-based entity retrieval, database migration scripts, and sample patient/provider fixture data driving the clinical RAG system.",
+      "nodeIds": [
+        "file:backend/db/schema.py",
+        "file:backend/db/operations.py",
+        "file:backend/db/__init__.py",
+        "file:backend/rag/vectorstore.py",
+        "file:backend/rag/ingestion.py",
+        "file:backend/rag/icd9_lookup.py",
+        "file:backend/rag/sql_retriever.py",
+        "file:backend/scripts/migrate_sqlite_to_postgres.py",
+        "file:backend/scripts/purge_structured_chroma.py",
+        "file:scripts/migrate_sqlite_to_postgres.py",
+        "file:scripts/purge_structured_chroma.py",
+        "config:data/patients/alice_johnson_bill_2025-10-27.json",
+        "config:data/patients/john_smith_record_2025-09-15.json",
+        "config:data/providers/dr_robert_chen.json",
+        "config:data/providers/dr_sarah_williams.json",
+        "config:data/sources.yaml",
+        "config:data/sql_schema_metadata.yaml"
+      ]
+    },
+    {
+      "id": "layer:service",
+      "name": "Service & Admin Layer",
+      "description": "Cross-cutting operational services including HIPAA-compliant audit logging that records every query event to a rotating JSON log, and the CLI catalog-admin tool that manages the dynamic data-stream catalog powering the text-to-SQL query layer.",
+      "nodeIds": [
+        "file:backend/rag/audit_logger.py",
+        "file:backend/scripts/catalog_admin.py"
+      ]
+    },
+    {
+      "id": "layer:frontend",
+      "name": "Frontend Layer",
+      "description": "Streamlit chat interface that allows clinicians to query patient records, billing, and provider information in plain English, together with its Docker build definition and Python dependency manifest.",
+      "nodeIds": [
+        "file:frontend/app.py",
+        "service:frontend/Dockerfile",
+        "service:frontend/Dockerfile:python",
+        "document:frontend/requirements.txt"
+      ]
+    },
+    {
+      "id": "layer:infrastructure",
+      "name": "Infrastructure Layer",
+      "description": "Docker Compose orchestration and container build definitions that assemble the four-service deployment topology: PostgreSQL, ChromaDB, FastAPI backend, and Streamlit frontend into a single locally-run, privacy-preserving stack.",
+      "nodeIds": [
+        "service:backend/Dockerfile",
+        "service:docker-compose.yml",
+        "service:docker-compose.yml:postgres",
+        "service:docker-compose.yml:chromadb",
+        "service:docker-compose.yml:backend",
+        "service:docker-compose.yml:frontend"
+      ]
+    },
+    {
+      "id": "layer:config",
+      "name": "Configuration Layer",
+      "description": "Environment-driven configuration for the entire system: the central Pydantic Settings module that aggregates all runtime parameters, the environment variable template, and tooling configuration files for the Understand-Anything analysis plugin.",
+      "nodeIds": [
+        "file:backend/config.py",
+        "config:.env.example",
+        "config:.understand-anything/config.json",
+        "file:.understand-anything/.understandignore"
+      ]
+    },
+    {
+      "id": "layer:documentation",
+      "name": "Documentation",
+      "description": "Project documentation including the architecture overview and privacy rationale in the README, Docker deployment setup guide, development task tracker, and Python dependency manifests for the backend and frontend services.",
+      "nodeIds": [
+        "document:README.md",
+        "document:SETUP_GUIDE.md",
+        "document:todo.md",
+        "document:backend/requirements.txt"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Project Overview",
+      "description": "Start with the README to understand why this system exists: a privacy-preserving RAG system that lets clinicians ask plain-English questions about patient bills, medical records, and provider data without sending sensitive information to external cloud LLMs. The README introduces the three pillars of the architecture \u2014 hybrid retrieval, local LLM inference via Ollama, and HIPAA-oriented audit logging \u2014 which form the narrative backbone of this entire tour.",
+      "nodeIds": [
+        "document:README.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Runtime Configuration",
+      "description": "Before diving into code, examine how the system is parameterized. The `.env.example` file enumerates every tunable setting \u2014 database URLs, LLM provider choice, API keys, ChromaDB host \u2014 and `config.py` loads them all into a single Pydantic Settings object that every other module imports. Understanding this configuration surface up front makes every downstream import of `settings` immediately legible: you know where those values come from.",
+      "nodeIds": [
+        "config:.env.example",
+        "file:backend/config.py"
+      ],
+      "languageLesson": "Pydantic Settings automatically reads from environment variables and .env files, providing type validation and IDE autocompletion for configuration. This pattern avoids scattered `os.getenv()` calls and centralizes all config in one typed class."
+    },
+    {
+      "order": 3,
+      "title": "API Entry Point",
+      "description": "The FastAPI `main.py` is the system's front door \u2014 it imports configuration, initializes the database schema, and wires up four REST endpoints: file ingestion (`/ingest`), natural-language querying (`/query`), document listing (`/documents`), and document deletion. With a fan-out of 5, it touches every major subsystem, making it the ideal architectural map: after reading this file you know what the system does and which modules carry each responsibility.",
+      "nodeIds": [
+        "file:backend/main.py"
+      ],
+      "languageLesson": "FastAPI uses Python type annotations and Pydantic models as request/response schemas, generating OpenAPI documentation automatically. The `lifespan` context manager (or `startup` event) is the idiomatic place to initialize shared resources like database connections."
+    },
+    {
+      "order": 4,
+      "title": "Database Schema & Persistence",
+      "description": "The `schema.py` module defines all PostgreSQL tables \u2014 patients, providers, admissions, clinical records \u2014 and owns connection management, the migration runner, and a dynamic staging-table system that accommodates new data streams without schema changes. It is imported by both `main.py` (for initialization at startup) and `operations.py` (for query execution), making it the foundation the entire data layer sits on.",
+      "nodeIds": [
+        "file:backend/db/schema.py"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Data Ingestion Pipeline",
+      "description": "The ingestion module is where external clinical data enters the system. It processes both tabular files (CSV/Excel mapped through `sources.yaml`) and unstructured documents (PDF, TXT, DOCX), splitting them across two storage backends: structured rows go into PostgreSQL via the schema from Step 4, while document chunks are embedded and stored in ChromaDB for semantic search. This dual-write pattern is the foundation of the hybrid retrieval architecture described in the README.",
+      "nodeIds": [
+        "file:backend/rag/ingestion.py",
+        "config:data/sources.yaml"
+      ],
+      "languageLesson": "The `sources.yaml` configuration-driven ingestion approach uses a stream catalog to map incoming file shapes to canonical column names, avoiding hardcoded parsers for each file format. This is a common pattern in data pipelines to keep schema mapping declarative and operator-editable without touching Python code."
+    },
+    {
+      "order": 6,
+      "title": "Vector Store",
+      "description": "With the highest fan-in of any module (imported by `main.py`, `ingestion.py`, and `retriever.py`), `vectorstore.py` is the most central piece of the data layer. It wraps a ChromaDB collection and implements hybrid search: BM25 keyword scoring is combined with dense vector similarity to produce results that are both lexically and semantically relevant. This dual-scoring approach is what makes the system capable of handling both precise medical code lookups and fuzzy natural-language queries.",
+      "nodeIds": [
+        "file:backend/rag/vectorstore.py"
+      ],
+      "languageLesson": "Hybrid BM25+dense retrieval addresses the weaknesses of each method alone: BM25 excels at exact term matching (e.g., a specific ICD code) while dense embeddings capture semantic similarity. Combining scores with a weighted sum or reciprocal rank fusion typically outperforms either approach in isolation for medical queries."
+    },
+    {
+      "order": 7,
+      "title": "Sample Clinical Data",
+      "description": "Before exploring the query pipeline, look at the data it operates on. The sample patient and provider JSON fixtures show the exact schema of records that flow through ingestion \u2014 fields like diagnosis codes, billing amounts, admission dates, and provider specialties. These fixtures also serve as concrete examples for understanding what the intent parser and SQL retriever are targeting when they extract entities from a user's question.",
+      "nodeIds": [
+        "config:data/patients/alice_johnson_bill_2025-10-27.json",
+        "config:data/patients/john_smith_record_2025-09-15.json",
+        "config:data/providers/dr_robert_chen.json",
+        "config:data/providers/dr_sarah_williams.json"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Query Orchestrator",
+      "description": "The orchestrator is the top-level controller for answering a user question. It receives the raw query from the API, delegates to the retriever, and ensures every interaction is captured in the audit log. Its narrow interface \u2014 route a query, log the result \u2014 makes it the clean seam between the HTTP layer (Step 3) and the retrieval logic (Step 9), and it is where HIPAA compliance is enforced architecturally rather than scattered across modules.",
+      "nodeIds": [
+        "file:backend/rag/orchestrator.py",
+        "file:backend/rag/audit_logger.py"
+      ],
+      "languageLesson": "Separating orchestration from retrieval logic is an application of the Single Responsibility Principle: the orchestrator owns cross-cutting concerns (logging, error handling) while the retriever owns domain logic (how to find relevant information). This makes it easy to add new cross-cutting concerns \u2014 rate limiting, caching \u2014 without touching retrieval code."
+    },
+    {
+      "order": 9,
+      "title": "Intent Parsing & Query Routing",
+      "description": "Before any retrieval happens, the system must understand what the user is asking. The `intent_parser.py` uses regex patterns to extract structured entities \u2014 patient names, provider names, date ranges, ICD codes \u2014 from free-text clinical questions. The `query_router.py` then classifies the parsed intent into one of four route types: analytical (aggregate SQL), SQL-lookup (exact entity match), ICD-10 code lookup, or vector search. This classification decision determines which retrieval backend gets invoked.",
+      "nodeIds": [
+        "file:backend/rag/intent_parser.py",
+        "file:backend/rag/query_router.py"
+      ],
+      "languageLesson": "Regex-based entity extraction is a deliberate choice over an NER model: it runs entirely locally with no ML inference cost, is fully auditable (every pattern is explicit), and produces deterministic results suitable for HIPAA-sensitive workloads. The trade-off is reduced recall on novel phrasing, which is mitigated by the fallback vector-search route."
+    },
+    {
+      "order": 10,
+      "title": "Full Hybrid Retrieval Pipeline",
+      "description": "The retriever is the most complex module in the system, tying together every component introduced so far: it reads the routing decision from Step 9 and either dispatches to `sql_retriever.py` for structured queries or to `vectorstore.py` for semantic search, then applies cross-encoder reranking to the retrieved candidates and runs a hallucination grading step before returning results to the orchestrator. With a fan-out of 5, this module is the architectural heart of the RAG pipeline.",
+      "nodeIds": [
+        "file:backend/rag/retriever.py"
+      ],
+      "languageLesson": "Cross-encoder reranking is a two-stage retrieval pattern: a fast first-stage retriever (BM25 or vector) returns many candidates, then a slower but more accurate cross-encoder model scores each candidate against the query jointly. This produces better relevance rankings than single-stage retrieval at the cost of added latency."
+    },
+    {
+      "order": 11,
+      "title": "SQL Retrieval & Text-to-SQL",
+      "description": "The SQL retrieval path handles structured queries: exact entity lookups use `operations.py` to run parameterized queries with fuzzy patient/provider name matching, while the analytical path uses the `llm_client.py` to translate the user's question into SQL guided by few-shot examples in `sql_schema_metadata.yaml`. The `operations.py` module wraps PostgreSQL upsert and fuzzy-match logic, serving both the ingestion pipeline and the query retriever.",
+      "nodeIds": [
+        "file:backend/rag/sql_retriever.py",
+        "file:backend/db/operations.py",
+        "config:data/sql_schema_metadata.yaml"
+      ],
+      "languageLesson": "Few-shot prompting for text-to-SQL works by prepending example (question, SQL) pairs to the LLM prompt. The `sql_schema_metadata.yaml` externalizes these examples so domain experts can add new query patterns without modifying Python code. Fuzzy name matching (e.g., pg_trgm or difflib) handles real-world patient name variations like nicknames and typos."
+    },
+    {
+      "order": 12,
+      "title": "LLM Client & ICD Lookup",
+      "description": "The `llm_client.py` provides a unified interface for LLM calls, transparently dispatching to a local Ollama model or OpenAI depending on configuration \u2014 this is the privacy boundary described in the README, letting operators choose fully local inference. The `icd9_lookup.py` complements this with a lazy-loaded in-memory table for rapid diagnosis code resolution, bypassing the LLM entirely for deterministic ICD code lookups.",
+      "nodeIds": [
+        "file:backend/rag/llm_client.py",
+        "file:backend/rag/icd9_lookup.py"
+      ],
+      "languageLesson": "Lazy initialization (loading the ICD-9 table on first access rather than at import time) avoids penalizing startup time when the lookup table is large. In Python this is commonly implemented with a module-level `None` sentinel that is replaced on first call, or with `functools.lru_cache` on the loading function."
+    },
+    {
+      "order": 13,
+      "title": "Streamlit Chat Frontend",
+      "description": "The Streamlit `app.py` is what end users see: a chat interface where clinicians type questions in plain English and receive answers drawn from the patient and provider data ingested in Step 5. It calls the FastAPI `/query` endpoint from Step 3, rendering results as a conversational thread. Reading this file after the full backend tour makes the user journey concrete \u2014 you can trace a question from the chat input through intent parsing, routing, retrieval, and LLM synthesis back to the chat response.",
+      "nodeIds": [
+        "file:frontend/app.py"
+      ]
+    },
+    {
+      "order": 14,
+      "title": "Container Build Definitions",
+      "description": "The two Dockerfiles package the backend and frontend for deployment. The backend Dockerfile installs Python dependencies from `requirements.txt` and starts the FastAPI server on port 8000, while the frontend Dockerfile uses a Python 3.11-slim base to serve the Streamlit app on port 8501. Reviewing these alongside `backend/requirements.txt` gives a precise inventory of every library the system depends on \u2014 from ChromaDB and sentence-transformers to psycopg2 and PyMuPDF.",
+      "nodeIds": [
+        "service:backend/Dockerfile",
+        "service:frontend/Dockerfile",
+        "document:backend/requirements.txt"
+      ],
+      "languageLesson": "Slim base images (python:3.11-slim vs python:3.11) omit compilers, documentation, and test utilities, reducing image size and attack surface. When a package requires compilation (e.g., psycopg2), either install build tools in a separate stage and copy only the .so files, or use binary wheels (psycopg2-binary) to avoid the compiler dependency entirely."
+    },
+    {
+      "order": 15,
+      "title": "Docker Compose & Deployment",
+      "description": "The `docker-compose.yml` is the definitive map of how all four services \u2014 PostgreSQL, ChromaDB, FastAPI backend, Streamlit frontend \u2014 are wired together in production. It defines service startup order, port mappings, volume mounts for database persistence, and environment variable injection. The SETUP_GUIDE.md complements this with step-by-step instructions for first-time deployment, environment variable configuration, and troubleshooting common issues.",
+      "nodeIds": [
+        "service:docker-compose.yml",
+        "document:SETUP_GUIDE.md"
+      ],
+      "languageLesson": "Docker Compose `depends_on` controls startup order but not readiness \u2014 a service can start before its dependency is actually accepting connections. Production-grade Compose configurations add `healthcheck` definitions and `condition: service_healthy` to ensure PostgreSQL and ChromaDB are ready before the backend begins its startup migrations."
+    }
+  ]
+}

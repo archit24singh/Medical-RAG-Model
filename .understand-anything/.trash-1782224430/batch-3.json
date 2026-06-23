@@ -1,0 +1,661 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/rag/intent_parser.py",
+      "type": "file",
+      "name": "intent_parser.py",
+      "filePath": "backend/rag/intent_parser.py",
+      "summary": "Parses plain-English clinical queries into structured intent dictionaries using regex-based pattern matching, extracting entities such as patient names, provider names, dates, ICD-10 codes, and document types for downstream retrieval filtering.",
+      "tags": ["utility", "validation", "service", "query-parsing", "nlp"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_is_analytical_query",
+      "type": "function",
+      "name": "_is_analytical_query",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [52, 62],
+      "summary": "Detects whether a query is an analytical/aggregation request (e.g., counts, totals, averages) by matching against a compiled regex pattern.",
+      "tags": ["utility", "validation", "query-parsing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "function",
+      "name": "parse_intent",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [67, 74],
+      "summary": "Top-level intent parsing entry point that delegates to regex-based extraction and normalization, returning a structured intent dictionary from a raw user query string.",
+      "tags": ["entry-point", "utility", "query-parsing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_normalize_intent",
+      "type": "function",
+      "name": "_normalize_intent",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [77, 110],
+      "summary": "Normalizes extracted intent fields by title-casing names and validating ICD-10 code format, ensuring consistent entity representation before retrieval.",
+      "tags": ["utility", "validation", "normalization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "function",
+      "name": "build_where_filter",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [121, 166],
+      "summary": "Constructs a ChromaDB metadata where-filter from a parsed intent dictionary, supporting multi-field AND conditions for patient name, provider, date range, document type, and ICD-10 code.",
+      "tags": ["utility", "validation", "data-model"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_regex_parse",
+      "type": "function",
+      "name": "_regex_parse",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [171, 317],
+      "summary": "Core regex parsing engine that extracts structured entities from a clinical query, identifying document types, date ranges, NPI numbers, patient/admission IDs, diagnostic codes, structured fields, and patient/provider names through layered pattern matching.",
+      "tags": ["utility", "query-parsing", "nlp", "regex"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_extract_name_after",
+      "type": "function",
+      "name": "_extract_name_after",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [333, 355],
+      "summary": "Extracts a person name following a given keyword pattern in a query string, filtering out stopwords to return a clean multi-token name.",
+      "tags": ["utility", "nlp", "extraction"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/intent_parser.py:_extract_name_before_possessive",
+      "type": "function",
+      "name": "_extract_name_before_possessive",
+      "filePath": "backend/rag/intent_parser.py",
+      "lineRange": [358, 375],
+      "summary": "Extracts a person name that precedes a possessive marker (e.g., \"Jane's\") in a query string, removing stopwords to yield a clean name.",
+      "tags": ["utility", "nlp", "extraction"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/llm_client.py",
+      "type": "file",
+      "name": "llm_client.py",
+      "filePath": "backend/rag/llm_client.py",
+      "summary": "Provides a unified LLM invocation interface that dispatches to either a local Ollama endpoint or the OpenAI API based on configuration, with error handling for failed completions.",
+      "tags": ["service", "api-handler", "middleware", "llm"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/llm_client.py:call_llm",
+      "type": "function",
+      "name": "call_llm",
+      "filePath": "backend/rag/llm_client.py",
+      "lineRange": [11, 28],
+      "summary": "Entry point for LLM calls that reads configuration to select between Ollama and OpenAI backends, routing the prompt and optional system message accordingly.",
+      "tags": ["api-handler", "middleware", "llm"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/llm_client.py:_call_ollama",
+      "type": "function",
+      "name": "_call_ollama",
+      "filePath": "backend/rag/llm_client.py",
+      "lineRange": [33, 60],
+      "summary": "Invokes a local Ollama model via the ollama Python client, constructing a chat message list from the system and user prompt and returning the response text.",
+      "tags": ["service", "llm", "api-handler"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/llm_client.py:_call_openai",
+      "type": "function",
+      "name": "_call_openai",
+      "filePath": "backend/rag/llm_client.py",
+      "lineRange": [65, 85],
+      "summary": "Invokes an OpenAI-compatible chat completions endpoint using the OpenAI Python SDK, assembling the message list and extracting the response content.",
+      "tags": ["service", "llm", "api-handler"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/query_router.py",
+      "type": "file",
+      "name": "query_router.py",
+      "filePath": "backend/rag/query_router.py",
+      "summary": "Determines the retrieval strategy for a parsed intent by classifying it as analytical, SQL-lookup, ICD-10, or vector-search, and attaching the appropriate routing metadata for the retriever to act on.",
+      "tags": ["service", "middleware", "routing", "query-parsing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/query_router.py:route",
+      "type": "function",
+      "name": "route",
+      "filePath": "backend/rag/query_router.py",
+      "lineRange": [47, 94],
+      "summary": "Classifies a parsed intent into a retrieval strategy (analytical aggregate, SQL patient lookup, ICD-10 structured lookup, or vector RAG) by inspecting intent fields and setting routing flags in the returned dictionary.",
+      "tags": ["routing", "middleware", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/retriever.py",
+      "type": "file",
+      "name": "retriever.py",
+      "filePath": "backend/rag/retriever.py",
+      "summary": "Core RAG orchestration module that implements the full hybrid retrieval pipeline: intent parsing, query routing, SQL/analytical/vector search dispatching, cross-encoder reranking, relevance thresholding, answer formatting, and hallucination grading.",
+      "tags": ["service", "middleware", "api-handler", "entry-point", "rag"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_get_reranker",
+      "type": "function",
+      "name": "_get_reranker",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [56, 66],
+      "summary": "Lazily initializes and caches a sentence-transformers CrossEncoder model for relevance reranking, returning None on load failure.",
+      "tags": ["service", "utility", "ml-model"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_rerank",
+      "type": "function",
+      "name": "_rerank",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [69, 102],
+      "summary": "Reranks retrieved documents using a cross-encoder model, scoring query-document pairs and returning the top-k results sorted by relevance score.",
+      "tags": ["service", "utility", "ml-model"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_filter_by_threshold",
+      "type": "function",
+      "name": "_filter_by_threshold",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [110, 141],
+      "summary": "Filters retrieved documents below a minimum relevance score threshold, falling back to top results if all candidates fail the threshold to prevent empty result sets.",
+      "tags": ["utility", "validation", "filtering"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_check_hallucination",
+      "type": "function",
+      "name": "_check_hallucination",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [159, 181],
+      "summary": "Grades a generated answer against source documents using an LLM judge prompt, returning a boolean indicating whether the answer is grounded in the retrieved context.",
+      "tags": ["validation", "service", "llm", "safety"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:query",
+      "type": "function",
+      "name": "query",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [249, 403],
+      "summary": "Main retrieval entry point that orchestrates the full pipeline: parses user intent, routes to the appropriate backend (analytical SQL, patient SQL, or hybrid vector search), reranks and filters results, and delegates to the appropriate answer formatter.",
+      "tags": ["entry-point", "service", "api-handler", "rag"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "type": "function",
+      "name": "_format_analytical_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [408, 422],
+      "summary": "Formats analytical/aggregation results from SQL into a natural-language answer using an LLM prompt template.",
+      "tags": ["utility", "formatting", "llm"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_format_sql_answer",
+      "type": "function",
+      "name": "_format_sql_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [425, 442],
+      "summary": "Formats structured SQL lookup results into a natural-language answer using an LLM prompt template.",
+      "tags": ["utility", "formatting", "llm"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_format_rag_answer",
+      "type": "function",
+      "name": "_format_rag_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [445, 477],
+      "summary": "Formats vector-retrieved documents into a natural-language answer via LLM, running hallucination grading on the result and falling back to raw document excerpts if grading fails.",
+      "tags": ["utility", "formatting", "llm", "safety"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_hybrid_search",
+      "type": "function",
+      "name": "_hybrid_search",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [482, 503],
+      "summary": "Executes a hybrid search combining dense vector retrieval and BM25 sparse retrieval against ChromaDB, fusing results using reciprocal rank fusion.",
+      "tags": ["service", "retrieval", "vector-search"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_reciprocal_rank_fusion",
+      "type": "function",
+      "name": "_reciprocal_rank_fusion",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [506, 532],
+      "summary": "Merges vector and BM25 ranked result lists using the reciprocal rank fusion algorithm, returning a unified deduplicated ranking.",
+      "tags": ["utility", "retrieval", "ranking"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/retriever.py:_fallback_answer",
+      "type": "function",
+      "name": "_fallback_answer",
+      "filePath": "backend/rag/retriever.py",
+      "lineRange": [537, 546],
+      "summary": "Generates a raw text fallback answer by joining retrieved document excerpts and metadata when LLM formatting fails.",
+      "tags": ["utility", "formatting", "fallback"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/intent_parser.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/llm_client.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/query_router.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/sql_retriever.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/rag/vectorstore.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_is_analytical_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_normalize_intent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_regex_parse",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_extract_name_after",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:_extract_name_before_possessive",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/intent_parser.py",
+      "target": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:_call_ollama",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:_call_openai",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/llm_client.py",
+      "target": "file:backend/config.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/rag/query_router.py",
+      "target": "function:backend/rag/query_router.py:route",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/query_router.py",
+      "target": "function:backend/rag/query_router.py:route",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_get_reranker",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_rerank",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_filter_by_threshold",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_check_hallucination",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_format_sql_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_format_rag_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_hybrid_search",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_reciprocal_rank_fusion",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:_fallback_answer",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "function:backend/rag/retriever.py:query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/intent_parser.py:parse_intent",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/intent_parser.py:build_where_filter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/query_router.py:route",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_hybrid_search",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_rerank",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_filter_by_threshold",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_format_sql_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/retriever.py:_format_rag_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_rag_answer",
+      "target": "function:backend/rag/retriever.py:_check_hallucination",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_rag_answer",
+      "target": "function:backend/rag/retriever.py:_fallback_answer",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_check_hallucination",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_analytical_answer",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_sql_answer",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_format_rag_answer",
+      "target": "function:backend/rag/llm_client.py:call_llm",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_hybrid_search",
+      "target": "function:backend/rag/retriever.py:_reciprocal_rank_fusion",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_rerank",
+      "target": "function:backend/rag/retriever.py:_get_reranker",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_hybrid_search",
+      "target": "function:backend/rag/vectorstore.py:search",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:_hybrid_search",
+      "target": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/retriever.py:query",
+      "target": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/retriever.py",
+      "target": "file:backend/config.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

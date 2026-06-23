@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {
+      "id": "service:backend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "backend/Dockerfile",
+      "summary": "Single-stage Docker build based on python:3.11-slim that installs system and Python dependencies, copies the entire backend application, provisions a local bucket directory structure for patient/provider/upload files, and launches the FastAPI server via uvicorn on port 8000.",
+      "tags": ["containerization", "infrastructure", "deployment", "fastapi"],
+      "complexity": "simple",
+      "languageNotes": "Uses a slim base image and cleans apt caches in the same RUN layer to keep the image lean. A comment in the Dockerfile notes that the local bucket structure can be replaced with S3/boto3 for cloud storage."
+    }
+  ],
+  "edges": [
+    {
+      "source": "service:backend/Dockerfile",
+      "target": "file:backend/main.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}

@@ -1,0 +1,488 @@
+{
+  "nodes": [
+    {
+      "id": "file:.understand-anything/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Ignore pattern file for the Understand-Anything analysis tool, specifying directories and file patterns (such as REFERENCE-REPO/, bucket/, and transcript text files) to exclude from knowledge graph generation.",
+      "tags": ["configuration", "build-system", "tooling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.understand-anything/config.json",
+      "type": "config",
+      "name": "config.json",
+      "filePath": ".understand-anything/config.json",
+      "summary": "Minimal Understand-Anything plugin configuration setting the output language to English for all generated knowledge graph textual content.",
+      "tags": ["configuration", "tooling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/db/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/db/__init__.py",
+      "summary": "Empty package initializer that marks the backend/db directory as a Python package, enabling imports from the db module.",
+      "tags": ["entry-point", "barrel"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/rag/__init__.py",
+      "summary": "Empty package initializer that marks the backend/rag directory as a Python package, enabling imports from the rag module.",
+      "tags": ["entry-point", "barrel"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/chunker.py",
+      "type": "file",
+      "name": "chunker.py",
+      "filePath": "backend/rag/chunker.py",
+      "summary": "Deprecated stub file previously implementing an LLM-based semantic chunker for ingestion; replaced by the character-based sliding-window splitter in ingestion.py and kept only to prevent stale import errors.",
+      "tags": ["utility", "deprecated"],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "file:backend/rag/document_parser.py",
+      "type": "file",
+      "name": "document_parser.py",
+      "filePath": "backend/rag/document_parser.py",
+      "summary": "Deprecated stub file previously implementing a Docling-based PDF/DOCX parser; replaced by PyMuPDF-based text extraction in ingestion.py and kept only to prevent stale import errors.",
+      "tags": ["utility", "deprecated"],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "file:backend/rag/enricher.py",
+      "type": "file",
+      "name": "enricher.py",
+      "filePath": "backend/rag/enricher.py",
+      "summary": "Deprecated stub file previously implementing per-chunk LLM contextual enrichment via Ollama; replaced by a lightweight inline header in ingestion.py and kept only to prevent stale import errors.",
+      "tags": ["utility", "deprecated"],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "file:backend/rag/structured_extractor.py",
+      "type": "file",
+      "name": "structured_extractor.py",
+      "filePath": "backend/rag/structured_extractor.py",
+      "summary": "Deprecated stub file previously implementing per-chunk LLM extraction of patient/provider/billing data into SQLite; replaced by direct columnar SQL ingestion in ingestion.py and kept only to prevent stale import errors.",
+      "tags": ["utility", "deprecated"],
+      "complexity": "simple",
+      "languageNotes": "Kept as an empty stub to avoid ModuleNotFoundError from cached .pyc files; safe to delete once __pycache__ is cleared."
+    },
+    {
+      "id": "document:backend/requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "backend/requirements.txt",
+      "summary": "Backend Python dependency manifest listing FastAPI, ChromaDB, sentence-transformers, PyMuPDF, psycopg2, sqlglot, rank-bm25, and other packages required for the RAG pipeline, structured SQL retrieval, and API server.",
+      "tags": ["documentation", "configuration", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "file",
+      "name": "migrate_sqlite_to_postgres.py",
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "summary": "Command-line database migration script that reads all tables from a SQLite database and bulk-inserts them into PostgreSQL using batch fetching, column padding, and sequence reset; supports dry-run mode to preview the migration without committing.",
+      "tags": ["database", "migration", "script", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "function",
+      "name": "migrate",
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [185, 267],
+      "summary": "Core migration function that opens both SQLite and PostgreSQL connections, iterates all source tables, batch-copies rows with column padding, commits, and resets PostgreSQL sequences; accepts a dry_run flag to skip commits.",
+      "tags": ["database", "migration", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [272, 322],
+      "summary": "Entry point that parses CLI arguments for SQLite path, PostgreSQL DSN, and dry-run flag, invokes migrate(), and prints a per-table row count summary.",
+      "tags": ["entry-point", "script", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/scripts/purge_structured_chroma.py",
+      "type": "file",
+      "name": "purge_structured_chroma.py",
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "summary": "Maintenance script for selectively removing tabular/structured documents from a ChromaDB collection by metadata filter, with optional collection rebuild and dry-run preview mode.",
+      "tags": ["database", "script", "utility", "maintenance"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "function",
+      "name": "purge_tabular_docs",
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "lineRange": [41, 122],
+      "summary": "Connects to ChromaDB over HTTP, retrieves documents matching a tabular source_type filter, optionally deletes them in batches, and can drop and recreate the entire collection when rebuild is requested.",
+      "tags": ["database", "utility", "maintenance"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/purge_structured_chroma.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "lineRange": [125, 184],
+      "summary": "Entry point that parses CLI arguments for ChromaDB host, port, collection name, dry-run, and rebuild flags, then invokes purge_tabular_docs().",
+      "tags": ["entry-point", "script", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:data/patients/alice_johnson_bill_2025-10-27.json",
+      "type": "config",
+      "name": "alice_johnson_bill_2025-10-27.json",
+      "filePath": "data/patients/alice_johnson_bill_2025-10-27.json",
+      "summary": "Sample patient billing record for Alice Johnson containing itemized charges, insurance coverage details, payment status, and provider NPI — used as test data for the medical RAG ingestion pipeline.",
+      "tags": ["data", "configuration", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/patients/john_smith_record_2025-09-15.json",
+      "type": "config",
+      "name": "john_smith_record_2025-09-15.json",
+      "filePath": "data/patients/john_smith_record_2025-09-15.json",
+      "summary": "Sample patient medical record for John Smith containing visit type, chief complaint, diagnosis, treatment plan, vitals, allergies, and provider information — used as test data for the medical RAG ingestion pipeline.",
+      "tags": ["data", "configuration", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/providers/dr_robert_chen.json",
+      "type": "config",
+      "name": "dr_robert_chen.json",
+      "filePath": "data/providers/dr_robert_chen.json",
+      "summary": "Sample provider profile for Dr. Robert Chen containing NPI, specialty, license details, hospital affiliations, and contact information — used as test data for the medical RAG provider lookup pipeline.",
+      "tags": ["data", "configuration", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/providers/dr_sarah_williams.json",
+      "type": "config",
+      "name": "dr_sarah_williams.json",
+      "filePath": "data/providers/dr_sarah_williams.json",
+      "summary": "Sample provider profile for Dr. Sarah Williams containing NPI, specialty, license details, hospital affiliations, and contact information — used as test data for the medical RAG provider lookup pipeline.",
+      "tags": ["data", "configuration", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:data/sources.yaml",
+      "type": "config",
+      "name": "sources.yaml",
+      "filePath": "data/sources.yaml",
+      "summary": "Stream ingestion configuration file that maps CSV/Excel column signatures to canonical field names, data types, PHI denylist tokens, and query exposure flags used by the catalog_admin ingestion pipeline.",
+      "tags": ["configuration", "data-pipeline", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:data/sql_schema_metadata.yaml",
+      "type": "config",
+      "name": "sql_schema_metadata.yaml",
+      "filePath": "data/sql_schema_metadata.yaml",
+      "summary": "Few-shot example library providing question-to-SQL pairs for the LLM text-to-SQL generation stage, teaching safe cast patterns, NULL guards, date formatting, and join idioms specific to the medical RAG PostgreSQL schema.",
+      "tags": ["configuration", "database", "api-schema"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/app.py",
+      "type": "file",
+      "name": "app.py",
+      "filePath": "frontend/app.py",
+      "summary": "Streamlit frontend application providing a chat interface for the medical RAG system, enabling users to query patient records, billing data, and provider information with inline source citation and relevance scoring display.",
+      "tags": ["entry-point", "component", "service"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/app.py:api",
+      "type": "function",
+      "name": "api",
+      "filePath": "frontend/app.py",
+      "lineRange": [19, 31],
+      "summary": "Generic HTTP helper that dispatches requests to the backend API, raises status errors, returns parsed JSON, and displays Streamlit error messages on connection or HTTP failures.",
+      "tags": ["utility", "api-handler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/app.py:render_sources",
+      "type": "function",
+      "name": "render_sources",
+      "filePath": "frontend/app.py",
+      "lineRange": [43, 99],
+      "summary": "Renders a collapsible Streamlit expander showing retrieved source documents with metadata tags (patient, provider, record type, date), relevance score labels, and optional raw chunk text display.",
+      "tags": ["component", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:frontend/requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "frontend/requirements.txt",
+      "summary": "Frontend Python dependency manifest listing Streamlit, requests, and pandas — the minimal packages required for the RAG chat UI.",
+      "tags": ["documentation", "configuration", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/migrate_sqlite_to_postgres.py",
+      "type": "file",
+      "name": "migrate_sqlite_to_postgres.py",
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "summary": "Top-level copy of the database migration script that reads all tables from SQLite and bulk-inserts them into PostgreSQL with batch fetching, column padding, and sequence reset; supports dry-run mode.",
+      "tags": ["database", "migration", "script", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "function",
+      "name": "migrate",
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [185, 267],
+      "summary": "Core migration function that opens both SQLite and PostgreSQL connections, iterates all source tables, batch-copies rows with column padding, commits, and resets PostgreSQL sequences; accepts a dry_run flag to skip commits.",
+      "tags": ["database", "migration", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "lineRange": [272, 322],
+      "summary": "Entry point that parses CLI arguments for SQLite path, PostgreSQL DSN, and dry-run flag, invokes migrate(), and prints a per-table row count summary.",
+      "tags": ["entry-point", "script", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:scripts/purge_structured_chroma.py",
+      "type": "file",
+      "name": "purge_structured_chroma.py",
+      "filePath": "scripts/purge_structured_chroma.py",
+      "summary": "Top-level copy of the ChromaDB maintenance script for selectively removing tabular/structured documents by metadata filter, with optional collection rebuild and dry-run preview mode.",
+      "tags": ["database", "script", "utility", "maintenance"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "function",
+      "name": "purge_tabular_docs",
+      "filePath": "scripts/purge_structured_chroma.py",
+      "lineRange": [41, 122],
+      "summary": "Connects to ChromaDB over HTTP, retrieves documents matching a tabular source_type filter, optionally deletes them in batches, and can drop and recreate the entire collection when rebuild is requested.",
+      "tags": ["database", "utility", "maintenance"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:scripts/purge_structured_chroma.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "scripts/purge_structured_chroma.py",
+      "lineRange": [125, 184],
+      "summary": "Entry point that parses CLI arguments for ChromaDB host, port, collection name, dry-run, and rebuild flags, then invokes purge_tabular_docs().",
+      "tags": ["entry-point", "script", "utility"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:backend/scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/purge_structured_chroma.py",
+      "target": "function:backend/scripts/purge_structured_chroma.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:api",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:render_sources",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:api",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/app.py",
+      "target": "function:frontend/app.py:render_sources",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:migrate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "function:scripts/migrate_sqlite_to_postgres.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:purge_tabular_docs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "function:scripts/purge_structured_chroma.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "document:backend/requirements.txt",
+      "target": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:backend/requirements.txt",
+      "target": "file:backend/scripts/purge_structured_chroma.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:frontend/requirements.txt",
+      "target": "file:frontend/app.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:data/sources.yaml",
+      "target": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:data/sql_schema_metadata.yaml",
+      "target": "file:frontend/app.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/migrate_sqlite_to_postgres.py",
+      "target": "file:backend/scripts/migrate_sqlite_to_postgres.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/purge_structured_chroma.py",
+      "target": "file:backend/scripts/purge_structured_chroma.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+[
+  {
+    "order": 1,
+    "title": "Project Overview",
+    "description": "Start with the README to understand why this system exists: a privacy-preserving RAG system that lets clinicians ask plain-English questions about patient bills, medical records, and provider data without sending sensitive information to external cloud LLMs. The README introduces the three pillars of the architecture \u2014 hybrid retrieval, local LLM inference via Ollama, and HIPAA-oriented audit logging \u2014 which form the narrative backbone of this entire tour.",
+    "nodeIds": [
+      "document:README.md"
+    ]
+  },
+  {
+    "order": 2,
+    "title": "Runtime Configuration",
+    "description": "Before diving into code, examine how the system is parameterized. The `.env.example` file enumerates every tunable setting \u2014 database URLs, LLM provider choice, API keys, ChromaDB host \u2014 and `config.py` loads them all into a single Pydantic Settings object that every other module imports. Understanding this configuration surface up front makes every downstream import of `settings` immediately legible: you know where those values come from.",
+    "nodeIds": [
+      "config:.env.example",
+      "file:backend/config.py"
+    ],
+    "languageLesson": "Pydantic Settings automatically reads from environment variables and .env files, providing type validation and IDE autocompletion for configuration. This pattern avoids scattered `os.getenv()` calls and centralizes all config in one typed class."
+  },
+  {
+    "order": 3,
+    "title": "API Entry Point",
+    "description": "The FastAPI `main.py` is the system's front door \u2014 it imports configuration, initializes the database schema, and wires up four REST endpoints: file ingestion (`/ingest`), natural-language querying (`/query`), document listing (`/documents`), and document deletion. With a fan-out of 5, it touches every major subsystem, making it the ideal architectural map: after reading this file you know what the system does and which modules carry each responsibility.",
+    "nodeIds": [
+      "file:backend/main.py"
+    ],
+    "languageLesson": "FastAPI uses Python type annotations and Pydantic models as request/response schemas, generating OpenAPI documentation automatically. The `lifespan` context manager (or `startup` event) is the idiomatic place to initialize shared resources like database connections."
+  },
+  {
+    "order": 4,
+    "title": "Database Schema & Persistence",
+    "description": "The `schema.py` module defines all PostgreSQL tables \u2014 patients, providers, admissions, clinical records \u2014 and owns connection management, the migration runner, and a dynamic staging-table system that accommodates new data streams without schema changes. It is imported by both `main.py` (for initialization at startup) and `operations.py` (for query execution), making it the foundation the entire data layer sits on.",
+    "nodeIds": [
+      "file:backend/db/schema.py"
+    ]
+  },
+  {
+    "order": 5,
+    "title": "Data Ingestion Pipeline",
+    "description": "The ingestion module is where external clinical data enters the system. It processes both tabular files (CSV/Excel mapped through `sources.yaml`) and unstructured documents (PDF, TXT, DOCX), splitting them across two storage backends: structured rows go into PostgreSQL via the schema from Step 4, while document chunks are embedded and stored in ChromaDB for semantic search. This dual-write pattern is the foundation of the hybrid retrieval architecture described in the README.",
+    "nodeIds": [
+      "file:backend/rag/ingestion.py",
+      "config:data/sources.yaml"
+    ],
+    "languageLesson": "The `sources.yaml` configuration-driven ingestion approach uses a stream catalog to map incoming file shapes to canonical column names, avoiding hardcoded parsers for each file format. This is a common pattern in data pipelines to keep schema mapping declarative and operator-editable without touching Python code."
+  },
+  {
+    "order": 6,
+    "title": "Vector Store",
+    "description": "With the highest fan-in of any module (imported by `main.py`, `ingestion.py`, and `retriever.py`), `vectorstore.py` is the most central piece of the data layer. It wraps a ChromaDB collection and implements hybrid search: BM25 keyword scoring is combined with dense vector similarity to produce results that are both lexically and semantically relevant. This dual-scoring approach is what makes the system capable of handling both precise medical code lookups and fuzzy natural-language queries.",
+    "nodeIds": [
+      "file:backend/rag/vectorstore.py"
+    ],
+    "languageLesson": "Hybrid BM25+dense retrieval addresses the weaknesses of each method alone: BM25 excels at exact term matching (e.g., a specific ICD code) while dense embeddings capture semantic similarity. Combining scores with a weighted sum or reciprocal rank fusion typically outperforms either approach in isolation for medical queries."
+  },
+  {
+    "order": 7,
+    "title": "Sample Clinical Data",
+    "description": "Before exploring the query pipeline, look at the data it operates on. The sample patient and provider JSON fixtures show the exact schema of records that flow through ingestion \u2014 fields like diagnosis codes, billing amounts, admission dates, and provider specialties. These fixtures also serve as concrete examples for understanding what the intent parser and SQL retriever are targeting when they extract entities from a user's question.",
+    "nodeIds": [
+      "config:data/patients/alice_johnson_bill_2025-10-27.json",
+      "config:data/patients/john_smith_record_2025-09-15.json",
+      "config:data/providers/dr_robert_chen.json",
+      "config:data/providers/dr_sarah_williams.json"
+    ]
+  },
+  {
+    "order": 8,
+    "title": "Query Orchestrator",
+    "description": "The orchestrator is the top-level controller for answering a user question. It receives the raw query from the API, delegates to the retriever, and ensures every interaction is captured in the audit log. Its narrow interface \u2014 route a query, log the result \u2014 makes it the clean seam between the HTTP layer (Step 3) and the retrieval logic (Step 9), and it is where HIPAA compliance is enforced architecturally rather than scattered across modules.",
+    "nodeIds": [
+      "file:backend/rag/orchestrator.py",
+      "file:backend/rag/audit_logger.py"
+    ],
+    "languageLesson": "Separating orchestration from retrieval logic is an application of the Single Responsibility Principle: the orchestrator owns cross-cutting concerns (logging, error handling) while the retriever owns domain logic (how to find relevant information). This makes it easy to add new cross-cutting concerns \u2014 rate limiting, caching \u2014 without touching retrieval code."
+  },
+  {
+    "order": 9,
+    "title": "Intent Parsing & Query Routing",
+    "description": "Before any retrieval happens, the system must understand what the user is asking. The `intent_parser.py` uses regex patterns to extract structured entities \u2014 patient names, provider names, date ranges, ICD codes \u2014 from free-text clinical questions. The `query_router.py` then classifies the parsed intent into one of four route types: analytical (aggregate SQL), SQL-lookup (exact entity match), ICD-10 code lookup, or vector search. This classification decision determines which retrieval backend gets invoked.",
+    "nodeIds": [
+      "file:backend/rag/intent_parser.py",
+      "file:backend/rag/query_router.py"
+    ],
+    "languageLesson": "Regex-based entity extraction is a deliberate choice over an NER model: it runs entirely locally with no ML inference cost, is fully auditable (every pattern is explicit), and produces deterministic results suitable for HIPAA-sensitive workloads. The trade-off is reduced recall on novel phrasing, which is mitigated by the fallback vector-search route."
+  },
+  {
+    "order": 10,
+    "title": "Full Hybrid Retrieval Pipeline",
+    "description": "The retriever is the most complex module in the system, tying together every component introduced so far: it reads the routing decision from Step 9 and either dispatches to `sql_retriever.py` for structured queries or to `vectorstore.py` for semantic search, then applies cross-encoder reranking to the retrieved candidates and runs a hallucination grading step before returning results to the orchestrator. With a fan-out of 5, this module is the architectural heart of the RAG pipeline.",
+    "nodeIds": [
+      "file:backend/rag/retriever.py"
+    ],
+    "languageLesson": "Cross-encoder reranking is a two-stage retrieval pattern: a fast first-stage retriever (BM25 or vector) returns many candidates, then a slower but more accurate cross-encoder model scores each candidate against the query jointly. This produces better relevance rankings than single-stage retrieval at the cost of added latency."
+  },
+  {
+    "order": 11,
+    "title": "SQL Retrieval & Text-to-SQL",
+    "description": "The SQL retrieval path handles structured queries: exact entity lookups use `operations.py` to run parameterized queries with fuzzy patient/provider name matching, while the analytical path uses the `llm_client.py` to translate the user's question into SQL guided by few-shot examples in `sql_schema_metadata.yaml`. The `operations.py` module wraps PostgreSQL upsert and fuzzy-match logic, serving both the ingestion pipeline and the query retriever.",
+    "nodeIds": [
+      "file:backend/rag/sql_retriever.py",
+      "file:backend/db/operations.py",
+      "config:data/sql_schema_metadata.yaml"
+    ],
+    "languageLesson": "Few-shot prompting for text-to-SQL works by prepending example (question, SQL) pairs to the LLM prompt. The `sql_schema_metadata.yaml` externalizes these examples so domain experts can add new query patterns without modifying Python code. Fuzzy name matching (e.g., pg_trgm or difflib) handles real-world patient name variations like nicknames and typos."
+  },
+  {
+    "order": 12,
+    "title": "LLM Client & ICD Lookup",
+    "description": "The `llm_client.py` provides a unified interface for LLM calls, transparently dispatching to a local Ollama model or OpenAI depending on configuration \u2014 this is the privacy boundary described in the README, letting operators choose fully local inference. The `icd9_lookup.py` complements this with a lazy-loaded in-memory table for rapid diagnosis code resolution, bypassing the LLM entirely for deterministic ICD code lookups.",
+    "nodeIds": [
+      "file:backend/rag/llm_client.py",
+      "file:backend/rag/icd9_lookup.py"
+    ],
+    "languageLesson": "Lazy initialization (loading the ICD-9 table on first access rather than at import time) avoids penalizing startup time when the lookup table is large. In Python this is commonly implemented with a module-level `None` sentinel that is replaced on first call, or with `functools.lru_cache` on the loading function."
+  },
+  {
+    "order": 13,
+    "title": "Streamlit Chat Frontend",
+    "description": "The Streamlit `app.py` is what end users see: a chat interface where clinicians type questions in plain English and receive answers drawn from the patient and provider data ingested in Step 5. It calls the FastAPI `/query` endpoint from Step 3, rendering results as a conversational thread. Reading this file after the full backend tour makes the user journey concrete \u2014 you can trace a question from the chat input through intent parsing, routing, retrieval, and LLM synthesis back to the chat response.",
+    "nodeIds": [
+      "file:frontend/app.py"
+    ]
+  },
+  {
+    "order": 14,
+    "title": "Container Build Definitions",
+    "description": "The two Dockerfiles package the backend and frontend for deployment. The backend Dockerfile installs Python dependencies from `requirements.txt` and starts the FastAPI server on port 8000, while the frontend Dockerfile uses a Python 3.11-slim base to serve the Streamlit app on port 8501. Reviewing these alongside `backend/requirements.txt` gives a precise inventory of every library the system depends on \u2014 from ChromaDB and sentence-transformers to psycopg2 and PyMuPDF.",
+    "nodeIds": [
+      "service:backend/Dockerfile",
+      "service:frontend/Dockerfile",
+      "document:backend/requirements.txt"
+    ],
+    "languageLesson": "Slim base images (python:3.11-slim vs python:3.11) omit compilers, documentation, and test utilities, reducing image size and attack surface. When a package requires compilation (e.g., psycopg2), either install build tools in a separate stage and copy only the .so files, or use binary wheels (psycopg2-binary) to avoid the compiler dependency entirely."
+  },
+  {
+    "order": 15,
+    "title": "Docker Compose & Deployment",
+    "description": "The `docker-compose.yml` is the definitive map of how all four services \u2014 PostgreSQL, ChromaDB, FastAPI backend, Streamlit frontend \u2014 are wired together in production. It defines service startup order, port mappings, volume mounts for database persistence, and environment variable injection. The SETUP_GUIDE.md complements this with step-by-step instructions for first-time deployment, environment variable configuration, and troubleshooting common issues.",
+    "nodeIds": [
+      "service:docker-compose.yml",
+      "document:SETUP_GUIDE.md"
+    ],
+    "languageLesson": "Docker Compose `depends_on` controls startup order but not readiness \u2014 a service can start before its dependency is actually accepting connections. Production-grade Compose configurations add `healthcheck` definitions and `condition: service_healthy` to ensure PostgreSQL and ChromaDB are ready before the backend begins its startup migrations."
+  }
+]

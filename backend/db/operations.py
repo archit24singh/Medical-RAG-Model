@@ -1,18 +1,23 @@
 """
-SQLite CRUD operations for patients, providers, and records.
+PostgreSQL CRUD operations for patients, providers, records, and admissions.
 
 Entity resolution
 -----------------
-The same patient may appear in many documents under slightly different names
-("Alice Johnson", "Alice M. Johnson", "JOHNSON ALICE").  We normalise to
-Title Case and then use difflib fuzzy matching to find existing rows before
-creating new ones — avoiding duplicate patient / provider entries.
+The same patient may appear under slightly different names across documents
+("Alice Johnson", "Alice M. Johnson", "JOHNSON ALICE"). We normalise to
+Title Case and use difflib fuzzy matching to find existing rows before
+creating new ones — avoiding duplicate patient/provider entries.
 
 Verbatim quoting
 ----------------
 Every record row stores `raw_text` — the exact chunk text from the source
-document.  When answering a precise factual query the system quotes this
-directly instead of letting the LLM paraphrase, eliminating hallucination.
+document. Precise factual queries quote this directly instead of letting the
+LLM paraphrase, eliminating hallucination on the SQL path.
+
+Placeholder syntax
+------------------
+psycopg2 uses %s (not ?) for all parameter placeholders. All queries here
+use %s — never string-format the SQL with user data.
 """
 
 import difflib
@@ -21,7 +26,7 @@ import logging
 import re
 from typing import Optional
 
-from db.schema import get_db
+from db.schema import get_db, fetchall_dicts, fetchone_dict
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +34,7 @@ logger = logging.getLogger(__name__)
 _NAME_SIMILARITY_THRESHOLD = 0.82
 
 
-# ── Name matching helpers ───────────────────────────────────────────────────
-#
-# Names arrive in inconsistent orderings depending on the source document and
-# how the LLM extracted them, e.g.:
-#   "Hill, Susan L"   (spreadsheet "Last, First M" format)
-#   "Susan L Hill"    (LLM's default "First Last" Title Case)
-#   "Susan L"         (user query, missing last name)
-#
-# difflib.SequenceMatcher is order-sensitive, so "Hill, Susan L" vs
-# "Susan L Hill" scores well below the similarity threshold even though they
-# refer to the same person. To handle this we compare names as an
-# order-independent set of tokens (with punctuation stripped) in addition to
-# the plain string ratio.
+# ── Name matching helpers ─────────────────────────────────────────────────────
 
 def _name_tokens(name: str) -> set[str]:
     """Tokenize a name into a set of lowercase tokens, stripping punctuation."""
@@ -52,22 +45,16 @@ def _name_tokens(name: str) -> set[str]:
 
 
 def _canonical_name(name: str) -> str:
-    """
-    Canonical form of a name: lowercase tokens, punctuation stripped, sorted.
-    Produces the same string for "Hill, Susan L" and "Susan L Hill".
-    """
+    """Canonical form: lowercase tokens, punctuation stripped, sorted."""
     return " ".join(sorted(_name_tokens(name)))
 
 
 def _name_match_score(query: str, candidate: str) -> float:
     """
-    Similarity score (0-1) between two names that is robust to token
-    reordering ("Last, First M" vs "First M Last") and partial names
-    (e.g. "Susan L" vs "Hill, Susan L").
-
-    Returns 1.0 if one name's token set is a non-empty subset of the
-    other's (handles partial / reordered names), otherwise falls back to
-    a SequenceMatcher ratio on the canonical (sorted-token) forms.
+    Similarity score (0-1) robust to token reordering and partial names.
+    Returns 1.0 if one token set is a non-empty subset of the other
+    (handles "Last, First M" vs "First M Last"), otherwise SequenceMatcher
+    on canonical forms.
     """
     query_tokens = _name_tokens(query)
     candidate_tokens = _name_tokens(candidate)
@@ -75,9 +62,6 @@ def _name_match_score(query: str, candidate: str) -> float:
     if not query_tokens or not candidate_tokens:
         return 0.0
 
-    # Require at least 2 tokens on the (shorter) side before allowing a
-    # subset match — a single shared token (e.g. just "Susan") is too
-    # ambiguous to treat as a confident match.
     smaller, larger = (
         (query_tokens, candidate_tokens)
         if len(query_tokens) <= len(candidate_tokens)
@@ -105,13 +89,12 @@ def find_or_create_patient(
     subject_id:   Optional[str] = None,
 ) -> int:
     """
-    Return the id of an existing patient row that matches `name`, or insert
-    a new row and return its id.
+    Return the id of an existing patient row or insert a new one.
 
     Matching order:
-      1. Exact match on subject_id (if provided) — MIMIC-III SUBJECT_ID
-      2. Exact match on patient_id (if provided)
-      3. Fuzzy name match (>= 82% similarity) among existing rows
+      1. Exact subject_id match (MIMIC-III)
+      2. Exact patient_id match
+      3. Fuzzy name match (>= 82% similarity)
       4. Insert new row
     """
     name = _norm(name)
@@ -119,78 +102,72 @@ def find_or_create_patient(
         raise ValueError("Patient name cannot be empty")
 
     with get_db() as conn:
-        # 1. Exact subject_id match (MIMIC-III)
-        if subject_id:
-            row = conn.execute(
-                "SELECT id FROM patients WHERE subject_id = ?", (subject_id,)
-            ).fetchone()
-            if row:
-                _update_patient(conn, row["id"], dob, gender, phone, address,
+        with conn.cursor() as cur:
+            # 1. subject_id
+            if subject_id:
+                cur.execute("SELECT id FROM patients WHERE subject_id = %s", (subject_id,))
+                row = fetchone_dict(cur)
+                if row:
+                    _update_patient(conn, row["id"], dob, gender, phone, address,
+                                    insurance_id, source_file, subject_id)
+                    return row["id"]
+
+            # 2. patient_id
+            if patient_id:
+                cur.execute("SELECT id FROM patients WHERE patient_id = %s", (patient_id,))
+                row = fetchone_dict(cur)
+                if row:
+                    _update_patient(conn, row["id"], dob, gender, phone, address,
+                                    insurance_id, source_file, subject_id)
+                    return row["id"]
+
+            # 3. fuzzy name
+            cur.execute("SELECT id, name FROM patients")
+            existing = fetchall_dicts(cur)
+            best_id, best_score = _best_name_match(name, existing)
+            if best_id:
+                _update_patient(conn, best_id, dob, gender, phone, address,
                                 insurance_id, source_file, subject_id)
-                return row["id"]
+                return best_id
 
-        # 2. Exact patient_id match
-        if patient_id:
-            row = conn.execute(
-                "SELECT id FROM patients WHERE patient_id = ?", (patient_id,)
-            ).fetchone()
-            if row:
-                _update_patient(conn, row["id"], dob, gender, phone, address,
-                                insurance_id, source_file, subject_id)
-                return row["id"]
-
-        # 3. Fuzzy name match
-        existing = conn.execute("SELECT id, name FROM patients").fetchall()
-        best_id, best_score = _best_name_match(name, existing)
-        if best_id:
-            _update_patient(conn, best_id, dob, gender, phone, address,
-                            insurance_id, source_file, subject_id)
-            return best_id
-
-        # 4. Insert new patient
-        cur = conn.execute(
-            """INSERT INTO patients
-               (name, patient_id, dob, gender, phone, address, insurance_id,
-                source_files, subject_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (name, patient_id, dob, gender, phone, address, insurance_id,
-             source_file or "", subject_id),
-        )
-        logger.info("New patient created: %s (id=%d)", name, cur.lastrowid)
-        return cur.lastrowid
+            # 4. insert
+            cur.execute(
+                """INSERT INTO patients
+                   (name, patient_id, dob, gender, phone, address, insurance_id,
+                    source_files, subject_id)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING id""",
+                (name, patient_id, dob, gender, phone, address, insurance_id,
+                 source_file or "", subject_id),
+            )
+            new_id = cur.fetchone()[0]
+            logger.info("New patient created: %s (id=%d)", name, new_id)
+            return new_id
 
 
-def _update_patient(conn, patient_id_pk, dob, gender, phone, address,
+def _update_patient(conn, patient_pk, dob, gender, phone, address,
                     insurance_id, source_file, subject_id=None):
-    """Fill in any null columns for an existing patient."""
-    if dob:
-        conn.execute("UPDATE patients SET dob=? WHERE id=? AND dob IS NULL",
-                     (dob, patient_id_pk))
-    if gender:
-        conn.execute("UPDATE patients SET gender=? WHERE id=? AND gender IS NULL",
-                     (gender, patient_id_pk))
-    if phone:
-        conn.execute("UPDATE patients SET phone=? WHERE id=? AND phone IS NULL",
-                     (phone, patient_id_pk))
-    if address:
-        conn.execute("UPDATE patients SET address=? WHERE id=? AND address IS NULL",
-                     (address, patient_id_pk))
-    if insurance_id:
-        conn.execute("UPDATE patients SET insurance_id=? WHERE id=? AND insurance_id IS NULL",
-                     (insurance_id, patient_id_pk))
-    if subject_id:
-        conn.execute("UPDATE patients SET subject_id=? WHERE id=? AND subject_id IS NULL",
-                     (subject_id, patient_id_pk))
-    if source_file:
-        # Append to source_files list
-        row = conn.execute("SELECT source_files FROM patients WHERE id=?",
-                           (patient_id_pk,)).fetchone()
-        existing = row["source_files"] or ""
-        files = [f for f in existing.split(",") if f]
-        if source_file not in files:
-            files.append(source_file)
-        conn.execute("UPDATE patients SET source_files=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                     (",".join(files), patient_id_pk))
+    """Fill in any NULL columns for an existing patient."""
+    with conn.cursor() as cur:
+        for col, val in [("dob", dob), ("gender", gender), ("phone", phone),
+                         ("address", address), ("insurance_id", insurance_id),
+                         ("subject_id", subject_id)]:
+            if val:
+                cur.execute(
+                    f"UPDATE patients SET {col}=%s WHERE id=%s AND {col} IS NULL",
+                    (val, patient_pk)
+                )
+        if source_file:
+            cur.execute("SELECT source_files FROM patients WHERE id=%s", (patient_pk,))
+            row = cur.fetchone()
+            existing = (row[0] or "") if row else ""
+            files = [f for f in existing.split(",") if f]
+            if source_file not in files:
+                files.append(source_file)
+            cur.execute(
+                "UPDATE patients SET source_files=%s, updated_at=NOW() WHERE id=%s",
+                (",".join(files), patient_pk)
+            )
 
 
 # ── Provider operations ───────────────────────────────────────────────────────
@@ -205,11 +182,7 @@ def find_or_create_provider(
     license_number: Optional[str] = None,
     source_file:    Optional[str] = None,
 ) -> Optional[int]:
-    """
-    Return provider id, creating a new row if needed.
-    NPI is the primary unique key; name fuzzy-match is the fallback.
-    Returns None if neither name nor NPI is given.
-    """
+    """Return provider id, creating a new row if needed. Returns None if no name/NPI."""
     name = _norm(name) if name else None
     npi  = (npi or "").strip() or None
 
@@ -217,79 +190,86 @@ def find_or_create_provider(
         return None
 
     with get_db() as conn:
-        # 1. Exact NPI match
-        if npi:
-            row = conn.execute(
-                "SELECT id FROM providers WHERE npi = ?", (npi,)
-            ).fetchone()
-            if row:
-                _update_provider(conn, row["id"], name, specialty, dob,
-                                 phone, address, license_number, source_file)
-                return row["id"]
+        with conn.cursor() as cur:
+            # 1. exact NPI
+            if npi:
+                cur.execute("SELECT id FROM providers WHERE npi = %s", (npi,))
+                row = fetchone_dict(cur)
+                if row:
+                    _update_provider(conn, row["id"], name, specialty, dob,
+                                     phone, address, license_number, source_file)
+                    return row["id"]
 
-        # 2. Fuzzy name match
-        if name:
-            existing = conn.execute("SELECT id, name FROM providers").fetchall()
-            best_id, _ = _best_name_match(name, existing)
-            if best_id:
-                _update_provider(conn, best_id, name, specialty, dob,
-                                 phone, address, license_number, source_file)
-                return best_id
+            # 2. fuzzy name
+            if name:
+                cur.execute("SELECT id, name FROM providers")
+                existing = fetchall_dicts(cur)
+                best_id, _ = _best_name_match(name, existing)
+                if best_id:
+                    _update_provider(conn, best_id, name, specialty, dob,
+                                     phone, address, license_number, source_file)
+                    return best_id
 
-        # 3. Insert new provider
-        cur = conn.execute(
-            """INSERT INTO providers
-               (name, npi, specialty, dob, phone, address, license_number, source_files)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (name, npi, specialty, dob, phone, address, license_number,
-             source_file or ""),
-        )
-        logger.info("New provider created: %s / NPI=%s (id=%d)",
-                    name, npi, cur.lastrowid)
-        return cur.lastrowid
+            # 3. insert
+            cur.execute(
+                """INSERT INTO providers
+                   (name, npi, specialty, dob, phone, address, license_number, source_files)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING id""",
+                (name, npi, specialty, dob, phone, address, license_number,
+                 source_file or ""),
+            )
+            new_id = cur.fetchone()[0]
+            logger.info("New provider created: %s / NPI=%s (id=%d)", name, npi, new_id)
+            return new_id
 
 
 def _update_provider(conn, provider_pk, name, specialty, dob, phone,
                      address, license_number, source_file):
-    """Fill in null columns for an existing provider."""
-    for col, val in [("name", name), ("specialty", specialty), ("dob", dob),
-                     ("phone", phone), ("address", address),
-                     ("license_number", license_number)]:
-        if val:
-            conn.execute(f"UPDATE providers SET {col}=? WHERE id=? AND {col} IS NULL",
-                         (val, provider_pk))
-    if source_file:
-        row = conn.execute("SELECT source_files FROM providers WHERE id=?",
-                           (provider_pk,)).fetchone()
-        existing = row["source_files"] or ""
-        files = [f for f in existing.split(",") if f]
-        if source_file not in files:
-            files.append(source_file)
-        conn.execute("UPDATE providers SET source_files=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                     (",".join(files), provider_pk))
+    """Fill in NULL columns for an existing provider."""
+    with conn.cursor() as cur:
+        for col, val in [("name", name), ("specialty", specialty), ("dob", dob),
+                         ("phone", phone), ("address", address),
+                         ("license_number", license_number)]:
+            if val:
+                cur.execute(
+                    f"UPDATE providers SET {col}=%s WHERE id=%s AND {col} IS NULL",
+                    (val, provider_pk)
+                )
+        if source_file:
+            cur.execute("SELECT source_files FROM providers WHERE id=%s", (provider_pk,))
+            row = cur.fetchone()
+            existing = (row[0] or "") if row else ""
+            files = [f for f in existing.split(",") if f]
+            if source_file not in files:
+                files.append(source_file)
+            cur.execute(
+                "UPDATE providers SET source_files=%s, updated_at=NOW() WHERE id=%s",
+                (",".join(files), provider_pk)
+            )
 
 
 # ── Record operations ─────────────────────────────────────────────────────────
 
 def insert_record(
-    patient_id:    int,
-    record_type:   str,
-    raw_text:      str,
-    source_file:   str,
-    provider_id:   Optional[int] = None,
-    record_date:   Optional[str] = None,
-    total_amount:  Optional[str] = None,
-    claim_number:  Optional[str] = None,
-    diagnosis:     Optional[str] = None,
-    treatment:     Optional[str] = None,
-    medication:    Optional[str] = None,
-    dosage:        Optional[str] = None,
-    test_name:     Optional[str] = None,
-    test_result:   Optional[str] = None,
-    reference_range: Optional[str] = None,
-    details:       Optional[dict] = None,
-    page_number:   Optional[str] = None,
-    chunk_index:   Optional[str] = None,
+    patient_id:       int,
+    record_type:      str,
+    raw_text:         str,
+    source_file:      str,
+    provider_id:      Optional[int] = None,
+    record_date:      Optional[str] = None,
+    total_amount:     Optional[str] = None,
+    claim_number:     Optional[str] = None,
+    diagnosis:        Optional[str] = None,
+    treatment:        Optional[str] = None,
+    medication:       Optional[str] = None,
+    dosage:           Optional[str] = None,
+    test_name:        Optional[str] = None,
+    test_result:      Optional[str] = None,
+    reference_range:  Optional[str] = None,
+    details:          Optional[dict] = None,
+    page_number:      Optional[str] = None,
+    chunk_index:      Optional[str] = None,
     hadm_id:          Optional[str] = None,
     icd9_code:        Optional[str] = None,
     icd9_description: Optional[str] = None,
@@ -298,24 +278,26 @@ def insert_record(
     """Insert a clinical record and return its id."""
     details_json = json.dumps(details) if details else None
     with get_db() as conn:
-        cur = conn.execute(
-            """INSERT INTO records
-               (patient_id, provider_id, record_type, record_date,
-                total_amount, claim_number, diagnosis, treatment, medication, dosage,
-                test_name, test_result, reference_range,
-                details_json, raw_text, source_file, page_number, chunk_index,
-                hadm_id, icd9_code, icd9_description, seq_num)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (patient_id, provider_id, record_type, record_date,
-             total_amount, claim_number, diagnosis, treatment, medication, dosage,
-             test_name, test_result, reference_range,
-             details_json, raw_text, source_file, page_number, chunk_index,
-             hadm_id, icd9_code, icd9_description, seq_num),
-        )
-        return cur.lastrowid
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO records
+                   (patient_id, provider_id, record_type, record_date,
+                    total_amount, claim_number, diagnosis, treatment,
+                    medication, dosage, test_name, test_result, reference_range,
+                    details_json, raw_text, source_file, page_number, chunk_index,
+                    hadm_id, icd9_code, icd9_description, seq_num)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   RETURNING id""",
+                (patient_id, provider_id, record_type, record_date,
+                 total_amount, claim_number, diagnosis, treatment,
+                 medication, dosage, test_name, test_result, reference_range,
+                 details_json, raw_text, source_file, page_number, chunk_index,
+                 hadm_id, icd9_code, icd9_description, seq_num),
+            )
+            return cur.fetchone()[0]
 
 
-# ── Admission operations (MIMIC-III) ─────────────────────────────────────────
+# ── Admission operations ──────────────────────────────────────────────────────
 
 def find_or_create_admission(
     patient_pk:     Optional[int],
@@ -328,143 +310,130 @@ def find_or_create_admission(
     diagnosis:      Optional[str] = None,
     source_file:    Optional[str] = None,
 ) -> int:
-    """
-    Return the id of an existing admissions row for `hadm_id`, or insert a
-    new row and return its id. hadm_id is unique, so this is idempotent
-    across re-ingests.
-    """
+    """Return id of an existing admissions row for hadm_id, or insert a new one."""
     if not hadm_id:
         raise ValueError("hadm_id cannot be empty")
 
     with get_db() as conn:
-        row = conn.execute(
-            "SELECT id FROM admissions WHERE hadm_id = ?", (hadm_id,)
-        ).fetchone()
-        if row:
-            # Fill in any null columns for an existing admission
-            for col, val in [("patient_id", patient_pk), ("subject_id", subject_id),
-                              ("admittime", admittime), ("dischtime", dischtime),
-                              ("deathtime", deathtime),
-                              ("admission_type", admission_type), ("diagnosis", diagnosis)]:
-                if val is not None:
-                    conn.execute(f"UPDATE admissions SET {col}=? WHERE id=? AND {col} IS NULL",
-                                 (val, row["id"]))
-            return row["id"]
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM admissions WHERE hadm_id = %s", (hadm_id,))
+            row = fetchone_dict(cur)
+            if row:
+                for col, val in [("patient_id", patient_pk), ("subject_id", subject_id),
+                                  ("admittime", admittime), ("dischtime", dischtime),
+                                  ("deathtime", deathtime),
+                                  ("admission_type", admission_type),
+                                  ("diagnosis", diagnosis)]:
+                    if val is not None:
+                        cur.execute(
+                            f"UPDATE admissions SET {col}=%s WHERE id=%s AND {col} IS NULL",
+                            (val, row["id"])
+                        )
+                return row["id"]
 
-        cur = conn.execute(
-            """INSERT INTO admissions
-               (patient_id, subject_id, hadm_id, admittime, dischtime, deathtime,
-                admission_type, diagnosis, source_file)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (patient_pk, subject_id, hadm_id, admittime, dischtime, deathtime,
-             admission_type, diagnosis, source_file or ""),
-        )
-        logger.info("New admission created: hadm_id=%s (id=%d)", hadm_id, cur.lastrowid)
-        return cur.lastrowid
+            cur.execute(
+                """INSERT INTO admissions
+                   (patient_id, subject_id, hadm_id, admittime, dischtime,
+                    deathtime, admission_type, diagnosis, source_file)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   RETURNING id""",
+                (patient_pk, subject_id, hadm_id, admittime, dischtime,
+                 deathtime, admission_type, diagnosis, source_file or ""),
+            )
+            new_id = cur.fetchone()[0]
+            logger.info("New admission created: hadm_id=%s (id=%d)", hadm_id, new_id)
+            return new_id
 
 
 def get_admission_info(hadm_id: str) -> Optional[dict]:
     """Return an admissions row for a given hadm_id, or None."""
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT * FROM admissions WHERE hadm_id = ?", (hadm_id,)
-        ).fetchone()
-        return dict(row) if row else None
+    from db.schema import get_readonly_db
+    with get_readonly_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM admissions WHERE hadm_id = %s", (hadm_id,))
+            return fetchone_dict(cur)
 
 
 def query_records_by_hadm_id(hadm_id: str, limit: int = 30) -> list[dict]:
-    """Return all `records` rows (e.g. diagnoses) tied to a given hadm_id."""
-    with get_db() as conn:
-        rows = conn.execute(
-            """
-            SELECT r.*, p.name AS patient_name, p.dob AS patient_dob,
-                   p.patient_id AS patient_mrn, p.subject_id AS patient_subject_id,
-                   pv.name AS provider_name, pv.npi AS provider_npi
-            FROM records r
-            JOIN patients p ON r.patient_id = p.id
-            LEFT JOIN providers pv ON r.provider_id = pv.id
-            WHERE r.hadm_id = ?
-            ORDER BY CAST(r.seq_num AS INTEGER) ASC, r.id ASC
-            LIMIT ?
-            """,
-            (hadm_id, limit),
-        ).fetchall()
-        return [dict(r) for r in rows]
+    """Return all records rows tied to a given hadm_id."""
+    from db.schema import get_readonly_db
+    with get_readonly_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT r.*, p.name AS patient_name, p.dob AS patient_dob,
+                       p.patient_id AS patient_mrn,
+                       p.subject_id AS patient_subject_id,
+                       pv.name AS provider_name, pv.npi AS provider_npi
+                FROM records r
+                JOIN patients p ON r.patient_id = p.id
+                LEFT JOIN providers pv ON r.provider_id = pv.id
+                WHERE r.hadm_id = %s
+                ORDER BY
+                    CASE WHEN r.seq_num ~ '^[0-9]+$' THEN r.seq_num::int END ASC,
+                    r.id ASC
+                LIMIT %s
+                """,
+                (hadm_id, limit),
+            )
+            return fetchall_dicts(cur)
 
 
-# ── Maintenance operations ────────────────────────────────────────────────────
+# ── Maintenance ───────────────────────────────────────────────────────────────
 
 def delete_records_by_source_file(source_file: str) -> int:
     """
-    Delete all `records` rows previously written from `source_file`.
-
-    Why: ingestion (tabular and unstructured) can run repeatedly for the same
-    file — e.g. AUTO_INGEST re-runs ingest_directory() on every container
-    restart. Without this, each re-ingest APPENDS a fresh copy of every row
-    on top of whatever was already there, so the same patient ends up with
-    duplicate records — some from an older code version (missing fields like
-    claim_number) and some from the latest version (fully populated). Since
-    queries are ORDER BY date DESC, id DESC LIMIT N, the results end up an
-    interleaved mix of old/incomplete and new/complete rows for the same
-    patient — which looks like "some fields show up, some don't."
-
-    Calling this at the start of re-ingesting a file makes ingestion
-    idempotent: old rows for that file are cleared out before the fresh
-    ones are written, so there's only ever one (current) copy per file.
-
-    Returns the number of rows deleted.
+    Delete all records rows for source_file before re-ingesting.
+    Makes ingestion idempotent: re-ingest always produces exactly one
+    current copy of each row, with no stale duplicates from older runs.
     """
     with get_db() as conn:
-        cur = conn.execute("DELETE FROM records WHERE source_file = ?", (source_file,))
-        return cur.rowcount
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM records WHERE source_file = %s", (source_file,))
+            return cur.rowcount
 
 
 # ── Query operations ──────────────────────────────────────────────────────────
 
 def query_patient_records(
-    patient_name:  Optional[str] = None,
+    patient_name:   Optional[str] = None,
     patient_id_str: Optional[str] = None,
-    record_type:   Optional[str] = None,
-    record_date:   Optional[str] = None,
-    limit:         int = 20,
-    subject_id:    Optional[str] = None,
+    record_type:    Optional[str] = None,
+    record_date:    Optional[str] = None,
+    limit:          int = 20,
+    subject_id:     Optional[str] = None,
 ) -> list[dict]:
-    """
-    Return records for a patient, optionally filtered by type and date.
-    Uses fuzzy name matching so minor variations are handled.
-    """
-    with get_db() as conn:
-        # Resolve patient row(s)
-        patient_pks = _resolve_patient_pks(conn, patient_name, patient_id_str, subject_id)
-        if not patient_pks:
-            return []
+    """Return records for a patient, optionally filtered by type and date."""
+    from db.schema import get_readonly_db
+    with get_readonly_db() as conn:
+        with conn.cursor() as cur:
+            patient_pks = _resolve_patient_pks(conn, patient_name, patient_id_str, subject_id)
+            if not patient_pks:
+                return []
 
-        placeholders = ",".join("?" * len(patient_pks))
-        params: list = list(patient_pks)
+            placeholders = ",".join(["%s"] * len(patient_pks))
+            params: list = list(patient_pks)
 
-        sql = f"""
-            SELECT r.*, p.name AS patient_name, p.dob AS patient_dob,
-                   p.patient_id AS patient_mrn,
-                   pv.name AS provider_name, pv.npi AS provider_npi
-            FROM records r
-            JOIN patients p ON r.patient_id = p.id
-            LEFT JOIN providers pv ON r.provider_id = pv.id
-            WHERE r.patient_id IN ({placeholders})
-        """
+            sql = f"""
+                SELECT r.*, p.name AS patient_name, p.dob AS patient_dob,
+                       p.patient_id AS patient_mrn,
+                       pv.name AS provider_name, pv.npi AS provider_npi
+                FROM records r
+                JOIN patients p ON r.patient_id = p.id
+                LEFT JOIN providers pv ON r.provider_id = pv.id
+                WHERE r.patient_id IN ({placeholders})
+            """
+            if record_type:
+                sql += " AND r.record_type = %s"
+                params.append(record_type)
+            if record_date:
+                sql += " AND r.record_date = %s"
+                params.append(record_date)
+            sql += " ORDER BY r.record_date DESC, r.id DESC LIMIT %s"
+            params.append(limit)
 
-        if record_type:
-            sql += " AND r.record_type = ?"
-            params.append(record_type)
-
-        if record_date:
-            sql += " AND r.record_date = ?"
-            params.append(record_date)
-
-        sql += " ORDER BY r.record_date DESC, r.id DESC LIMIT ?"
-        params.append(limit)
-
-        rows = conn.execute(sql, params).fetchall()
-        return [dict(r) for r in rows]
+            cur.execute(sql, params)
+            return fetchall_dicts(cur)
 
 
 def query_provider(
@@ -472,24 +441,26 @@ def query_provider(
     provider_npi:  Optional[str] = None,
 ) -> list[dict]:
     """Return provider rows matching name (fuzzy) or exact NPI."""
-    with get_db() as conn:
-        if provider_npi:
-            rows = conn.execute(
-                "SELECT * FROM providers WHERE npi = ?", (provider_npi,)
-            ).fetchall()
-            if rows:
-                return [dict(r) for r in rows]
+    from db.schema import get_readonly_db
+    with get_readonly_db() as conn:
+        with conn.cursor() as cur:
+            if provider_npi:
+                cur.execute("SELECT * FROM providers WHERE npi = %s", (provider_npi,))
+                rows = fetchall_dicts(cur)
+                if rows:
+                    return rows
 
-        if provider_name:
-            norm = _norm(provider_name)
-            all_rows = conn.execute("SELECT * FROM providers").fetchall()
-            scored = []
-            for row in all_rows:
-                score = _name_match_score(norm, row["name"] or "")
-                if score >= _NAME_SIMILARITY_THRESHOLD:
-                    scored.append((score, dict(row)))
-            scored.sort(key=lambda x: x[0], reverse=True)
-            return [r for _, r in scored]
+            if provider_name:
+                norm = _norm(provider_name)
+                cur.execute("SELECT * FROM providers")
+                all_rows = fetchall_dicts(cur)
+                scored = []
+                for row in all_rows:
+                    score = _name_match_score(norm, row.get("name") or "")
+                    if score >= _NAME_SIMILARITY_THRESHOLD:
+                        scored.append((score, row))
+                scored.sort(key=lambda x: x[0], reverse=True)
+                return [r for _, r in scored]
 
     return []
 
@@ -512,41 +483,32 @@ def get_patient_info(
     patient_id_str: Optional[str] = None,
     subject_id:     Optional[str] = None,
 ) -> Optional[dict]:
-    """
-    Return a patients row for a given name / ID.
+    """Return a patients row, merging non-null fields across fuzzy duplicate matches."""
+    from db.schema import get_readonly_db
+    with get_readonly_db() as conn:
+        with conn.cursor() as cur:
+            pks = _resolve_patient_pks(conn, patient_name, patient_id_str, subject_id)
+            if not pks:
+                return None
 
-    If a name matches multiple fragmented patient rows (e.g. the same
-    person was ingested under slightly different name formats before the
-    matching logic was improved), merge the non-null demographic fields
-    across all matches so a field stored on one row (e.g. address) is
-    still surfaced even if a different row is the "primary" match.
-    """
-    with get_db() as conn:
-        pks = _resolve_patient_pks(conn, patient_name, patient_id_str, subject_id)
-        if not pks:
-            return None
-
-        merged: Optional[dict] = None
-        for pk in pks:
-            row = conn.execute(
-                "SELECT * FROM patients WHERE id = ?", (pk,)
-            ).fetchone()
-            if not row:
-                continue
-            d = dict(row)
-            if merged is None:
-                merged = d
-            else:
-                for k, v in d.items():
-                    if v not in (None, "", "Unknown") and not merged.get(k):
-                        merged[k] = v
-        return merged
+            merged: Optional[dict] = None
+            for pk in pks:
+                cur.execute("SELECT * FROM patients WHERE id = %s", (pk,))
+                row = fetchone_dict(cur)
+                if not row:
+                    continue
+                if merged is None:
+                    merged = row
+                else:
+                    for k, v in row.items():
+                        if v not in (None, "", "Unknown") and not merged.get(k):
+                            merged[k] = v
+            return merged
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 def _norm(name: Optional[str]) -> str:
-    """Normalise a name: strip whitespace, Title Case."""
     if not name:
         return ""
     return " ".join(name.strip().title().split())
@@ -554,19 +516,14 @@ def _norm(name: Optional[str]) -> str:
 
 def _best_name_match(
     name: str,
-    existing_rows,  # list of sqlite3.Row with (id, name)
+    existing_rows: list[dict],
 ) -> tuple[Optional[int], float]:
-    """
-    Find the best fuzzy name match among existing rows.
-    Returns (row_id, score) or (None, 0.0) if nothing is above threshold.
-    """
     best_id, best_score = None, 0.0
     for row in existing_rows:
-        score = _name_match_score(name, row["name"] or "")
+        score = _name_match_score(name, row.get("name") or "")
         if score > best_score:
             best_score = score
             best_id = row["id"]
-
     if best_score >= _NAME_SIMILARITY_THRESHOLD:
         return best_id, best_score
     return None, 0.0
@@ -578,27 +535,23 @@ def _resolve_patient_pks(
     patient_id: Optional[str],
     subject_id: Optional[str] = None,
 ) -> list[int]:
-    """Return a list of patient primary keys matching name, patient_id, and/or subject_id."""
-    pks = set()
+    """Return list of patient primary keys matching name, patient_id, and/or subject_id."""
+    pks: set[int] = set()
+    with conn.cursor() as cur:
+        if subject_id:
+            cur.execute("SELECT id FROM patients WHERE subject_id = %s", (subject_id,))
+            pks.update(r[0] for r in cur.fetchall())
 
-    if subject_id:
-        rows = conn.execute(
-            "SELECT id FROM patients WHERE subject_id = ?", (subject_id,)
-        ).fetchall()
-        pks.update(r["id"] for r in rows)
+        if patient_id:
+            cur.execute("SELECT id FROM patients WHERE patient_id = %s", (patient_id,))
+            pks.update(r[0] for r in cur.fetchall())
 
-    if patient_id:
-        rows = conn.execute(
-            "SELECT id FROM patients WHERE patient_id = ?", (patient_id,)
-        ).fetchall()
-        pks.update(r["id"] for r in rows)
-
-    if name:
-        norm = _norm(name)
-        all_rows = conn.execute("SELECT id, name FROM patients").fetchall()
-        for row in all_rows:
-            score = _name_match_score(norm, row["name"] or "")
-            if score >= _NAME_SIMILARITY_THRESHOLD:
-                pks.add(row["id"])
+        if name:
+            norm = _norm(name)
+            cur.execute("SELECT id, name FROM patients")
+            for row in cur.fetchall():
+                score = _name_match_score(norm, row[1] or "")
+                if score >= _NAME_SIMILARITY_THRESHOLD:
+                    pks.add(row[0])
 
     return list(pks)

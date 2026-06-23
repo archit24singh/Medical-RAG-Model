@@ -1,0 +1,57 @@
+# sources.yaml — per-stream configuration for structure-defined stream ingestion.
+#
+# How to use
+# ----------
+# 1. Ingest a CSV/Excel file:
+#       curl -X POST http://localhost:8080/ingest
+#
+# 2. Find your stream's full column_signature:
+#       docker exec medical_rag_backend python scripts/catalog_admin.py list
+#
+# 3. Copy the full 32-character signature into this file, fill in the fields,
+#    then run any catalog_admin command — it will apply the config without a restart:
+#       docker exec medical_rag_backend python scripts/catalog_admin.py list
+#
+# 4. Set human_label and column_mapping, then expose:
+#       docker exec medical_rag_backend python scripts/catalog_admin.py expose <sig8>
+#
+# column_mapping format
+# ---------------------
+# Maps the safe-identifier form of each native column header (lowercase,
+# spaces → underscores) to a canonical name and a type hint.
+#
+# Supported types: text (default) | numeric | date | timestamptz
+# date/timestamptz accept an optional format string using PostgreSQL
+# TO_DATE / TO_TIMESTAMP format codes, e.g.:
+#   format: "MM/DD/YYYY"   →  01/15/2024
+#   format: "YYYY-MM-DD"   →  2024-01-15   (default)
+#   format: "DD-Mon-YYYY"  →  15-Jan-2024
+#
+# Unparseable values become NULL — a single bad cell never errors the query.
+#
+# phi_denylist
+# ------------
+# Token substrings that, if found in a safe identifier, cause that column
+# to be excluded from the staging table.  Added to the global denylist
+# (ssn, social_security, password, passwd).
+#
+# IMPORTANT: column_signature must be the full 32-character md5 hex string
+# from `catalog_admin list`.  8-char prefixes are rejected.
+
+streams:
+
+  # ── Template — copy and fill in for each stream ───────────────────────────
+  # Uncomment and replace values after running `catalog_admin list`.
+  #
+  # - column_signature: <paste 32-char md5 from catalog_admin list>
+  #   human_label:   campbell_billing
+  #   load_mode:     append          # append | snapshot
+  #   query_exposed: false           # flip to true after column_mapping is filled
+  #   phi_denylist:  []              # extra tokens beyond global denylist
+  #   column_mapping:
+  #     # native_safe_id: {canonical: query_name, type: text|numeric|date|timestamptz, format: optional}
+  #     patient_name:       {canonical: patient,       type: text}
+  #     claim_no:           {canonical: claim_number,  type: text}
+  #     date_of_service:    {canonical: service_date,  type: date,    format: "MM/DD/YYYY"}
+  #     billed_amount:      {canonical: amount,        type: numeric}
+  #     rendering_provider: {canonical: provider,      type: text}

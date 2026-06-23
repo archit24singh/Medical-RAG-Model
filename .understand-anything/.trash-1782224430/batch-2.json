@@ -1,0 +1,1066 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/db/operations.py",
+      "type": "file",
+      "name": "operations.py",
+      "filePath": "backend/db/operations.py",
+      "summary": "Provides all PostgreSQL data-access operations for the medical RAG system: upsert and fuzzy-match resolution for patients, providers, and admissions, plus record insertion and multi-criteria querying against the clinical records table.",
+      "tags": ["data-model", "service", "utility", "database"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/operations.py:find_or_create_patient",
+      "type": "function",
+      "name": "find_or_create_patient",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [80, 145],
+      "summary": "Resolves an incoming patient record to an existing database row using exact patient_id, subject_id, or fuzzy name matching, creating a new row only when no match is found and updating demographic fields otherwise.",
+      "tags": ["data-model", "database", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/operations.py:find_or_create_provider",
+      "type": "function",
+      "name": "find_or_create_provider",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [175, 224],
+      "summary": "Resolves a provider by NPI exact match or fuzzy name similarity, inserting a new provider row when no existing match exceeds the confidence threshold.",
+      "tags": ["data-model", "database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:insert_record",
+      "type": "function",
+      "name": "insert_record",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [254, 297],
+      "summary": "Inserts a single clinical record row into the records table with all medical fields (diagnosis, treatment, medication, ICD-9 codes, lab results) serialized as appropriate.",
+      "tags": ["data-model", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:find_or_create_admission",
+      "type": "function",
+      "name": "find_or_create_admission",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [302, 345],
+      "summary": "Looks up a hospital admission by hadm_id and creates it with admit/discharge times and diagnosis if not found, returning the internal admission primary key.",
+      "tags": ["data-model", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_patient_records",
+      "type": "function",
+      "name": "query_patient_records",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [398, 436],
+      "summary": "Queries clinical records for a patient resolved by name or ID, optionally filtering by record type and date, and returns rows as dicts.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_provider",
+      "type": "function",
+      "name": "query_provider",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [439, 465],
+      "summary": "Looks up providers by NPI or fuzzy name match with scored ranking, returning the best matching provider rows sorted by similarity score.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:get_patient_info",
+      "type": "function",
+      "name": "get_patient_info",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [481, 506],
+      "summary": "Retrieves merged demographic information for a patient resolved by name, ID, or subject_id, coalescing multiple matched rows into a single dict.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_resolve_patient_pks",
+      "type": "function",
+      "name": "_resolve_patient_pks",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [532, 557],
+      "summary": "Internal helper that resolves a set of patient primary keys from patient_id, subject_id, or fuzzy name matching, used to fanout queries across merged patient records.",
+      "tags": ["utility", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_name_match_score",
+      "type": "function",
+      "name": "_name_match_score",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [52, 75],
+      "summary": "Computes a combined token-overlap and sequence-similarity score between two name strings to support fuzzy patient and provider matching.",
+      "tags": ["utility", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_update_patient",
+      "type": "function",
+      "name": "_update_patient",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [148, 170],
+      "summary": "Updates non-null demographic fields on an existing patient row and appends the new source file to the comma-separated source_files column.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:_update_provider",
+      "type": "function",
+      "name": "_update_provider",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [227, 249],
+      "summary": "Updates non-null fields on an existing provider row and accumulates source file provenance in the source_files column.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "function",
+      "name": "query_records_by_hadm_id",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [357, 379],
+      "summary": "Fetches all clinical records associated with a specific hospital admission ID, joining against the patient table and applying a row limit.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/operations.py:query_all_patient_records",
+      "type": "function",
+      "name": "query_all_patient_records",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [468, 478],
+      "summary": "Convenience wrapper that calls query_patient_records without record type or date filters to return all records for a patient.",
+      "tags": ["database", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/db/operations.py:_best_name_match",
+      "type": "function",
+      "name": "_best_name_match",
+      "filePath": "backend/db/operations.py",
+      "lineRange": [517, 529],
+      "summary": "Selects the best-matching row from a list of database records by name similarity score, returning the row only if it exceeds a minimum threshold.",
+      "tags": ["utility", "validation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/db/schema.py",
+      "type": "file",
+      "name": "schema.py",
+      "filePath": "backend/db/schema.py",
+      "summary": "Defines the PostgreSQL database schema initialization, connection management, migration runner, and the dynamic staging-table and view-creation system that powers the catalog-driven SQL query layer.",
+      "tags": ["database", "data-model", "service", "migration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/schema.py:get_db",
+      "type": "function",
+      "name": "get_db",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [51, 69],
+      "summary": "Context manager yielding a write-capable PostgreSQL connection that automatically commits on success and rolls back on exception.",
+      "tags": ["database", "service"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/db/schema.py:get_readonly_db",
+      "type": "function",
+      "name": "get_readonly_db",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [73, 97],
+      "summary": "Context manager yielding a read-only PostgreSQL connection with automatic fallback from the dedicated replica DSN to the primary DSN when the replica is unavailable.",
+      "tags": ["database", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/schema.py:init_db",
+      "type": "function",
+      "name": "init_db",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [261, 273],
+      "summary": "Initializes the database by executing the full DDL to create all tables (patients, providers, records, admissions, catalog) and then running any pending migrations.",
+      "tags": ["database", "migration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "function",
+      "name": "_build_and_create_view",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [443, 583],
+      "summary": "Dynamically constructs and creates (or replaces) a PostgreSQL view over a staging table using the stream's column mapping from the catalog, validates that mapped columns exist, and optionally grants read access to a configured role.",
+      "tags": ["database", "data-model"],
+      "complexity": "complex",
+      "languageNotes": "Dynamically generates SQL DDL from catalog metadata at runtime, using GRANT/REVOKE for role-based access control on the generated view."
+    },
+    {
+      "id": "function:backend/db/schema.py:_reconcile_snapshot_deletions",
+      "type": "function",
+      "name": "_reconcile_snapshot_deletions",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [586, 676],
+      "summary": "Detects rows deleted from a source file since the last ingestion snapshot by comparing content hashes and deletes them from the staging table, with safety checks to prevent mass-delete on suspiciously large changes.",
+      "tags": ["database", "data-model", "migration"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/db/schema.py:_create_staging_table",
+      "type": "function",
+      "name": "_create_staging_table",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [373, 409],
+      "summary": "Creates a new staging table for a data stream with the appropriate column definitions derived from the catalog's stored_cols configuration, including hash and metadata columns.",
+      "tags": ["database", "data-model"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "function",
+      "name": "_sync_staging_columns",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [412, 440],
+      "summary": "Adds any missing columns to an existing staging table by comparing current schema columns against the desired new column set, enabling schema evolution without full table rebuilds.",
+      "tags": ["database", "migration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/db/schema.py:_run_migrations",
+      "type": "function",
+      "name": "_run_migrations",
+      "filePath": "backend/db/schema.py",
+      "lineRange": [247, 258],
+      "summary": "Applies a sequence of ALTER TABLE migration statements to evolve the database schema, logging and swallowing errors for idempotent re-runs.",
+      "tags": ["database", "migration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/sql_retriever.py",
+      "type": "file",
+      "name": "sql_retriever.py",
+      "filePath": "backend/rag/sql_retriever.py",
+      "summary": "Implements the SQL-based retrieval branch of the RAG pipeline with two modes: a structured entity lookup (patients, providers, admissions) driven by parsed query intent, and an LLM-generated text-to-SQL analytical query path for ad-hoc aggregate questions.",
+      "tags": ["service", "api-handler", "database", "middleware"],
+      "complexity": "complex",
+      "languageNotes": "Uses sqlglot for SQL AST validation and LIMIT injection to guard against runaway LLM-generated queries before execution."
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "function",
+      "name": "lookup",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [83, 161],
+      "summary": "Routes a parsed query intent to the appropriate database query function (provider, admission, or patient records) and serializes results into retrieval-context dicts.",
+      "tags": ["service", "api-handler"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_record_to_result",
+      "type": "function",
+      "name": "_record_to_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [166, 261],
+      "summary": "Converts a raw clinical record row dict into a standardized retrieval result object, assembling human-readable content lines for all medical fields and attaching metadata.",
+      "tags": ["serialization", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_admission_to_result",
+      "type": "function",
+      "name": "_admission_to_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [264, 304],
+      "summary": "Converts a hospital admission row into a retrieval result dict with formatted content lines for admit/discharge times, diagnosis, and death time.",
+      "tags": ["serialization", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_provider_to_result",
+      "type": "function",
+      "name": "_provider_to_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [307, 342],
+      "summary": "Converts a provider row into a retrieval result dict with content lines for name, specialty, contact details, NPI, and license number.",
+      "tags": ["serialization", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_patient_demographics_result",
+      "type": "function",
+      "name": "_patient_demographics_result",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [345, 369],
+      "summary": "Converts a patient row into a retrieval result dict surfacing all demographic fields, with special handling when a specific demographic field is requested.",
+      "tags": ["serialization", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_merge_details",
+      "type": "function",
+      "name": "_merge_details",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [372, 399],
+      "summary": "Parses and flattens the JSON details column from a record row into a merged dict, combining keys from multiple sources without overwriting existing values.",
+      "tags": ["utility", "serialization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_build_schema_from_catalog",
+      "type": "function",
+      "name": "_build_schema_from_catalog",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [474, 554],
+      "summary": "Dynamically builds a schema description string from the live PostgreSQL catalog, scoring tables by keyword relevance to the user query and returning the top-ranked tables for the LLM text-to-SQL prompt.",
+      "tags": ["database", "service"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_validate_and_limit_sql",
+      "type": "function",
+      "name": "_validate_and_limit_sql",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [578, 629],
+      "summary": "Parses LLM-generated SQL with sqlglot, rejects non-SELECT statements and DDL/DML operations for safety, and injects a LIMIT clause if none is present.",
+      "tags": ["validation", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "function",
+      "name": "analytical_lookup",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [632, 742],
+      "summary": "Executes the full LLM text-to-SQL pipeline: builds schema context from the live catalog, prompts the LLM, validates and executes the generated SQL, and formats rows into retrieval result objects.",
+      "tags": ["service", "api-handler"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_score_table",
+      "type": "function",
+      "name": "_score_table",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [446, 471],
+      "summary": "Scores a database table's relevance to a user query by counting keyword token overlaps between the query and the table name plus its column names.",
+      "tags": ["utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/sql_retriever.py:_extract_specific_field",
+      "type": "function",
+      "name": "_extract_specific_field",
+      "filePath": "backend/rag/sql_retriever.py",
+      "lineRange": [745, 803],
+      "summary": "Extracts a specific named field value from a database row dict using a comprehensive alias map that maps natural-language field names to actual column names across patient, provider, and record schemas.",
+      "tags": ["utility", "serialization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/scripts/catalog_admin.py",
+      "type": "file",
+      "name": "catalog_admin.py",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "summary": "CLI administration tool for managing the data stream catalog that drives the dynamic SQL query layer, providing commands to list streams, assign human labels, create stream aliases, and expose or unexpose streams as queryable PostgreSQL views.",
+      "tags": ["entry-point", "service", "database", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:_apply_config_to_catalog",
+      "type": "function",
+      "name": "_apply_config_to_catalog",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [58, 89],
+      "summary": "Applies a YAML stream configuration block to the catalog database row identified by its column signature, updating label, column mapping, examples, and filter conditions.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:_sync_yaml",
+      "type": "function",
+      "name": "_sync_yaml",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [92, 127],
+      "summary": "Reads the sources.yaml configuration file and synchronizes all stream definitions to the catalog database, matching streams by their column signature.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:_get_by_sig8",
+      "type": "function",
+      "name": "_get_by_sig8",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [132, 156],
+      "summary": "Resolves a catalog stream row by 8-character signature prefix, printing diagnostic information and raising an error when zero or multiple matches are found.",
+      "tags": ["database", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_list",
+      "type": "function",
+      "name": "cmd_list",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [172, 213],
+      "summary": "Lists all registered data streams from the catalog with their signature, table name, row count, human label, exposure status, column mapping, and query examples.",
+      "tags": ["utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_alias",
+      "type": "function",
+      "name": "cmd_alias",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [233, 290],
+      "summary": "Creates a catalog alias that points one stream signature to another stream's staging table, merging column sets and updating the view definition to cover all aliased columns.",
+      "tags": ["database", "utility"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_expose",
+      "type": "function",
+      "name": "cmd_expose",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [293, 330],
+      "summary": "Marks a stream as exposed in the catalog and creates a PostgreSQL view over its staging table using the stream's column mapping, making it available to the SQL query layer.",
+      "tags": ["database", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_unexpose",
+      "type": "function",
+      "name": "cmd_unexpose",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [333, 357],
+      "summary": "Removes a stream's exposure by dropping its PostgreSQL view and marking it as unexposed in the catalog, preventing it from being used in SQL queries.",
+      "tags": ["database", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:cmd_label",
+      "type": "function",
+      "name": "cmd_label",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [216, 230],
+      "summary": "Assigns a human-readable label to a catalog stream identified by its 8-character signature, normalizing the label to lowercase slug form before storing.",
+      "tags": ["database", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/scripts/catalog_admin.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/catalog_admin.py",
+      "lineRange": [362, 402],
+      "summary": "CLI entry point that parses subcommand arguments and dispatches to the appropriate catalog administration command (list, label, alias, expose, unexpose).",
+      "tags": ["entry-point", "utility"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "file:backend/db/schema.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "file:backend/db/operations.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/db/schema.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_patient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_provider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:insert_record",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_admission",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_patient_records",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_provider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:get_patient_info",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_resolve_patient_pks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_name_match_score",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_update_patient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_update_provider",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_all_patient_records",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_best_name_match",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_patient",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_provider",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:insert_record",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:find_or_create_admission",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_patient_records",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_provider",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:get_patient_info",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:_resolve_patient_pks",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/operations.py:query_all_patient_records",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:init_db",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_reconcile_snapshot_deletions",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_create_staging_table",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_run_migrations",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:init_db",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/schema.py",
+      "target": "function:backend/db/schema.py:_reconcile_snapshot_deletions",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/db/operations.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:query_provider",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:query_patient_records",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:query_records_by_hadm_id",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/operations.py:get_patient_info",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/db/schema.py:get_readonly_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "file:backend/db/operations.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_record_to_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_admission_to_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_provider_to_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_patient_demographics_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_merge_details",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_build_schema_from_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_validate_and_limit_sql",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_score_table",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_extract_specific_field",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:lookup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:analytical_lookup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_build_schema_from_catalog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_validate_and_limit_sql",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "function:backend/rag/sql_retriever.py:_extract_specific_field",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/sql_retriever.py",
+      "target": "file:backend/rag/retriever.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:_apply_config_to_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:_sync_yaml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:_get_by_sig8",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_list",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_label",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_alias",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_expose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_unexpose",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_list",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_expose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/scripts/catalog_admin.py:cmd_unexpose",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/db/schema.py:get_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/db/schema.py:_build_and_create_view",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "function:backend/db/schema.py:_sync_staging_columns",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/db/schema.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:backend/scripts/catalog_admin.py",
+      "target": "file:backend/config.py",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}

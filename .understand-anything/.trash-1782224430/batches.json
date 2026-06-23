@@ -1,0 +1,943 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "louvain",
+  "totalFiles": 43,
+  "totalBatches": 8,
+  "exportsByPath": {
+    ".understand-anything/.understandignore": [],
+    "backend/config.py": [
+      "Settings"
+    ],
+    "backend/db/__init__.py": [],
+    "backend/db/operations.py": [
+      "_name_tokens",
+      "_canonical_name",
+      "_name_match_score",
+      "find_or_create_patient",
+      "_update_patient",
+      "find_or_create_provider",
+      "_update_provider",
+      "insert_record",
+      "find_or_create_admission",
+      "get_admission_info",
+      "query_records_by_hadm_id",
+      "delete_records_by_source_file",
+      "query_patient_records",
+      "query_provider",
+      "query_all_patient_records",
+      "get_patient_info",
+      "_norm",
+      "_best_name_match",
+      "_resolve_patient_pks"
+    ],
+    "backend/db/schema.py": [
+      "_connect",
+      "get_db",
+      "get_readonly_db",
+      "dict_row",
+      "fetchall_dicts",
+      "fetchone_dict",
+      "_run_migrations",
+      "init_db",
+      "_quote_identifier",
+      "_create_staging_table",
+      "_sync_staging_columns",
+      "_build_and_create_view",
+      "_reconcile_snapshot_deletions"
+    ],
+    "backend/main.py": [
+      "lifespan",
+      "QueryRequest",
+      "health",
+      "ingest_all",
+      "ingest_uploaded_file",
+      "query_documents",
+      "list_documents",
+      "remove_document"
+    ],
+    "backend/rag/__init__.py": [],
+    "backend/rag/audit_logger.py": [
+      "_get_audit_log",
+      "log_query_event"
+    ],
+    "backend/rag/chunker.py": [],
+    "backend/rag/document_parser.py": [],
+    "backend/rag/enricher.py": [],
+    "backend/rag/icd9_lookup.py": [
+      "_load_d_icd_diagnoses",
+      "lookup_icd9"
+    ],
+    "backend/rag/ingestion.py": [
+      "_clean_str",
+      "_normalize_date",
+      "_safe_cell",
+      "_safe_identifier",
+      "_load_sources_yaml",
+      "_get_yaml_config_for_signature",
+      "_apply_yaml_config_to_catalog",
+      "_compute_signature",
+      "_apply_denylist",
+      "_detect_drift",
+      "_resolve_stream",
+      "_write_rows_to_staging",
+      "_doc_type_from_filename",
+      "_doc_type_from_category",
+      "_meta_from_filename",
+      "_extract_meta_from_row",
+      "_extract_meta_structured",
+      "_row_doc_id",
+      "_doc_id",
+      "_split_text_into_chunks",
+      "_page_has_table",
+      "_split_pdf_table_aware",
+      "_extract_text_from_file",
+      "_row_to_chroma_text",
+      "_ingest_tabular",
+      "_ingest_text_document",
+      "ingest_file",
+      "ingest_directory"
+    ],
+    "backend/rag/intent_parser.py": [
+      "_is_analytical_query",
+      "parse_intent",
+      "_normalize_intent",
+      "build_where_filter",
+      "_regex_parse",
+      "_extract_name_after",
+      "_extract_name_before_possessive",
+      "_reformat"
+    ],
+    "backend/rag/llm_client.py": [
+      "call_llm",
+      "_call_ollama",
+      "_call_openai"
+    ],
+    "backend/rag/orchestrator.py": [
+      "query",
+      "_compound_query"
+    ],
+    "backend/rag/query_router.py": [
+      "route"
+    ],
+    "backend/rag/retriever.py": [
+      "_get_reranker",
+      "_rerank",
+      "_filter_by_threshold",
+      "_check_hallucination",
+      "query",
+      "_format_analytical_answer",
+      "_format_sql_answer",
+      "_format_rag_answer",
+      "_hybrid_search",
+      "_reciprocal_rank_fusion",
+      "_fallback_answer"
+    ],
+    "backend/rag/sql_retriever.py": [
+      "_is_demographic_field",
+      "lookup",
+      "_record_to_result",
+      "_admission_to_result",
+      "_provider_to_result",
+      "_patient_demographics_result",
+      "_merge_details",
+      "_load_schema_yaml",
+      "_score_table",
+      "_build_schema_from_catalog",
+      "_build_examples_text",
+      "_extract_sql_from_response",
+      "_validate_and_limit_sql",
+      "analytical_lookup",
+      "_extract_specific_field"
+    ],
+    "backend/rag/structured_extractor.py": [],
+    "backend/rag/vectorstore.py": [
+      "_invalidate_bm25",
+      "_build_bm25_index",
+      "_matches_filter",
+      "search_bm25",
+      "_wait_for_chroma",
+      "_OllamaEmbeddingFunction",
+      "get_collection",
+      "add_documents_batch",
+      "add_document",
+      "search",
+      "list_all_documents",
+      "delete_document",
+      "get_document_count"
+    ],
+    "backend/scripts/catalog_admin.py": [
+      "_read_sources_yaml",
+      "_apply_config_to_catalog",
+      "_sync_yaml",
+      "_get_by_sig8",
+      "_parse_json_field",
+      "cmd_list",
+      "cmd_label",
+      "cmd_alias",
+      "cmd_expose",
+      "cmd_unexpose",
+      "main"
+    ],
+    "backend/scripts/migrate_sqlite_to_postgres.py": [
+      "_sqlite_batches",
+      "_pad_row",
+      "_reset_sequence",
+      "migrate",
+      "main"
+    ],
+    "backend/scripts/purge_structured_chroma.py": [
+      "purge_tabular_docs",
+      "main"
+    ],
+    "frontend/app.py": [
+      "api",
+      "relevance_label",
+      "render_sources"
+    ],
+    "scripts/migrate_sqlite_to_postgres.py": [
+      "_sqlite_batches",
+      "_pad_row",
+      "_reset_sequence",
+      "migrate",
+      "main"
+    ],
+    "scripts/purge_structured_chroma.py": [
+      "purge_tabular_docs",
+      "main"
+    ]
+  },
+  "batches": [
+    {
+      "batchIndex": 1,
+      "files": [
+        {
+          "path": "backend/config.py",
+          "language": "python",
+          "sizeLines": 151,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/audit_logger.py",
+          "language": "python",
+          "sizeLines": 109,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/icd9_lookup.py",
+          "language": "python",
+          "sizeLines": 86,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/orchestrator.py",
+          "language": "python",
+          "sizeLines": 107,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "backend/config.py": [],
+        "backend/rag/audit_logger.py": [
+          "backend/config.py"
+        ],
+        "backend/rag/icd9_lookup.py": [
+          "backend/config.py"
+        ],
+        "backend/rag/orchestrator.py": [
+          "backend/config.py",
+          "backend/rag/audit_logger.py"
+        ]
+      },
+      "neighborMap": {
+        "backend/config.py": [
+          {
+            "path": "backend/db/schema.py",
+            "batchIndex": 2,
+            "symbols": [
+              "_connect",
+              "get_db",
+              "get_readonly_db",
+              "dict_row",
+              "fetchall_dicts",
+              "fetchone_dict",
+              "_run_migrations",
+              "init_db",
+              "_quote_identifier",
+              "_create_staging_table",
+              "_sync_staging_columns",
+              "_build_and_create_view",
+              "_reconcile_snapshot_deletions"
+            ]
+          },
+          {
+            "path": "backend/main.py",
+            "batchIndex": 4,
+            "symbols": [
+              "lifespan",
+              "QueryRequest",
+              "health",
+              "ingest_all",
+              "ingest_uploaded_file",
+              "query_documents",
+              "list_documents",
+              "remove_document"
+            ]
+          },
+          {
+            "path": "backend/rag/ingestion.py",
+            "batchIndex": 4,
+            "symbols": [
+              "_clean_str",
+              "_normalize_date",
+              "_safe_cell",
+              "_safe_identifier",
+              "_load_sources_yaml",
+              "_get_yaml_config_for_signature",
+              "_apply_yaml_config_to_catalog",
+              "_compute_signature",
+              "_apply_denylist",
+              "_detect_drift",
+              "_resolve_stream",
+              "_write_rows_to_staging",
+              "_doc_type_from_filename",
+              "_doc_type_from_category",
+              "_meta_from_filename",
+              "_extract_meta_from_row",
+              "_extract_meta_structured",
+              "_row_doc_id",
+              "_doc_id",
+              "_split_text_into_chunks",
+              "_page_has_table",
+              "_split_pdf_table_aware",
+              "_extract_text_from_file",
+              "_row_to_chroma_text",
+              "_ingest_tabular",
+              "_ingest_text_document",
+              "ingest_file",
+              "ingest_directory"
+            ]
+          },
+          {
+            "path": "backend/rag/llm_client.py",
+            "batchIndex": 3,
+            "symbols": [
+              "call_llm",
+              "_call_ollama",
+              "_call_openai"
+            ]
+          },
+          {
+            "path": "backend/rag/retriever.py",
+            "batchIndex": 3,
+            "symbols": [
+              "_get_reranker",
+              "_rerank",
+              "_filter_by_threshold",
+              "_check_hallucination",
+              "query",
+              "_format_analytical_answer",
+              "_format_sql_answer",
+              "_format_rag_answer",
+              "_hybrid_search",
+              "_reciprocal_rank_fusion",
+              "_fallback_answer"
+            ]
+          },
+          {
+            "path": "backend/rag/vectorstore.py",
+            "batchIndex": 4,
+            "symbols": [
+              "_invalidate_bm25",
+              "_build_bm25_index",
+              "_matches_filter",
+              "search_bm25",
+              "_wait_for_chroma",
+              "_OllamaEmbeddingFunction",
+              "get_collection",
+              "add_documents_batch",
+              "add_document",
+              "search",
+              "list_all_documents",
+              "delete_document",
+              "get_document_count"
+            ]
+          },
+          {
+            "path": "backend/scripts/catalog_admin.py",
+            "batchIndex": 2,
+            "symbols": [
+              "_read_sources_yaml",
+              "_apply_config_to_catalog",
+              "_sync_yaml",
+              "_get_by_sig8",
+              "_parse_json_field",
+              "cmd_list",
+              "cmd_label",
+              "cmd_alias",
+              "cmd_expose",
+              "cmd_unexpose",
+              "main"
+            ]
+          }
+        ],
+        "backend/rag/orchestrator.py": [
+          {
+            "path": "backend/main.py",
+            "batchIndex": 4,
+            "symbols": [
+              "lifespan",
+              "QueryRequest",
+              "health",
+              "ingest_all",
+              "ingest_uploaded_file",
+              "query_documents",
+              "list_documents",
+              "remove_document"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 2,
+      "files": [
+        {
+          "path": "backend/db/operations.py",
+          "language": "python",
+          "sizeLines": 557,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/db/schema.py",
+          "language": "python",
+          "sizeLines": 676,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/sql_retriever.py",
+          "language": "python",
+          "sizeLines": 803,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/scripts/catalog_admin.py",
+          "language": "python",
+          "sizeLines": 406,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "backend/db/operations.py": [
+          "backend/db/schema.py"
+        ],
+        "backend/db/schema.py": [
+          "backend/config.py"
+        ],
+        "backend/rag/sql_retriever.py": [
+          "backend/db/operations.py"
+        ],
+        "backend/scripts/catalog_admin.py": [
+          "backend/config.py",
+          "backend/db/schema.py"
+        ]
+      },
+      "neighborMap": {
+        "backend/db/schema.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          },
+          {
+            "path": "backend/main.py",
+            "batchIndex": 4,
+            "symbols": [
+              "lifespan",
+              "QueryRequest",
+              "health",
+              "ingest_all",
+              "ingest_uploaded_file",
+              "query_documents",
+              "list_documents",
+              "remove_document"
+            ]
+          }
+        ],
+        "backend/rag/sql_retriever.py": [
+          {
+            "path": "backend/rag/retriever.py",
+            "batchIndex": 3,
+            "symbols": [
+              "_get_reranker",
+              "_rerank",
+              "_filter_by_threshold",
+              "_check_hallucination",
+              "query",
+              "_format_analytical_answer",
+              "_format_sql_answer",
+              "_format_rag_answer",
+              "_hybrid_search",
+              "_reciprocal_rank_fusion",
+              "_fallback_answer"
+            ]
+          }
+        ],
+        "backend/scripts/catalog_admin.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 3,
+      "files": [
+        {
+          "path": "backend/rag/intent_parser.py",
+          "language": "python",
+          "sizeLines": 380,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/llm_client.py",
+          "language": "python",
+          "sizeLines": 85,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/query_router.py",
+          "language": "python",
+          "sizeLines": 94,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/retriever.py",
+          "language": "python",
+          "sizeLines": 546,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "backend/rag/intent_parser.py": [],
+        "backend/rag/llm_client.py": [
+          "backend/config.py"
+        ],
+        "backend/rag/query_router.py": [],
+        "backend/rag/retriever.py": [
+          "backend/config.py",
+          "backend/rag/intent_parser.py",
+          "backend/rag/llm_client.py",
+          "backend/rag/query_router.py",
+          "backend/rag/sql_retriever.py",
+          "backend/rag/vectorstore.py"
+        ]
+      },
+      "neighborMap": {
+        "backend/rag/llm_client.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          }
+        ],
+        "backend/rag/retriever.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          },
+          {
+            "path": "backend/rag/sql_retriever.py",
+            "batchIndex": 2,
+            "symbols": [
+              "_is_demographic_field",
+              "lookup",
+              "_record_to_result",
+              "_admission_to_result",
+              "_provider_to_result",
+              "_patient_demographics_result",
+              "_merge_details",
+              "_load_schema_yaml",
+              "_score_table",
+              "_build_schema_from_catalog",
+              "_build_examples_text",
+              "_extract_sql_from_response",
+              "_validate_and_limit_sql",
+              "analytical_lookup",
+              "_extract_specific_field"
+            ]
+          },
+          {
+            "path": "backend/rag/vectorstore.py",
+            "batchIndex": 4,
+            "symbols": [
+              "_invalidate_bm25",
+              "_build_bm25_index",
+              "_matches_filter",
+              "search_bm25",
+              "_wait_for_chroma",
+              "_OllamaEmbeddingFunction",
+              "get_collection",
+              "add_documents_batch",
+              "add_document",
+              "search",
+              "list_all_documents",
+              "delete_document",
+              "get_document_count"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 4,
+      "files": [
+        {
+          "path": "backend/main.py",
+          "language": "python",
+          "sizeLines": 190,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/ingestion.py",
+          "language": "python",
+          "sizeLines": 1274,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/vectorstore.py",
+          "language": "python",
+          "sizeLines": 415,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "backend/main.py": [
+          "backend/config.py",
+          "backend/db/schema.py",
+          "backend/rag/ingestion.py",
+          "backend/rag/orchestrator.py",
+          "backend/rag/vectorstore.py"
+        ],
+        "backend/rag/ingestion.py": [
+          "backend/config.py",
+          "backend/rag/vectorstore.py"
+        ],
+        "backend/rag/vectorstore.py": [
+          "backend/config.py"
+        ]
+      },
+      "neighborMap": {
+        "backend/main.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          },
+          {
+            "path": "backend/db/schema.py",
+            "batchIndex": 2,
+            "symbols": [
+              "_connect",
+              "get_db",
+              "get_readonly_db",
+              "dict_row",
+              "fetchall_dicts",
+              "fetchone_dict",
+              "_run_migrations",
+              "init_db",
+              "_quote_identifier",
+              "_create_staging_table",
+              "_sync_staging_columns",
+              "_build_and_create_view",
+              "_reconcile_snapshot_deletions"
+            ]
+          },
+          {
+            "path": "backend/rag/orchestrator.py",
+            "batchIndex": 1,
+            "symbols": [
+              "query",
+              "_compound_query"
+            ]
+          }
+        ],
+        "backend/rag/ingestion.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          }
+        ],
+        "backend/rag/vectorstore.py": [
+          {
+            "path": "backend/config.py",
+            "batchIndex": 1,
+            "symbols": [
+              "Settings"
+            ]
+          },
+          {
+            "path": "backend/rag/retriever.py",
+            "batchIndex": 3,
+            "symbols": [
+              "_get_reranker",
+              "_rerank",
+              "_filter_by_threshold",
+              "_check_hallucination",
+              "query",
+              "_format_analytical_answer",
+              "_format_sql_answer",
+              "_format_rag_answer",
+              "_hybrid_search",
+              "_reciprocal_rank_fusion",
+              "_fallback_answer"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "batchIndex": 5,
+      "files": [
+        {
+          "path": "backend/Dockerfile",
+          "language": "dockerfile",
+          "sizeLines": 25,
+          "fileCategory": "infra"
+        }
+      ],
+      "batchImportData": {
+        "backend/Dockerfile": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 6,
+      "files": [
+        {
+          "path": "frontend/Dockerfile",
+          "language": "dockerfile",
+          "sizeLines": 15,
+          "fileCategory": "infra"
+        }
+      ],
+      "batchImportData": {
+        "frontend/Dockerfile": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 7,
+      "files": [
+        {
+          "path": ".env.example",
+          "language": "config",
+          "sizeLines": 25,
+          "fileCategory": "config"
+        },
+        {
+          "path": "README.md",
+          "language": "markdown",
+          "sizeLines": 147,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "SETUP_GUIDE.md",
+          "language": "markdown",
+          "sizeLines": 195,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "docker-compose.yml",
+          "language": "yaml",
+          "sizeLines": 99,
+          "fileCategory": "infra"
+        },
+        {
+          "path": "todo.md",
+          "language": "markdown",
+          "sizeLines": 130,
+          "fileCategory": "docs"
+        }
+      ],
+      "batchImportData": {
+        ".env.example": [],
+        "README.md": [],
+        "SETUP_GUIDE.md": [],
+        "docker-compose.yml": [],
+        "todo.md": []
+      },
+      "neighborMap": {}
+    },
+    {
+      "batchIndex": 8,
+      "files": [
+        {
+          "path": ".understand-anything/.understandignore",
+          "language": "unknown",
+          "sizeLines": 49,
+          "fileCategory": "code"
+        },
+        {
+          "path": ".understand-anything/config.json",
+          "language": "json",
+          "sizeLines": 1,
+          "fileCategory": "config"
+        },
+        {
+          "path": "backend/db/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/__init__.py",
+          "language": "python",
+          "sizeLines": 1,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/chunker.py",
+          "language": "python",
+          "sizeLines": 11,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/document_parser.py",
+          "language": "python",
+          "sizeLines": 10,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/enricher.py",
+          "language": "python",
+          "sizeLines": 14,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/rag/structured_extractor.py",
+          "language": "python",
+          "sizeLines": 13,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/requirements.txt",
+          "language": "txt",
+          "sizeLines": 46,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "backend/scripts/migrate_sqlite_to_postgres.py",
+          "language": "python",
+          "sizeLines": 326,
+          "fileCategory": "code"
+        },
+        {
+          "path": "backend/scripts/purge_structured_chroma.py",
+          "language": "python",
+          "sizeLines": 188,
+          "fileCategory": "code"
+        },
+        {
+          "path": "data/patients/alice_johnson_bill_2025-10-27.json",
+          "language": "json",
+          "sizeLines": 23,
+          "fileCategory": "config"
+        },
+        {
+          "path": "data/patients/john_smith_record_2025-09-15.json",
+          "language": "json",
+          "sizeLines": 25,
+          "fileCategory": "config"
+        },
+        {
+          "path": "data/providers/dr_robert_chen.json",
+          "language": "json",
+          "sizeLines": 24,
+          "fileCategory": "config"
+        },
+        {
+          "path": "data/providers/dr_sarah_williams.json",
+          "language": "json",
+          "sizeLines": 24,
+          "fileCategory": "config"
+        },
+        {
+          "path": "data/sources.yaml",
+          "language": "yaml",
+          "sizeLines": 57,
+          "fileCategory": "config"
+        },
+        {
+          "path": "data/sql_schema_metadata.yaml",
+          "language": "yaml",
+          "sizeLines": 113,
+          "fileCategory": "config"
+        },
+        {
+          "path": "frontend/app.py",
+          "language": "python",
+          "sizeLines": 345,
+          "fileCategory": "code"
+        },
+        {
+          "path": "frontend/requirements.txt",
+          "language": "txt",
+          "sizeLines": 3,
+          "fileCategory": "docs"
+        },
+        {
+          "path": "scripts/migrate_sqlite_to_postgres.py",
+          "language": "python",
+          "sizeLines": 326,
+          "fileCategory": "code"
+        },
+        {
+          "path": "scripts/purge_structured_chroma.py",
+          "language": "python",
+          "sizeLines": 188,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        ".understand-anything/.understandignore": [],
+        ".understand-anything/config.json": [],
+        "backend/db/__init__.py": [],
+        "backend/rag/__init__.py": [],
+        "backend/rag/chunker.py": [],
+        "backend/rag/document_parser.py": [],
+        "backend/rag/enricher.py": [],
+        "backend/rag/structured_extractor.py": [],
+        "backend/requirements.txt": [],
+        "backend/scripts/migrate_sqlite_to_postgres.py": [],
+        "backend/scripts/purge_structured_chroma.py": [],
+        "data/patients/alice_johnson_bill_2025-10-27.json": [],
+        "data/patients/john_smith_record_2025-09-15.json": [],
+        "data/providers/dr_robert_chen.json": [],
+        "data/providers/dr_sarah_williams.json": [],
+        "data/sources.yaml": [],
+        "data/sql_schema_metadata.yaml": [],
+        "frontend/app.py": [],
+        "frontend/requirements.txt": [],
+        "scripts/migrate_sqlite_to_postgres.py": [],
+        "scripts/purge_structured_chroma.py": []
+      },
+      "neighborMap": {}
+    }
+  ]
+}

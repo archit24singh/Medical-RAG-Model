@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "service:frontend/Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Single-stage Docker build for the Streamlit frontend, installing Python dependencies from requirements.txt and launching app.py on port 8501 with headless server settings suitable for containerized deployment.",
+      "tags": ["containerization", "infrastructure", "deployment", "streamlit", "frontend"],
+      "complexity": "simple",
+      "languageNotes": "Single-stage build using python:3.11-slim base image; Streamlit is launched with --server.headless=true so it runs without a browser in the container."
+    },
+    {
+      "id": "service:frontend/Dockerfile:python",
+      "type": "service",
+      "name": "python",
+      "filePath": "frontend/Dockerfile",
+      "summary": "Python 3.11-slim based service stage that installs pip dependencies and runs the Streamlit app on port 8501.",
+      "tags": ["containerization", "python", "streamlit"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "service:frontend/Dockerfile",
+      "target": "service:frontend/Dockerfile:python",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "backend/config.py",
+      "summary": "Central configuration module defining a Pydantic `Settings` class that aggregates all environment-driven parameters for the RAG system, including vector store, LLM provider, PostgreSQL DSN, chunking, hybrid search, reranker, text-to-SQL, and audit log settings.",
+      "tags": ["configuration", "entry-point", "singleton", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/config.py:Settings",
+      "type": "class",
+      "name": "Settings",
+      "filePath": "backend/config.py",
+      "lineRange": [11, 131],
+      "summary": "Pydantic Settings class declaring 31 typed configuration fields covering ChromaDB connection, LLM provider selection (Ollama vs OpenAI), PostgreSQL DSNs, bucket directory, chunking parameters, hybrid search alpha, reranker options, text-to-SQL schema, and rotating audit log settings.",
+      "tags": ["configuration", "singleton", "data-model"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/audit_logger.py",
+      "type": "file",
+      "name": "audit_logger.py",
+      "filePath": "backend/rag/audit_logger.py",
+      "summary": "Provides HIPAA-oriented audit logging for the RAG pipeline, writing structured JSON records of every query event — including route, generated SQL, source document IDs, latency, and errors — to a rotating log file configured via `Settings`.",
+      "tags": ["utility", "service", "event-handler", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "function",
+      "name": "_get_audit_log",
+      "filePath": "backend/rag/audit_logger.py",
+      "lineRange": [43, 69],
+      "summary": "Lazily initializes and caches a `RotatingFileHandler`-backed Python logger for audit events, creating the log directory if absent and formatting records as JSON strings.",
+      "tags": ["utility", "singleton", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "function",
+      "name": "log_query_event",
+      "filePath": "backend/rag/audit_logger.py",
+      "lineRange": [72, 109],
+      "summary": "Serializes and writes a single audit log entry for a RAG query event, capturing timestamp (UTC), query text, routing decision, SQL statement, source document IDs, latency in milliseconds, and any error message.",
+      "tags": ["event-handler", "service", "serialization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/icd9_lookup.py",
+      "type": "file",
+      "name": "icd9_lookup.py",
+      "filePath": "backend/rag/icd9_lookup.py",
+      "summary": "Implements a lazy-loaded, in-memory lookup table for ICD-9 diagnosis codes, scanning the configured bucket directory for CSV files matching the MIMIC-III `D_ICD_DIAGNOSES` schema and exposing a `lookup_icd9` function that resolves a code to its long-title description.",
+      "tags": ["utility", "data-model", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "function",
+      "name": "_load_d_icd_diagnoses",
+      "filePath": "backend/rag/icd9_lookup.py",
+      "lineRange": [27, 67],
+      "summary": "Scans the bucket directory recursively for CSV files matching the MIMIC-III `D_ICD_DIAGNOSES` column schema, parses them into a `{code: title}` dictionary, and returns the populated cache; handles missing columns and logs warnings for malformed rows.",
+      "tags": ["utility", "data-model", "validation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "type": "function",
+      "name": "lookup_icd9",
+      "filePath": "backend/rag/icd9_lookup.py",
+      "lineRange": [70, 86],
+      "summary": "Public entry point for ICD-9 code resolution: triggers lazy loading of the diagnosis cache on first call, then returns the long-title string for the given code or `None` if not found.",
+      "tags": ["utility", "api-handler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/orchestrator.py",
+      "type": "file",
+      "name": "orchestrator.py",
+      "filePath": "backend/rag/orchestrator.py",
+      "summary": "Top-level RAG query orchestrator that routes incoming natural-language queries through intent parsing, dispatches to either the vector retriever or the SQL retriever, records audit events, and returns a normalized result dict with answer, sources, route, and SQL; also stubs a compound query loop.",
+      "tags": ["service", "middleware", "api-handler", "entry-point"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/orchestrator.py:query",
+      "type": "function",
+      "name": "query",
+      "filePath": "backend/rag/orchestrator.py",
+      "lineRange": [40, 86],
+      "summary": "Orchestrates a full RAG query cycle: parses intent, selects retrieval route (compound loop, SQL, or vector), invokes the appropriate retriever, measures latency, logs the audit event via `log_query_event`, and returns a standardized result dictionary.",
+      "tags": ["api-handler", "service", "middleware"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "function",
+      "name": "_compound_query",
+      "filePath": "backend/rag/orchestrator.py",
+      "lineRange": [89, 107],
+      "summary": "Stub implementation for a multi-step compound query loop intended to combine SQL and vector retrieval in a single pass; currently raises `NotImplementedError` as a placeholder.",
+      "tags": ["service", "middleware"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/config.py",
+      "target": "class:backend/config.py:Settings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/config.py",
+      "target": "class:backend/config.py:Settings",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/audit_logger.py",
+      "target": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/icd9_lookup.py",
+      "target": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "file:backend/rag/audit_logger.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/orchestrator.py:query",
+      "target": "function:backend/rag/audit_logger.py:log_query_event",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/orchestrator.py:query",
+      "target": "function:backend/rag/orchestrator.py:_compound_query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/icd9_lookup.py:lookup_icd9",
+      "target": "function:backend/rag/icd9_lookup.py:_load_d_icd_diagnoses",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/audit_logger.py:log_query_event",
+      "target": "function:backend/rag/audit_logger.py:_get_audit_log",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/orchestrator.py",
+      "target": "file:backend/main.py",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

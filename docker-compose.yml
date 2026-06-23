@@ -2,6 +2,27 @@ version: '3.8'
 
 services:
 
+  # ── Structured Database (PostgreSQL) ────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    container_name: medical_rag_postgres
+    ports:
+      - "5432:5432"           # Exposed so you can connect with pgAdmin / psql from your Mac
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # Persist structured facts between restarts
+    environment:
+      - POSTGRES_USER=arcben
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_DB=medical_rag_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arcben -d medical_rag_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rag_network
+    restart: unless-stopped
+
   # ── Vector Database ──────────────────────────────────────────────────────────
   chromadb:
     image: chromadb/chroma:0.5.3
@@ -29,8 +50,8 @@ services:
       - "8080:8000"           # API at localhost:8080, docs at localhost:8080/docs
     volumes:
       - ./bucket:/app/bucket       # Local bucket/ folder — swap to S3 mount when upgrading to cloud
+      - ./data:/app/data           # sources.yaml + sql_schema_metadata.yaml (edit without rebuild)
       - model_cache:/root/.cache   # Cache CrossEncoder reranker model between restarts
-      - db_data:/app/data          # Persist SQLite structured facts database
     env_file:
       - .env                  # Load LLM config from .env file
     environment:
@@ -38,8 +59,13 @@ services:
       - CHROMA_PORT=8000
       # Point the backend at the host-machine Ollama (macOS/Windows Docker Desktop)
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # Inside Docker, reach postgres by service name — overrides the .env value
+      - POSTGRES_DSN=postgresql://arcben:12345@postgres:5432/medical_rag_db
     depends_on:
-      - chromadb
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"   # Linux Docker host resolution
     networks:
@@ -70,4 +96,4 @@ networks:
 volumes:
   chroma_data:    # Persists indexed documents (ChromaDB)
   model_cache:    # Caches embedding + Docling models (downloaded once)
-  db_data:        # Persists SQLite structured facts database
+  postgres_data:  # Persists structured facts database (PostgreSQL)

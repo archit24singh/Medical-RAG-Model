@@ -1,0 +1,2832 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "8e4bc62db740fee00bf16ce44c7bd8175b1dc5f2",
+  "generatedAt": "2026-06-23T14:20:10.970Z",
+  "files": {
+    ".env.example": {
+      "filePath": ".env.example",
+      "contentHash": "b5b8b7dcc4e85ec61d53c0ab4cd1d91aafbd3806cb8d4a5af267074bb4d7a0f6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "960c357b1c6cd9215528e9efa956881dc022b4fab237d1d81981b09f2871b420",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 50,
+      "hasStructuralAnalysis": false
+    },
+    ".understand-anything/config.json": {
+      "filePath": ".understand-anything/config.json",
+      "contentHash": "4b66f98f8a815dfeb2d3a29eeb73418e07c40ed020a1498c07e908b2254f0c8c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "backend/config.py": {
+      "filePath": "backend/config.py",
+      "contentHash": "b80d95deacf5fda8c3a96dec2587446fc416fc898b23f779f2e648eae9a97585",
+      "functions": [],
+      "classes": [
+        {
+          "name": "Settings",
+          "methods": [],
+          "properties": [
+            "CHROMA_HOST",
+            "CHROMA_PORT",
+            "CHROMA_COLLECTION",
+            "EMBEDDING_MODEL",
+            "LLM_PROVIDER",
+            "OLLAMA_BASE_URL",
+            "OLLAMA_MODEL",
+            "OPENAI_API_KEY",
+            "OPENAI_MODEL",
+            "POSTGRES_DSN",
+            "POSTGRES_READONLY_DSN",
+            "POSTGRES_READONLY_ROLE",
+            "SOURCES_YAML_FILE",
+            "STAGING_RECONCILE_MIN_FRACTION",
+            "STAGING_RECONCILE_ABSOLUTE_FLOOR",
+            "BUCKET_DIR",
+            "AUTO_INGEST",
+            "CHUNK_SIZE",
+            "CHUNK_OVERLAP",
+            "HYBRID_SEARCH_ALPHA",
+            "RERANKER_MODEL",
+            "RERANKER_TOP_K",
+            "RERANKER_INITIAL_K",
+            "RERANKER_SCORE_THRESHOLD",
+            "TEXT_TO_SQL_SCHEMA_FILE",
+            "TEXT_TO_SQL_MAX_ROWS",
+            "TEXT_TO_SQL_TIMEOUT_MS",
+            "ENABLE_COMPOUND_LOOP",
+            "AUDIT_LOG_PATH",
+            "AUDIT_LOG_MAX_BYTES",
+            "AUDIT_LOG_BACKUP_COUNT"
+          ],
+          "exported": true,
+          "lineCount": 121
+        }
+      ],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "pydantic_settings",
+          "specifiers": [
+            "BaseSettings"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Literal",
+            "Optional"
+          ]
+        }
+      ],
+      "exports": [
+        "Settings"
+      ],
+      "totalLines": 152,
+      "hasStructuralAnalysis": true
+    },
+    "backend/db/__init__.py": {
+      "filePath": "backend/db/__init__.py",
+      "contentHash": "1e5b2f0b61bd1d6feaba234e41536b7e3f8a30f0dfcbe6b0365af262d8ce3d4d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "backend/db/operations.py": {
+      "filePath": "backend/db/operations.py",
+      "contentHash": "3bccbe9dddf39e6f73bb4d2152455a2d81b855ff9a58a86b2384fbaac62c199a",
+      "functions": [
+        {
+          "name": "_name_tokens",
+          "params": [
+            "name"
+          ],
+          "returnType": "set[str]",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_canonical_name",
+          "params": [
+            "name"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_name_match_score",
+          "params": [
+            "query",
+            "candidate"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "find_or_create_patient",
+          "params": [
+            "name",
+            "patient_id",
+            "dob",
+            "gender",
+            "phone",
+            "address",
+            "insurance_id",
+            "source_file",
+            "subject_id"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 66
+        },
+        {
+          "name": "_update_patient",
+          "params": [
+            "conn",
+            "patient_pk",
+            "dob",
+            "gender",
+            "phone",
+            "address",
+            "insurance_id",
+            "source_file",
+            "subject_id"
+          ],
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "find_or_create_provider",
+          "params": [
+            "name",
+            "npi",
+            "specialty",
+            "dob",
+            "phone",
+            "address",
+            "license_number",
+            "source_file"
+          ],
+          "returnType": "Optional[int]",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "_update_provider",
+          "params": [
+            "conn",
+            "provider_pk",
+            "name",
+            "specialty",
+            "dob",
+            "phone",
+            "address",
+            "license_number",
+            "source_file"
+          ],
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "insert_record",
+          "params": [
+            "patient_id",
+            "record_type",
+            "raw_text",
+            "source_file",
+            "provider_id",
+            "record_date",
+            "total_amount",
+            "claim_number",
+            "diagnosis",
+            "treatment",
+            "medication",
+            "dosage",
+            "test_name",
+            "test_result",
+            "reference_range",
+            "details",
+            "page_number",
+            "chunk_index",
+            "hadm_id",
+            "icd9_code",
+            "icd9_description",
+            "seq_num"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "find_or_create_admission",
+          "params": [
+            "patient_pk",
+            "subject_id",
+            "hadm_id",
+            "admittime",
+            "dischtime",
+            "deathtime",
+            "admission_type",
+            "diagnosis",
+            "source_file"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "get_admission_info",
+          "params": [
+            "hadm_id"
+          ],
+          "returnType": "Optional[dict]",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "query_records_by_hadm_id",
+          "params": [
+            "hadm_id",
+            "limit"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "delete_records_by_source_file",
+          "params": [
+            "source_file"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "query_patient_records",
+          "params": [
+            "patient_name",
+            "patient_id_str",
+            "record_type",
+            "record_date",
+            "limit",
+            "subject_id"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 39
+        },
+        {
+          "name": "query_provider",
+          "params": [
+            "provider_name",
+            "provider_npi"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "query_all_patient_records",
+          "params": [
+            "patient_name",
+            "patient_id_str",
+            "limit"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "get_patient_info",
+          "params": [
+            "patient_name",
+            "patient_id_str",
+            "subject_id"
+          ],
+          "returnType": "Optional[dict]",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "_norm",
+          "params": [
+            "name"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_best_name_match",
+          "params": [
+            "name",
+            "existing_rows"
+          ],
+          "returnType": "tuple[Optional[int], float]",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_resolve_patient_pks",
+          "params": [
+            "conn",
+            "name",
+            "patient_id",
+            "subject_id"
+          ],
+          "returnType": "list[int]",
+          "exported": true,
+          "lineCount": 26
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "difflib",
+          "specifiers": [
+            "difflib"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "db.schema",
+          "specifiers": [
+            "get_db",
+            "fetchall_dicts",
+            "fetchone_dict"
+          ]
+        }
+      ],
+      "exports": [
+        "_name_tokens",
+        "_canonical_name",
+        "_name_match_score",
+        "find_or_create_patient",
+        "_update_patient",
+        "find_or_create_provider",
+        "_update_provider",
+        "insert_record",
+        "find_or_create_admission",
+        "get_admission_info",
+        "query_records_by_hadm_id",
+        "delete_records_by_source_file",
+        "query_patient_records",
+        "query_provider",
+        "query_all_patient_records",
+        "get_patient_info",
+        "_norm",
+        "_best_name_match",
+        "_resolve_patient_pks"
+      ],
+      "totalLines": 558,
+      "hasStructuralAnalysis": true
+    },
+    "backend/db/schema.py": {
+      "filePath": "backend/db/schema.py",
+      "contentHash": "f6e92ef2a66e7a56e09f4be72fde7de82a9ab050aa812c76a52ecce47f881470",
+      "functions": [
+        {
+          "name": "_connect",
+          "params": [
+            "dsn"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "get_db",
+          "params": [],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "get_readonly_db",
+          "params": [],
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "dict_row",
+          "params": [
+            "cursor",
+            "row"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "fetchall_dicts",
+          "params": [
+            "cursor"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "fetchone_dict",
+          "params": [
+            "cursor"
+          ],
+          "returnType": "dict | None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "_run_migrations",
+          "params": [
+            "conn"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "init_db",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_quote_identifier",
+          "params": [
+            "name"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_create_staging_table",
+          "params": [
+            "conn",
+            "staging_table",
+            "stored_cols"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "_sync_staging_columns",
+          "params": [
+            "conn",
+            "staging_table",
+            "new_cols"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "_build_and_create_view",
+          "params": [
+            "conn",
+            "stream"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 141
+        },
+        {
+          "name": "_reconcile_snapshot_deletions",
+          "params": [
+            "conn",
+            "staging_table",
+            "filename",
+            "current_hashes",
+            "total_rows"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 91
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "psycopg2",
+          "specifiers": [
+            "psycopg2"
+          ]
+        },
+        {
+          "source": "psycopg2.extras",
+          "specifiers": [
+            "psycopg2.extras"
+          ]
+        },
+        {
+          "source": "contextlib",
+          "specifiers": [
+            "contextmanager"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        }
+      ],
+      "exports": [
+        "_connect",
+        "get_db",
+        "get_readonly_db",
+        "dict_row",
+        "fetchall_dicts",
+        "fetchone_dict",
+        "_run_migrations",
+        "init_db",
+        "_quote_identifier",
+        "_create_staging_table",
+        "_sync_staging_columns",
+        "_build_and_create_view",
+        "_reconcile_snapshot_deletions"
+      ],
+      "totalLines": 677,
+      "hasStructuralAnalysis": true
+    },
+    "backend/Dockerfile": {
+      "filePath": "backend/Dockerfile",
+      "contentHash": "c210f6f3f1fa2c4075b600e488bbac0c54cb07b3caa2b02ef5c55e33e2fa81c9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "backend/main.py": {
+      "filePath": "backend/main.py",
+      "contentHash": "e520f92ee9c95d42a984ae296c62ba64f899dd07ee6c603a15cd68961d5b0fdf",
+      "functions": [
+        {
+          "name": "lifespan",
+          "params": [
+            "app"
+          ],
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "health",
+          "params": [],
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "ingest_all",
+          "params": [],
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "ingest_uploaded_file",
+          "params": [
+            "file"
+          ],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "query_documents",
+          "params": [
+            "request"
+          ],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "list_documents",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "remove_document",
+          "params": [
+            "doc_id"
+          ],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "QueryRequest",
+          "methods": [],
+          "properties": [
+            "query",
+            "n_results"
+          ],
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "imports": [
+        {
+          "source": "asyncio",
+          "specifiers": [
+            "asyncio"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "threading",
+          "specifiers": [
+            "threading"
+          ]
+        },
+        {
+          "source": "contextlib",
+          "specifiers": [
+            "asynccontextmanager"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "fastapi",
+          "specifiers": [
+            "FastAPI",
+            "File",
+            "HTTPException",
+            "UploadFile"
+          ]
+        },
+        {
+          "source": "fastapi.middleware.cors",
+          "specifiers": [
+            "CORSMiddleware"
+          ]
+        },
+        {
+          "source": "pydantic",
+          "specifiers": [
+            "BaseModel"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        },
+        {
+          "source": "db.schema",
+          "specifiers": [
+            "init_db"
+          ]
+        },
+        {
+          "source": "rag.ingestion",
+          "specifiers": [
+            "ingest_directory",
+            "ingest_file"
+          ]
+        },
+        {
+          "source": "rag.orchestrator",
+          "specifiers": [
+            "rag_query"
+          ]
+        },
+        {
+          "source": "rag.vectorstore",
+          "specifiers": [
+            "delete_document",
+            "get_document_count",
+            "list_all_documents"
+          ]
+        }
+      ],
+      "exports": [
+        "lifespan",
+        "QueryRequest",
+        "health",
+        "ingest_all",
+        "ingest_uploaded_file",
+        "query_documents",
+        "list_documents",
+        "remove_document"
+      ],
+      "totalLines": 191,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/__init__.py": {
+      "filePath": "backend/rag/__init__.py",
+      "contentHash": "fa488a38e7d7e7ccc4dd9c7aafe16fd1de358c99ad8dd25bc0fe4c8710bcdac5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/audit_logger.py": {
+      "filePath": "backend/rag/audit_logger.py",
+      "contentHash": "52fe907557a6f9bf30b38e2f70aea578fff53e490f27a6e645a4ca4409c90906",
+      "functions": [
+        {
+          "name": "_get_audit_log",
+          "params": [],
+          "returnType": "logging.Logger",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "log_query_event",
+          "params": [
+            "query",
+            "route",
+            "sql_generated",
+            "source_ids",
+            "latency_ms",
+            "error"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 38
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "logging.handlers",
+          "specifiers": [
+            "logging.handlers"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        }
+      ],
+      "exports": [
+        "_get_audit_log",
+        "log_query_event"
+      ],
+      "totalLines": 110,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/chunker.py": {
+      "filePath": "backend/rag/chunker.py",
+      "contentHash": "d8c8a4e93b2d88d623781e5dec63d9b6d36e3432ff06b14ccdc4cc436d16e4ca",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/document_parser.py": {
+      "filePath": "backend/rag/document_parser.py",
+      "contentHash": "0cc96276f4dae3c19d75dd150d0e7f924cf6f75186dbf5dfabef0290416d6b2f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/enricher.py": {
+      "filePath": "backend/rag/enricher.py",
+      "contentHash": "9c091253e95a3b82cdfcc0886cde5810884d0cb109bd3bd796b28e1a57105cf0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 15,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/icd9_lookup.py": {
+      "filePath": "backend/rag/icd9_lookup.py",
+      "contentHash": "e89b1f91f66915e9f1491d94442043a71df1cfc423faf86c3533f6cd05454e1e",
+      "functions": [
+        {
+          "name": "_load_d_icd_diagnoses",
+          "params": [],
+          "returnType": "dict[str, str]",
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "lookup_icd9",
+          "params": [
+            "code"
+          ],
+          "returnType": "str | None",
+          "exported": true,
+          "lineCount": 17
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        }
+      ],
+      "exports": [
+        "_load_d_icd_diagnoses",
+        "lookup_icd9"
+      ],
+      "totalLines": 87,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/ingestion.py": {
+      "filePath": "backend/rag/ingestion.py",
+      "contentHash": "275c64bba7a92b21d85fa3260aa9d2a003f700024c4560aba7aaed44b4d21c79",
+      "functions": [
+        {
+          "name": "_clean_str",
+          "params": [
+            "val"
+          ],
+          "returnType": "Optional[str]",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_normalize_date",
+          "params": [
+            "val"
+          ],
+          "returnType": "Optional[str]",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_safe_cell",
+          "params": [
+            "val"
+          ],
+          "returnType": "Optional[str]",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_safe_identifier",
+          "params": [
+            "raw"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_load_sources_yaml",
+          "params": [
+            "force_reload"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "_get_yaml_config_for_signature",
+          "params": [
+            "signature"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_apply_yaml_config_to_catalog",
+          "params": [
+            "conn",
+            "signature",
+            "config"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "_compute_signature",
+          "params": [
+            "raw_columns"
+          ],
+          "returnType": "tuple[str, list[str]]",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "_apply_denylist",
+          "params": [
+            "all_safe",
+            "extra_denylist"
+          ],
+          "returnType": "tuple[list[str], list[str]]",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "_detect_drift",
+          "params": [
+            "new_sig",
+            "new_safe",
+            "conn"
+          ],
+          "returnType": "Optional[str]",
+          "exported": true,
+          "lineCount": 43
+        },
+        {
+          "name": "_resolve_stream",
+          "params": [
+            "signature",
+            "all_safe",
+            "stored_cols",
+            "raw_headers",
+            "conn"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 133
+        },
+        {
+          "name": "_write_rows_to_staging",
+          "params": [
+            "conn",
+            "staging_table",
+            "stored_cols",
+            "safe_rows",
+            "row_hashes",
+            "filename",
+            "load_mode"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 67
+        },
+        {
+          "name": "_doc_type_from_filename",
+          "params": [
+            "filename"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_doc_type_from_category",
+          "params": [
+            "category"
+          ],
+          "returnType": "str | None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_meta_from_filename",
+          "params": [
+            "filename"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_extract_meta_from_row",
+          "params": [
+            "row",
+            "filename",
+            "row_idx",
+            "total_rows"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "_extract_meta_structured",
+          "params": [
+            "data",
+            "filename"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "_row_doc_id",
+          "params": [
+            "file_path",
+            "row_idx"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_doc_id",
+          "params": [
+            "file_path"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_split_text_into_chunks",
+          "params": [
+            "text",
+            "chunk_size",
+            "chunk_overlap"
+          ],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 56
+        },
+        {
+          "name": "_page_has_table",
+          "params": [
+            "page"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "_split_pdf_table_aware",
+          "params": [
+            "file_path",
+            "chunk_size",
+            "chunk_overlap"
+          ],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 84
+        },
+        {
+          "name": "_extract_text_from_file",
+          "params": [
+            "file_path",
+            "ext"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 48
+        },
+        {
+          "name": "_row_to_chroma_text",
+          "params": [
+            "row",
+            "filename"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_ingest_tabular",
+          "params": [
+            "file_path",
+            "ext"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 153
+        },
+        {
+          "name": "_ingest_text_document",
+          "params": [
+            "file_path",
+            "ext"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 91
+        },
+        {
+          "name": "ingest_file",
+          "params": [
+            "file_path"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 57
+        },
+        {
+          "name": "ingest_directory",
+          "params": [
+            "bucket_dir"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 55
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "hashlib",
+          "specifiers": [
+            "hashlib"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "math",
+          "specifiers": [
+            "math"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "yaml",
+          "specifiers": [
+            "yaml"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        },
+        {
+          "source": "rag.vectorstore",
+          "specifiers": [
+            "add_document",
+            "add_documents_batch"
+          ]
+        }
+      ],
+      "exports": [
+        "_clean_str",
+        "_normalize_date",
+        "_safe_cell",
+        "_safe_identifier",
+        "_load_sources_yaml",
+        "_get_yaml_config_for_signature",
+        "_apply_yaml_config_to_catalog",
+        "_compute_signature",
+        "_apply_denylist",
+        "_detect_drift",
+        "_resolve_stream",
+        "_write_rows_to_staging",
+        "_doc_type_from_filename",
+        "_doc_type_from_category",
+        "_meta_from_filename",
+        "_extract_meta_from_row",
+        "_extract_meta_structured",
+        "_row_doc_id",
+        "_doc_id",
+        "_split_text_into_chunks",
+        "_page_has_table",
+        "_split_pdf_table_aware",
+        "_extract_text_from_file",
+        "_row_to_chroma_text",
+        "_ingest_tabular",
+        "_ingest_text_document",
+        "ingest_file",
+        "ingest_directory"
+      ],
+      "totalLines": 1275,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/intent_parser.py": {
+      "filePath": "backend/rag/intent_parser.py",
+      "contentHash": "5ebb343226b9d2054e669499d45b263e1be8bf490acdac02304b7abbbb06615b",
+      "functions": [
+        {
+          "name": "_is_analytical_query",
+          "params": [
+            "query"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "parse_intent",
+          "params": [
+            "query"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_normalize_intent",
+          "params": [
+            "intent"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "build_where_filter",
+          "params": [
+            "intent"
+          ],
+          "returnType": "dict | None",
+          "exported": true,
+          "lineCount": 46
+        },
+        {
+          "name": "_regex_parse",
+          "params": [
+            "query"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 147
+        },
+        {
+          "name": "_extract_name_after",
+          "params": [
+            "query",
+            "keyword_pattern"
+          ],
+          "returnType": "str | None",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "_extract_name_before_possessive",
+          "params": [
+            "query"
+          ],
+          "returnType": "str | None",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "_reformat",
+          "params": [
+            "date_str",
+            "input_fmt"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        }
+      ],
+      "exports": [
+        "_is_analytical_query",
+        "parse_intent",
+        "_normalize_intent",
+        "build_where_filter",
+        "_regex_parse",
+        "_extract_name_after",
+        "_extract_name_before_possessive",
+        "_reformat"
+      ],
+      "totalLines": 381,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/llm_client.py": {
+      "filePath": "backend/rag/llm_client.py",
+      "contentHash": "c07542496787990dfc0a65aaf2578f2e479265bcef60b9fd8ecc22000b465946",
+      "functions": [
+        {
+          "name": "call_llm",
+          "params": [
+            "prompt",
+            "system"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "_call_ollama",
+          "params": [
+            "prompt",
+            "system"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "_call_openai",
+          "params": [
+            "prompt",
+            "system"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        }
+      ],
+      "exports": [
+        "call_llm",
+        "_call_ollama",
+        "_call_openai"
+      ],
+      "totalLines": 86,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/orchestrator.py": {
+      "filePath": "backend/rag/orchestrator.py",
+      "contentHash": "ad452081705f3f275aa98525f80bdba8238db9122f4c815240a2ee7ee42b60cb",
+      "functions": [
+        {
+          "name": "query",
+          "params": [
+            "user_query"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 47
+        },
+        {
+          "name": "_compound_query",
+          "params": [
+            "user_query"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        },
+        {
+          "source": "rag.audit_logger",
+          "specifiers": [
+            "log_query_event"
+          ]
+        }
+      ],
+      "exports": [
+        "query",
+        "_compound_query"
+      ],
+      "totalLines": 108,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/query_router.py": {
+      "filePath": "backend/rag/query_router.py",
+      "contentHash": "909103e7712e1a040728b729635e8a17ad9b9a34ecfaa975248683a2276ae39d",
+      "functions": [
+        {
+          "name": "route",
+          "params": [
+            "intent"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 48
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        }
+      ],
+      "exports": [
+        "route"
+      ],
+      "totalLines": 95,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/retriever.py": {
+      "filePath": "backend/rag/retriever.py",
+      "contentHash": "f1eccdb671aa072a2653f8f02ba8df7a21399e12c54dad258706e2be50366260",
+      "functions": [
+        {
+          "name": "_get_reranker",
+          "params": [],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "_rerank",
+          "params": [
+            "query",
+            "documents",
+            "top_k"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "_filter_by_threshold",
+          "params": [
+            "documents"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "_check_hallucination",
+          "params": [
+            "answer",
+            "documents"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "query",
+          "params": [
+            "user_query"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 155
+        },
+        {
+          "name": "_format_analytical_answer",
+          "params": [
+            "documents",
+            "user_query"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_format_sql_answer",
+          "params": [
+            "documents",
+            "user_query"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "_format_rag_answer",
+          "params": [
+            "documents",
+            "user_query"
+          ],
+          "returnType": "tuple[str, bool]",
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "_hybrid_search",
+          "params": [
+            "query_text",
+            "where_filter",
+            "n_results"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "_reciprocal_rank_fusion",
+          "params": [
+            "vector_results",
+            "bm25_results",
+            "n_results",
+            "k"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "_fallback_answer",
+          "params": [
+            "documents"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "rag.intent_parser",
+          "specifiers": [
+            "parse_intent",
+            "build_where_filter"
+          ]
+        },
+        {
+          "source": "rag.query_router",
+          "specifiers": [
+            "route"
+          ]
+        },
+        {
+          "source": "rag.sql_retriever",
+          "specifiers": [
+            "analytical_lookup",
+            "sql_lookup"
+          ]
+        },
+        {
+          "source": "rag.vectorstore",
+          "specifiers": [
+            "search",
+            "search_bm25"
+          ]
+        },
+        {
+          "source": "rag.llm_client",
+          "specifiers": [
+            "call_llm"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        }
+      ],
+      "exports": [
+        "_get_reranker",
+        "_rerank",
+        "_filter_by_threshold",
+        "_check_hallucination",
+        "query",
+        "_format_analytical_answer",
+        "_format_sql_answer",
+        "_format_rag_answer",
+        "_hybrid_search",
+        "_reciprocal_rank_fusion",
+        "_fallback_answer"
+      ],
+      "totalLines": 547,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/sql_retriever.py": {
+      "filePath": "backend/rag/sql_retriever.py",
+      "contentHash": "05580f9fa65ca70ac83ca0e9fafe95d352eb9379c64759f17536b568fbfe15a6",
+      "functions": [
+        {
+          "name": "_is_demographic_field",
+          "params": [
+            "specific_field"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "lookup",
+          "params": [
+            "intent"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 79
+        },
+        {
+          "name": "_record_to_result",
+          "params": [
+            "row",
+            "specific_field"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 96
+        },
+        {
+          "name": "_admission_to_result",
+          "params": [
+            "row",
+            "specific_field"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 41
+        },
+        {
+          "name": "_provider_to_result",
+          "params": [
+            "row",
+            "specific_field"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 36
+        },
+        {
+          "name": "_patient_demographics_result",
+          "params": [
+            "row",
+            "specific_field"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "_merge_details",
+          "params": [
+            "row"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "_load_schema_yaml",
+          "params": [
+            "path"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_score_table",
+          "params": [
+            "table_name",
+            "col_names",
+            "query_tokens"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "_build_schema_from_catalog",
+          "params": [
+            "conn",
+            "user_query"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 81
+        },
+        {
+          "name": "_build_examples_text",
+          "params": [
+            "schema_data"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_extract_sql_from_response",
+          "params": [
+            "text"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_validate_and_limit_sql",
+          "params": [
+            "sql_text",
+            "max_rows"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 52
+        },
+        {
+          "name": "analytical_lookup",
+          "params": [
+            "user_query"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 111
+        },
+        {
+          "name": "_extract_specific_field",
+          "params": [
+            "row",
+            "field"
+          ],
+          "returnType": "Optional[str]",
+          "exported": true,
+          "lineCount": 59
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "db.operations",
+          "specifiers": [
+            "query_patient_records",
+            "query_provider",
+            "query_all_patient_records",
+            "get_patient_info",
+            "query_records_by_hadm_id",
+            "get_admission_info"
+          ]
+        }
+      ],
+      "exports": [
+        "_is_demographic_field",
+        "lookup",
+        "_record_to_result",
+        "_admission_to_result",
+        "_provider_to_result",
+        "_patient_demographics_result",
+        "_merge_details",
+        "_load_schema_yaml",
+        "_score_table",
+        "_build_schema_from_catalog",
+        "_build_examples_text",
+        "_extract_sql_from_response",
+        "_validate_and_limit_sql",
+        "analytical_lookup",
+        "_extract_specific_field"
+      ],
+      "totalLines": 804,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/structured_extractor.py": {
+      "filePath": "backend/rag/structured_extractor.py",
+      "contentHash": "50594ced831f90c9e4b54538c83aab94e64cbe7e5d75f2b0c5b9cec31e547f40",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "backend/rag/vectorstore.py": {
+      "filePath": "backend/rag/vectorstore.py",
+      "contentHash": "3d6fe1203eed08c6a5a850ff84d196057d103fa46a94a12a998fc2fa4a00edb9",
+      "functions": [
+        {
+          "name": "_invalidate_bm25",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_build_bm25_index",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "_matches_filter",
+          "params": [
+            "metadata",
+            "where"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "search_bm25",
+          "params": [
+            "query_text",
+            "where_filter",
+            "n_results"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 57
+        },
+        {
+          "name": "_wait_for_chroma",
+          "params": [
+            "host",
+            "port",
+            "retries",
+            "delay"
+          ],
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "get_collection",
+          "params": [],
+          "exported": true,
+          "lineCount": 36
+        },
+        {
+          "name": "add_documents_batch",
+          "params": [
+            "ids",
+            "texts",
+            "metadatas",
+            "batch_size"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 38
+        },
+        {
+          "name": "add_document",
+          "params": [
+            "doc_id",
+            "text",
+            "metadata"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "search",
+          "params": [
+            "query_text",
+            "where_filter",
+            "n_results"
+          ],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 54
+        },
+        {
+          "name": "list_all_documents",
+          "params": [],
+          "returnType": "list[dict]",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "delete_document",
+          "params": [
+            "doc_id"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "get_document_count",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "_OllamaEmbeddingFunction",
+          "methods": [
+            "__init__",
+            "_get_client",
+            "__call__"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 44
+        }
+      ],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "chromadb",
+          "specifiers": [
+            "chromadb"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        }
+      ],
+      "exports": [
+        "_invalidate_bm25",
+        "_build_bm25_index",
+        "_matches_filter",
+        "search_bm25",
+        "_wait_for_chroma",
+        "_OllamaEmbeddingFunction",
+        "get_collection",
+        "add_documents_batch",
+        "add_document",
+        "search",
+        "list_all_documents",
+        "delete_document",
+        "get_document_count"
+      ],
+      "totalLines": 416,
+      "hasStructuralAnalysis": true
+    },
+    "backend/requirements.txt": {
+      "filePath": "backend/requirements.txt",
+      "contentHash": "3c5bb9fb655454135326b588779c00decb51098c06c30bd361a03eded926e141",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 47,
+      "hasStructuralAnalysis": false
+    },
+    "backend/scripts/catalog_admin.py": {
+      "filePath": "backend/scripts/catalog_admin.py",
+      "contentHash": "f5d0187d9cf828bd8cd758f426bb8798ad74974abb5176f7bae26b6354152682",
+      "functions": [
+        {
+          "name": "_read_sources_yaml",
+          "params": [],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_apply_config_to_catalog",
+          "params": [
+            "conn",
+            "sig",
+            "cfg"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "_sync_yaml",
+          "params": [
+            "conn"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 36
+        },
+        {
+          "name": "_get_by_sig8",
+          "params": [
+            "conn",
+            "sig8"
+          ],
+          "returnType": "dict | None",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "_parse_json_field",
+          "params": [
+            "val"
+          ],
+          "returnType": "list | dict",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "cmd_list",
+          "params": [
+            "conn"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "cmd_label",
+          "params": [
+            "conn",
+            "sig8",
+            "human_label"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "cmd_alias",
+          "params": [
+            "conn",
+            "new_sig8",
+            "target_sig8"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 58
+        },
+        {
+          "name": "cmd_expose",
+          "params": [
+            "conn",
+            "sig8"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 38
+        },
+        {
+          "name": "cmd_unexpose",
+          "params": [
+            "conn",
+            "sig8"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 41
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "yaml",
+          "specifiers": [
+            "yaml"
+          ]
+        },
+        {
+          "source": "config",
+          "specifiers": [
+            "settings"
+          ]
+        },
+        {
+          "source": "db.schema",
+          "specifiers": [
+            "get_db",
+            "fetchone_dict",
+            "fetchall_dicts",
+            "_quote_identifier",
+            "_build_and_create_view"
+          ]
+        }
+      ],
+      "exports": [
+        "_read_sources_yaml",
+        "_apply_config_to_catalog",
+        "_sync_yaml",
+        "_get_by_sig8",
+        "_parse_json_field",
+        "cmd_list",
+        "cmd_label",
+        "cmd_alias",
+        "cmd_expose",
+        "cmd_unexpose",
+        "main"
+      ],
+      "totalLines": 407,
+      "hasStructuralAnalysis": true
+    },
+    "backend/scripts/migrate_sqlite_to_postgres.py": {
+      "filePath": "backend/scripts/migrate_sqlite_to_postgres.py",
+      "contentHash": "a84311c9d3442e0339d42e80a9ace693f1a34efa7a2d7f9c5b52efa4592388d4",
+      "functions": [
+        {
+          "name": "_sqlite_batches",
+          "params": [
+            "conn",
+            "query"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_pad_row",
+          "params": [
+            "row",
+            "ncols"
+          ],
+          "returnType": "tuple",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_reset_sequence",
+          "params": [
+            "pg_cur",
+            "sequence",
+            "table"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "migrate",
+          "params": [
+            "sqlite_path",
+            "postgres_dsn",
+            "dry_run"
+          ],
+          "returnType": "dict[str, int]",
+          "exported": true,
+          "lineCount": 83
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 51
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "sqlite3",
+          "specifiers": [
+            "sqlite3"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        }
+      ],
+      "exports": [
+        "_sqlite_batches",
+        "_pad_row",
+        "_reset_sequence",
+        "migrate",
+        "main"
+      ],
+      "totalLines": 327,
+      "hasStructuralAnalysis": true
+    },
+    "backend/scripts/purge_structured_chroma.py": {
+      "filePath": "backend/scripts/purge_structured_chroma.py",
+      "contentHash": "8ae2246b4fec0c790d1cdba3c5b4d71d04b10a616e67993f539ddb309276d972",
+      "functions": [
+        {
+          "name": "purge_tabular_docs",
+          "params": [
+            "host",
+            "port",
+            "collection_name",
+            "dry_run",
+            "rebuild"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 82
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 60
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        }
+      ],
+      "exports": [
+        "purge_tabular_docs",
+        "main"
+      ],
+      "totalLines": 189,
+      "hasStructuralAnalysis": true
+    },
+    "data/patients/alice_johnson_bill_2025-10-27.json": {
+      "filePath": "data/patients/alice_johnson_bill_2025-10-27.json",
+      "contentHash": "84f6c9a04d7d8a7c2d48b3b93be462ce50fa8706cc1f4a6f96dec3fdad1e4af7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 24,
+      "hasStructuralAnalysis": true
+    },
+    "data/patients/john_smith_record_2025-09-15.json": {
+      "filePath": "data/patients/john_smith_record_2025-09-15.json",
+      "contentHash": "f1d9acbee374084cc4195cf672286c1f837861202bbe3f51faf1af7548b62e8e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "data/providers/dr_robert_chen.json": {
+      "filePath": "data/providers/dr_robert_chen.json",
+      "contentHash": "f50de4713a70fc9925f5e15122df24df5f4b9df3914cc3edef6f3e90e20eec29",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "data/providers/dr_sarah_williams.json": {
+      "filePath": "data/providers/dr_sarah_williams.json",
+      "contentHash": "19c59821678840543dcf16db64128d6d6400d531cdf9be84e8cc3bc0000d0df3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "data/sources.yaml": {
+      "filePath": "data/sources.yaml",
+      "contentHash": "eca71a4e4631a31d0e6ced0e9ddd19c2084a15ce00d982b3d6f1a82e31157612",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
+    "data/sql_schema_metadata.yaml": {
+      "filePath": "data/sql_schema_metadata.yaml",
+      "contentHash": "a957bb813cd25c17acfcfe9e0a111380bffc0c9081ac976a5abf27885d27666e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 114,
+      "hasStructuralAnalysis": true
+    },
+    "docker-compose.yml": {
+      "filePath": "docker-compose.yml",
+      "contentHash": "88a15632fd85b57527f3c35c1377ac4c5292db2add2525660e4a9126bfffccb4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 100,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/app.py": {
+      "filePath": "frontend/app.py",
+      "contentHash": "b7564f6c54155cd6ca46ef38169e517d1b911649aa4ba3447aacaf02acca4e2f",
+      "functions": [
+        {
+          "name": "api",
+          "params": [
+            "method",
+            "endpoint",
+            "**kwargs"
+          ],
+          "returnType": "dict | None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "relevance_label",
+          "params": [
+            "score"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "render_sources",
+          "params": [
+            "documents",
+            "msg_key"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 57
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "requests",
+          "specifiers": [
+            "requests"
+          ]
+        },
+        {
+          "source": "streamlit",
+          "specifiers": [
+            "st"
+          ]
+        }
+      ],
+      "exports": [
+        "api",
+        "relevance_label",
+        "render_sources"
+      ],
+      "totalLines": 346,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/Dockerfile": {
+      "filePath": "frontend/Dockerfile",
+      "contentHash": "da2402bced28dc74b719f502872c9d311f33821e4df0bd29afe0deac86e60e07",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "frontend/requirements.txt": {
+      "filePath": "frontend/requirements.txt",
+      "contentHash": "a50b8803602dba22afd9669e495bb5f2959b5b77559a0c9fa7534ccd8b2c3bd3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": false
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "63e30700f4867de0c108b2ba69eb2f103d566d019c83a1712358b66e06a126af",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 148,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/migrate_sqlite_to_postgres.py": {
+      "filePath": "scripts/migrate_sqlite_to_postgres.py",
+      "contentHash": "a84311c9d3442e0339d42e80a9ace693f1a34efa7a2d7f9c5b52efa4592388d4",
+      "functions": [
+        {
+          "name": "_sqlite_batches",
+          "params": [
+            "conn",
+            "query"
+          ],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_pad_row",
+          "params": [
+            "row",
+            "ncols"
+          ],
+          "returnType": "tuple",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_reset_sequence",
+          "params": [
+            "pg_cur",
+            "sequence",
+            "table"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "migrate",
+          "params": [
+            "sqlite_path",
+            "postgres_dsn",
+            "dry_run"
+          ],
+          "returnType": "dict[str, int]",
+          "exported": true,
+          "lineCount": 83
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 51
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "sqlite3",
+          "specifiers": [
+            "sqlite3"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        }
+      ],
+      "exports": [
+        "_sqlite_batches",
+        "_pad_row",
+        "_reset_sequence",
+        "migrate",
+        "main"
+      ],
+      "totalLines": 327,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/purge_structured_chroma.py": {
+      "filePath": "scripts/purge_structured_chroma.py",
+      "contentHash": "8ae2246b4fec0c790d1cdba3c5b4d71d04b10a616e67993f539ddb309276d972",
+      "functions": [
+        {
+          "name": "purge_tabular_docs",
+          "params": [
+            "host",
+            "port",
+            "collection_name",
+            "dry_run",
+            "rebuild"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 82
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 60
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        }
+      ],
+      "exports": [
+        "purge_tabular_docs",
+        "main"
+      ],
+      "totalLines": 189,
+      "hasStructuralAnalysis": true
+    },
+    "SETUP_GUIDE.md": {
+      "filePath": "SETUP_GUIDE.md",
+      "contentHash": "30bb31b52ab744c8bcaef779ada894629db8ef1ec4fe334cac46466ae6fb51cf",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 196,
+      "hasStructuralAnalysis": true
+    },
+    "todo.md": {
+      "filePath": "todo.md",
+      "contentHash": "a9814c39be078aabf5c8cdfc2b6469c3c411ff143ab63102efef68128bd46fde",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 131,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

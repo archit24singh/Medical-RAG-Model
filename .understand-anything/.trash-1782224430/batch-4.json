@@ -1,0 +1,657 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/main.py",
+      "type": "file",
+      "name": "main.py",
+      "filePath": "backend/main.py",
+      "summary": "FastAPI application entry point that bootstraps the RAG system with a lifespan handler, exposes REST endpoints for document ingestion, querying, listing, and deletion, and starts background ingestion on startup.",
+      "tags": ["entry-point", "api-handler", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:lifespan",
+      "type": "function",
+      "name": "lifespan",
+      "filePath": "backend/main.py",
+      "lineRange": [39, 65],
+      "summary": "FastAPI lifespan context manager that initializes the database and launches background document ingestion on application startup.",
+      "tags": ["event-handler", "entry-point", "middleware"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:health",
+      "type": "function",
+      "name": "health",
+      "filePath": "backend/main.py",
+      "lineRange": [89, 104],
+      "summary": "Health-check endpoint that reports the current document count in the vector store and the system's operational status.",
+      "tags": ["api-handler", "utility", "service"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/main.py:ingest_all",
+      "type": "function",
+      "name": "ingest_all",
+      "filePath": "backend/main.py",
+      "lineRange": [108, 127],
+      "summary": "POST endpoint that triggers full directory ingestion in a thread-pool executor and returns counts of successful, skipped, and errored files.",
+      "tags": ["api-handler", "data-pipeline", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:ingest_uploaded_file",
+      "type": "function",
+      "name": "ingest_uploaded_file",
+      "filePath": "backend/main.py",
+      "lineRange": [131, 149],
+      "summary": "POST endpoint that accepts a file upload, saves it to the upload directory, and ingests it into the RAG pipeline via ingest_file.",
+      "tags": ["api-handler", "data-pipeline", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/main.py:query_documents",
+      "type": "function",
+      "name": "query_documents",
+      "filePath": "backend/main.py",
+      "lineRange": [153, 169],
+      "summary": "POST endpoint that accepts a natural-language query, delegates to the RAG orchestrator, and returns retrieved results.",
+      "tags": ["api-handler", "service", "middleware"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/main.py:list_documents",
+      "type": "function",
+      "name": "list_documents",
+      "filePath": "backend/main.py",
+      "lineRange": [173, 179],
+      "summary": "GET endpoint that lists all documents currently stored in the vector store.",
+      "tags": ["api-handler", "service"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/main.py:remove_document",
+      "type": "function",
+      "name": "remove_document",
+      "filePath": "backend/main.py",
+      "lineRange": [183, 190],
+      "summary": "DELETE endpoint that removes a document from the vector store by its document ID.",
+      "tags": ["api-handler", "service"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/rag/ingestion.py",
+      "type": "file",
+      "name": "ingestion.py",
+      "filePath": "backend/rag/ingestion.py",
+      "summary": "Core document ingestion pipeline that processes tabular files (CSV, Excel) and unstructured text documents (PDF, TXT, DOCX) into both the PostgreSQL staging tables and the ChromaDB vector store, with schema-drift detection, column deny-listing, YAML-driven metadata configuration, and table-aware PDF chunking.",
+      "tags": ["data-pipeline", "service", "data-model", "serialization"],
+      "complexity": "complex",
+      "languageNotes": "Uses MD5 hashing for deterministic document IDs, fitz (PyMuPDF) for table-aware PDF parsing, and psycopg2 execute_values for bulk staging-table writes."
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_resolve_stream",
+      "type": "function",
+      "name": "_resolve_stream",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [334, 466],
+      "summary": "Resolves a tabular file's column schema against the PostgreSQL catalog, detects schema drift, upserts catalog entries, creates or syncs staging tables, and applies YAML-driven column metadata.",
+      "tags": ["data-model", "data-pipeline", "validation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_write_rows_to_staging",
+      "type": "function",
+      "name": "_write_rows_to_staging",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [469, 535],
+      "summary": "Writes sanitized tabular rows to a PostgreSQL staging table, supporting append and snapshot load modes with hash-based deduplication.",
+      "tags": ["data-pipeline", "data-model", "serialization"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_split_pdf_table_aware",
+      "type": "function",
+      "name": "_split_pdf_table_aware",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [761, 844],
+      "summary": "Splits a PDF into semantically coherent chunks by detecting table pages via heuristics and keeping them intact while applying standard chunking to prose sections.",
+      "tags": ["data-pipeline", "utility", "serialization"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_ingest_tabular",
+      "type": "function",
+      "name": "_ingest_tabular",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [909, 1061],
+      "summary": "Ingests a CSV or Excel file into both the PostgreSQL staging table and the ChromaDB vector store, handling column sanitization, schema resolution, row hashing, vector upserts, and snapshot reconciliation.",
+      "tags": ["data-pipeline", "data-model", "service"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_ingest_text_document",
+      "type": "function",
+      "name": "_ingest_text_document",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [1066, 1156],
+      "summary": "Ingests a text-based document (PDF, TXT, DOCX, JSON) by extracting text, splitting it into overlapping chunks, and upserting all chunks with metadata into ChromaDB.",
+      "tags": ["data-pipeline", "service", "serialization"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "function",
+      "name": "ingest_file",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [1161, 1217],
+      "summary": "Public entry point for single-file ingestion; dispatches to the tabular or text-document pipeline based on file extension.",
+      "tags": ["api-handler", "data-pipeline", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "function",
+      "name": "ingest_directory",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [1220, 1274],
+      "summary": "Recursively scans a bucket directory, filters hidden and system files, and calls ingest_file on each eligible file, collecting success/skip/error counts.",
+      "tags": ["data-pipeline", "service", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_apply_yaml_config_to_catalog",
+      "type": "function",
+      "name": "_apply_yaml_config_to_catalog",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [191, 232],
+      "summary": "Applies YAML-sourced metadata (display name, description, category, tags, load mode) to the stream catalog entry in PostgreSQL.",
+      "tags": ["data-model", "configuration", "data-pipeline"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_detect_drift",
+      "type": "function",
+      "name": "_detect_drift",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [289, 331],
+      "summary": "Compares a file's current column set against the stored catalog signature to detect column additions or removals, logging warnings on drift.",
+      "tags": ["validation", "data-model", "data-pipeline"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/ingestion.py:_split_text_into_chunks",
+      "type": "function",
+      "name": "_split_text_into_chunks",
+      "filePath": "backend/rag/ingestion.py",
+      "lineRange": [670, 725],
+      "summary": "Splits a plain-text string into overlapping character-level chunks with sentence-boundary awareness for use in vector store ingestion.",
+      "tags": ["utility", "data-pipeline", "serialization"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/rag/vectorstore.py",
+      "type": "file",
+      "name": "vectorstore.py",
+      "filePath": "backend/rag/vectorstore.py",
+      "summary": "Manages the ChromaDB vector collection and provides a hybrid retrieval layer combining dense semantic search (via Ollama embeddings) with sparse BM25 keyword search, plus CRUD operations for documents.",
+      "tags": ["service", "data-model", "utility"],
+      "complexity": "complex",
+      "languageNotes": "Uses a module-level lazy-singleton pattern for the ChromaDB client and BM25 index, with an invalidation hook triggered on every document write to keep the keyword index fresh."
+    },
+    {
+      "id": "class:backend/rag/vectorstore.py:_OllamaEmbeddingFunction",
+      "type": "class",
+      "name": "_OllamaEmbeddingFunction",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [169, 212],
+      "summary": "ChromaDB-compatible embedding function that delegates to an Ollama local model, creating a fresh client per call with lazy initialization.",
+      "tags": ["service", "middleware", "component"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "function",
+      "name": "search_bm25",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [87, 143],
+      "summary": "Performs BM25 keyword search over the full ChromaDB collection, applying optional metadata filters and returning scored result dicts.",
+      "tags": ["service", "utility", "data-pipeline"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:get_collection",
+      "type": "function",
+      "name": "get_collection",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [220, 255],
+      "summary": "Lazy singleton that initializes the ChromaDB HTTP client and returns the named collection, waiting for ChromaDB to become available before connecting.",
+      "tags": ["singleton", "service", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "function",
+      "name": "add_documents_batch",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [258, 295],
+      "summary": "Upserts a batch of documents into ChromaDB in configurable batch sizes, normalizing metadata values to strings and invalidating the BM25 index on success.",
+      "tags": ["service", "data-pipeline", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:search",
+      "type": "function",
+      "name": "search",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [329, 382],
+      "summary": "Performs semantic vector search against ChromaDB with optional where-filter metadata constraints, returning ranked result dicts with distance scores.",
+      "tags": ["service", "utility", "data-pipeline"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/rag/vectorstore.py:_build_bm25_index",
+      "type": "function",
+      "name": "_build_bm25_index",
+      "filePath": "backend/rag/vectorstore.py",
+      "lineRange": [34, 60],
+      "summary": "Builds (or rebuilds) the in-memory BM25Okapi index over all documents currently stored in the ChromaDB collection.",
+      "tags": ["data-pipeline", "service", "utility"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/db/schema.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/rag/ingestion.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/rag/orchestrator.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "file:backend/rag/vectorstore.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "file:backend/rag/vectorstore.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "file:backend/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:lifespan",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:health",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_all",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_uploaded_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:query_documents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:list_documents",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:remove_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:lifespan",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:health",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_all",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:ingest_uploaded_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:query_documents",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:list_documents",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/main.py",
+      "target": "function:backend/main.py:remove_document",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:lifespan",
+      "target": "function:backend/db/schema.py:init_db",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:ingest_all",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:ingest_uploaded_file",
+      "target": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:query_documents",
+      "target": "function:backend/rag/orchestrator.py:query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:list_documents",
+      "target": "function:backend/rag/vectorstore.py:list_all_documents",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:remove_document",
+      "target": "function:backend/rag/vectorstore.py:delete_document",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/main.py:health",
+      "target": "function:backend/rag/vectorstore.py:get_document_count",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_resolve_stream",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_write_rows_to_staging",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_split_pdf_table_aware",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_ingest_tabular",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_ingest_text_document",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_apply_yaml_config_to_catalog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_detect_drift",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:_split_text_into_chunks",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/ingestion.py",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:ingest_file",
+      "target": "function:backend/rag/ingestion.py:ingest_directory",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:_ingest_tabular",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:_ingest_text_document",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/rag/ingestion.py:ingest_file",
+      "target": "function:backend/rag/vectorstore.py:add_document",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "class:backend/rag/vectorstore.py:_OllamaEmbeddingFunction",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:get_collection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:_build_bm25_index",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search_bm25",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:get_collection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:add_documents_batch",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "function:backend/rag/vectorstore.py:search",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/rag/vectorstore.py",
+      "target": "class:backend/rag/vectorstore.py:_OllamaEmbeddingFunction",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

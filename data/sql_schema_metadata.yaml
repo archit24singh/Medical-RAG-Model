@@ -1,0 +1,113 @@
+# sql_schema_metadata.yaml — few-shot examples for LLM text-to-SQL generation.
+#
+# The schema section has been removed.  Table/column descriptions are now built
+# dynamically from live PostgreSQL metadata by _build_schema_from_catalog() in
+# sql_retriever.py — it queries information_schema so the LLM always sees the
+# actual columns present, including any v_<label> views created by catalog_admin.
+#
+# This file is now EXAMPLES ONLY.  Add question → SQL pairs here to teach the
+# LLM idioms (safe casts, NULL guards, date patterns) for this schema.
+#
+# Do NOT add DML/DDL examples — they are blocked by the sqlglot AST check.
+
+few_shot_examples:
+
+  - question: "How many records are there by record type?"
+    sql: |
+      SELECT record_type,
+             COUNT(*) AS record_count
+      FROM records
+      GROUP BY record_type
+      ORDER BY record_count DESC
+      LIMIT 50;
+
+  - question: "What is the total billed amount per patient?"
+    sql: |
+      SELECT p.name                              AS patient_name,
+             SUM(r.total_amount::NUMERIC)        AS total_billed
+      FROM records r
+      JOIN patients p ON r.patient_id = p.id
+      WHERE r.record_type = 'bill'
+        AND r.total_amount ~ '^[0-9]+(\.[0-9]+)?$'
+      GROUP BY p.name
+      ORDER BY total_billed DESC
+      LIMIT 50;
+
+  - question: "How many unique patients have claims each month in 2023?"
+    sql: |
+      SELECT DATE_TRUNC('month', record_date::DATE) AS month,
+             COUNT(DISTINCT patient_id)             AS unique_patients
+      FROM records
+      WHERE record_date ~ '^\d{4}-\d{2}-\d{2}$'
+        AND record_date LIKE '2023-%'
+      GROUP BY month
+      ORDER BY month
+      LIMIT 50;
+
+  - question: "What are the top 10 ICD-9 diagnosis codes by frequency?"
+    sql: |
+      SELECT icd9_code,
+             icd9_description,
+             COUNT(*) AS occurrences
+      FROM records
+      WHERE icd9_code IS NOT NULL
+      GROUP BY icd9_code, icd9_description
+      ORDER BY occurrences DESC
+      LIMIT 10;
+
+  - question: "What is the denial rate by payer (insurance_id) for bills?"
+    sql: |
+      SELECT p.insurance_id,
+             COUNT(*)                                                            AS total_claims,
+             SUM(CASE WHEN r.total_amount = '0'
+                           OR r.total_amount IS NULL THEN 1 ELSE 0 END)         AS zero_amount_claims,
+             ROUND(
+               100.0 * SUM(CASE WHEN r.total_amount = '0'
+                                    OR r.total_amount IS NULL THEN 1 ELSE 0 END)
+               / NULLIF(COUNT(*), 0),
+               2
+             )                                                                   AS zero_amount_rate_pct
+      FROM records r
+      JOIN patients p ON r.patient_id = p.id
+      WHERE r.record_type = 'bill'
+      GROUP BY p.insurance_id
+      ORDER BY zero_amount_rate_pct DESC
+      LIMIT 50;
+
+  - question: "Which providers have the most unique patients?"
+    sql: |
+      SELECT pv.name                          AS provider_name,
+             pv.npi,
+             pv.specialty,
+             COUNT(DISTINCT r.patient_id)     AS unique_patients
+      FROM records r
+      JOIN providers pv ON r.provider_id = pv.id
+      GROUP BY pv.name, pv.npi, pv.specialty
+      ORDER BY unique_patients DESC
+      LIMIT 20;
+
+  - question: "What is the average billed amount per record type by month?"
+    sql: |
+      SELECT DATE_TRUNC('month', record_date::DATE) AS month,
+             record_type,
+             ROUND(AVG(total_amount::NUMERIC), 2)   AS avg_amount,
+             COUNT(*)                               AS claim_count
+      FROM records
+      WHERE record_date ~ '^\d{4}-\d{2}-\d{2}$'
+        AND total_amount ~ '^[0-9]+(\.[0-9]+)?$'
+      GROUP BY month, record_type
+      ORDER BY month, record_type
+      LIMIT 100;
+
+  - question: "How many emergency admissions resulted in patient death?"
+    sql: |
+      SELECT COUNT(*)                                                         AS total_emergency,
+             SUM(CASE WHEN deathtime IS NOT NULL THEN 1 ELSE 0 END)          AS in_hospital_deaths,
+             ROUND(
+               100.0 * SUM(CASE WHEN deathtime IS NOT NULL THEN 1 ELSE 0 END)
+               / NULLIF(COUNT(*), 0),
+               2
+             )                                                                AS mortality_rate_pct
+      FROM admissions
+      WHERE admission_type = 'EMERGENCY'
+      LIMIT 1;
