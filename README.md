@@ -69,30 +69,35 @@ open-ended questions fall back to the hybrid vector + BM25 search shown above.
 
 ---
 
-## Why local inference matters for clinical data
+## Inference model — cloud by default, local on request
 
-This system runs its LLM (Mistral) **locally via Ollama** by default, with
-OpenAI available only as an explicit opt-in alternative.
+The default generation model is **NVIDIA Nemotron 3 Ultra, served over the
+OpenRouter API** (`LLM_PROVIDER=openai`). Embeddings still run locally through
+Ollama (`nomic-embed-text`), so the vector store never leaves the machine.
 
-For clinical data, this design choice is not cosmetic:
+⚠️ **PHI leaves the device on the default configuration.** Every prompt sent to
+the LLM — clinical notes, patient names, diagnoses, billing detail, and the
+retrieved chunks used as context — is transmitted to the API host. Before using
+this on real patient data you need the corresponding data agreements (a HIPAA
+BAA with the API provider, data-residency review, and confirmation that prompts
+are excluded from provider logging/training). Neither OpenRouter nor NVIDIA NIM
+is covered by such an agreement out of the box.
 
-- **No PHI leaves the machine.** Every prompt sent to the LLM — including raw
-  clinical notes, patient names, diagnoses, and billing details — is processed
-  entirely on local hardware when using Ollama. Nothing is transmitted to an
-  external API, so there is no third-party data-handling agreement, no
-  cross-border data transfer question, and no risk of patient data appearing in
-  a cloud provider's logs or training data.
-- **Reduced regulatory surface.** Local inference sidesteps a large class of
-  HIPAA Business Associate Agreement (BAA) and data residency concerns that
-  arise the moment PHI is sent to a cloud LLM API.
-- **Reproducibility for research.** A fixed local model (Mistral via Ollama)
-  gives deterministic, versioned behavior for benchmarking — important when
-  evaluating retrieval accuracy or running repeated experiments against the
-  same data.
-- **OpenAI remains available as a cloud baseline.** `LLM_PROVIDER=openai` is
-  supported for users who have appropriate data agreements in place, and is
-  useful as a comparison point when benchmarking local vs. cloud inference
-  (see Roadmap below).
+**The fully local path is still supported and is one line of config:**
+
+```
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=devstral:24b     # ollama pull devstral:24b (~14 GB Q4)
+```
+
+With `LLM_PROVIDER=ollama`, nothing is transmitted to an external API — no
+third-party data-handling agreement, no cross-border transfer question, and no
+risk of patient data appearing in a provider's logs. That mode also gives
+fixed, versioned behavior for reproducible benchmarking, at the cost of needing
+24 GB of unified memory and accepting higher latency.
+
+The two paths share one code path (`backend/rag/llm_client.py`), so cloud vs.
+local can be benchmarked head-to-head by flipping `LLM_PROVIDER`.
 
 ---
 
@@ -114,6 +119,43 @@ For installation, configuration (Ollama vs. OpenAI), Docker usage, and
 troubleshooting, see **[SETUP_GUIDE.md](SETUP_GUIDE.md)**.
 
 ---
+
+## EHR-RAG pillars (predictive layer)
+
+On top of the retrieval-Q/A system above, the project now implements the three
+pillars from the EHR-RAG paper, turning it from lookup-Q/A into a *predictive*
+system. The local model is **Llama 3.1 8B** (via Ollama).
+
+- **Canonical event adapter** (`rag/events.py`, `data/concept_map.yaml`) maps any
+  source schema into canonical events `(concept, value, timestamp, type)`. Adding
+  a dataset (MIMIC/EHRSHOT) is a config edit, not a code change. Events are built
+  from the existing staging tables — no re-ingestion needed.
+- **ETHER** (`rag/ether.py`) — Event- & Time-Aware Hybrid Retrieval: U-shaped
+  temporal scoring on textual events + per-indicator numeric trajectories with
+  coarse-to-fine selection.
+- **AIR** (`rag/air.py`) — Adaptive Iterative Retrieval: the LLM judges evidence
+  sufficiency and issues focused refinement queries (capped iterations + budget).
+- **DER** (`rag/der.py`) — Dual-Path Evidence Retrieval & Reasoning: factual vs.
+  counterfactual retrieval, dual hypotheses, evidence fusion, comparative decision
+  → a predicted label + rationale.
+- **PDF structured extraction + OCR** (`rag/pdf_tables.py`, `rag/ocr.py`) — PDF
+  tables become canonical events (SQL-/event-queryable); scanned PDFs/images are
+  OCR'd (RapidOCR).
+- **Evaluation harness** (`eval/evaluate.py`) — Accuracy / Macro-F1 / per-class F1
+  against a labels file. Meaningful only once labeled longitudinal data exists.
+
+### New endpoints
+
+```
+POST /events/backfill          # build canonical events + index event chunks
+POST /predict                  # {task, patient_key, prediction_time} → prediction
+POST /ingest/async             # background ingest (returns job_id)
+GET  /ingest/status/{job_id}   # poll a background ingest job
+```
+
+Typical predictive workflow: ingest → `POST /events/backfill` → `POST /predict`
+with a task from `data/prediction_tasks.yaml`. To benchmark, add a labels file
+and run `python -m eval.evaluate --task <name> --labels <file>`.
 
 ## Research Context
 

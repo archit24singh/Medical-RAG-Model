@@ -1,0 +1,240 @@
+# concept_map.yaml — canonical event adapter configuration (Phase 1).
+#
+# Purpose
+# -------
+# Turns ANY source schema (Campbell claims, MIMIC-IV, EHRSHOT, …) into the
+# canonical event model used by the ETHER/AIR/DER pillars:
+#
+#     event = (patient_key, concept, concept_type, value, event_time, source_file)
+#
+# This file is DATA, not code. Adding a new dataset = adding column synonyms
+# here (or a new concept), never editing Python. The pillars only ever see the
+# canonical concepts below, so they remain fully dataset-agnostic.
+#
+# Matching is done on the *normalised* column name (lowercased, spaces / dashes
+# collapsed to single underscores). So "ICD1 Code", "icd1_code" and
+# "ICD1  Code" all match the synonym "icd1_code".
+
+# Columns whose value identifies the patient an event belongs to (stable key).
+# First match (in this order) wins per row.
+patient_key_columns:
+  - subject_id
+  - patient_acct_no
+  - patient_id
+  - mrn
+  - patient_number
+  - member_id
+  - patient
+  - patient_name
+
+# Columns carrying the patient's display NAME (used in event-chunk headers so
+# name-based Q&A can find a patient even when the key is an account number).
+patient_name_columns:
+  - patient_name
+  - patient
+  - name
+
+# Columns identifying the PROVIDER (for provider-scoped entity QA).
+provider_name_columns:
+  - rendering_provider
+  - appointment_servicing_provider
+  - servicing_provider
+  - resource_provider
+  - provider
+  - attending
+  - physician
+  - doctor
+  - provider_name
+
+provider_key_columns:
+  - rendering_provider_npi
+  - provider_npi
+  - npi
+
+# Columns identifying a DOCUMENT (invoice / order / bill) — used to scope
+# "items / total for invoice <number>" queries to one document's staging rows.
+document_key_columns:
+  - invoice_no
+  - invoice_number
+  - invoice
+  - order_no
+  - order_number
+  - bill_no
+  - receipt_no
+
+# ── Deterministic field lookup ────────────────────────────────────────────────
+# Maps a canonical field → the natural-language phrases that ask for it and the
+# column synonyms that hold it. Used so factual single-field questions ("date of
+# birth for X") are answered by reading the column directly — never by the LLM.
+field_aliases:
+  date_of_birth:
+    phrases: [date of birth, dob, birth date, birthday]
+    columns: [patient_dob, dob, birth_date, date_of_birth]
+  age:
+    phrases: [age, how old]
+    columns: [patient_age, age]
+  phone:
+    phrases: [phone, telephone, contact number, cell phone, mobile]
+    columns: [patient_cell_phone, patient_home_phone, patient_work_phone, phone]
+  address:
+    phrases: [address, location, residence]
+    columns: [patient_address_line_1, patient_address_line_2, address]
+  city:
+    phrases: [city]
+    columns: [patient_city, city]
+  state:
+    phrases: [state]
+    columns: [patient_state, state]
+  zip:
+    phrases: [zip code, postal code, zip]
+    columns: [patient_zip_code, zip]
+  country:
+    phrases: [country]
+    columns: [patient_country, country]
+  gender:
+    phrases: [gender, sex]
+    columns: [patient_gender, gender]
+  account_number:
+    phrases: [account number, acct no, acct number, patient account, account no]
+    columns: [patient_acct_no, account_number, acct_no]
+  claim_status:
+    phrases: [claim status, status of claim, claim state]
+    columns: [current_claim_status, claim_status_code, claim_status_group_name]
+  payer:
+    phrases: [payer, insurer, insurance company, insurance]
+    columns: [primary_payer_name, primary_payer, secondary_payer_name]
+  claim_number:
+    phrases: [claim number, claim no, claim id]
+    columns: [claim_no, claim_number]
+  npi:
+    phrases: [npi number, npi]
+    columns: [rendering_provider_npi, provider_npi, npi]
+
+# ── Deterministic aggregation ─────────────────────────────────────────────────
+# measures: canonical money measure → phrases + column synonyms. Sums/averages
+# are computed in SQL (safe_numeric), never by the LLM.
+measures:
+  payer_paid:
+    phrases: [paid by the payer, paid by payer, payer paid, payer payment, insurance paid, paid by insurance]
+    columns: [payer_payment]
+  patient_paid:
+    phrases: [paid by the patient, patient paid, patient payment, self pay, out of pocket, paid by patient]
+    columns: [patient_payment, self_charge]
+  total_paid:
+    phrases: [total paid, amount paid, total payment, payments, paid, pay]
+    columns: [total_payment]
+  billed:
+    phrases: [billed, charged, charges, billed amount, billed charge]
+    columns: [billed_charge, billed_amount, payer_charge]
+  balance:
+    phrases: [balance, owed, outstanding, amount due]
+    columns: [balance, patient_due]
+  # Invoice / order line-item measures
+  gross:
+    phrases: [gross worth, gross, grand total, invoice total, total amount, total]
+    columns: [gross_worth, gross, amount, line_total]
+  net:
+    phrases: [net worth, net price, net]
+    columns: [net_worth, net_price, net]
+  quantity:
+    phrases: [quantity, qty, units, number of units]
+    columns: [qty, quantity, units]
+
+# dimensions: canonical group-by → column synonyms ("... by payer / by provider").
+dimensions:
+  payer: [primary_payer_name, primary_payer]
+  provider: [rendering_provider, appointment_servicing_provider, resource_provider]
+  practice: [practice]
+  facility: [facility]
+  visit_type: [visit_type]
+  claim_status: [current_claim_status, claim_status_group_name]
+
+# Columns that carry the event timestamp. First match (in this order) wins.
+timestamp_columns:
+  - service_date
+  - start_date_of_service
+  - charttime
+  - admittime
+  - claim_date
+  - record_date
+  - date
+  - end_date_of_service
+
+# Canonical concepts. Each concept emits events from any matched value column.
+#   type:           numeric | textual
+#   value_columns:  synonyms for the column holding the value
+#   label_columns:  (optional) description columns paired with a *_code value
+#                   (positional pairing: icd1_code ↔ icd1_name handled in code)
+concepts:
+
+  diagnosis:
+    type: textual
+    value_columns:
+      - icd1_code
+      - icd2_code
+      - icd3_code
+      - icd4_code
+      - icd9_code
+      - icd10_code
+      - diagnosis
+      - dx_code
+    label_columns:
+      - icd1_name
+      - icd2_name
+      - icd3_name
+      - icd4_name
+      - icd9_description
+      - diagnosis_description
+
+  procedure:
+    type: textual
+    value_columns:
+      - cpt_code
+      - hcpcs_code
+      - procedure
+      - procedure_code
+    label_columns:
+      - cpt_description
+      - procedure_description
+
+  medication:
+    type: textual
+    value_columns:
+      - medication
+      - drug
+      - drug_name
+      - ndc
+
+  visit_type:
+    type: textual
+    value_columns:
+      - visit_type
+      - admission_type
+      - encounter_type
+
+  # Numeric clinical measurements (labs / vitals). Thin on billing-only data
+  # like Campbell; activates fully on MIMIC/EHRSHOT lab+vital tables.
+  measurement:
+    type: numeric
+    value_columns:
+      - valuenum
+      - value
+      - result
+      - test_result
+      - lab_value
+    label_columns:
+      - label
+      - test_name
+      - itemid
+
+  # Billing numerics — present in claims data.
+  charge:
+    type: numeric
+    value_columns:
+      - billed_charge
+      - payer_charge
+      - self_charge
+      - total_payment
+      - patient_payment
+      - balance
+      - billed_amount

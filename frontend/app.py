@@ -13,6 +13,11 @@ import streamlit as st
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
+# Admin controls (ingest / file upload) are hidden by default so public demo
+# users cannot modify the pre-ingested corpus. Set SHOW_ADMIN=true locally to
+# re-enable them for development.
+SHOW_ADMIN = os.getenv("SHOW_ADMIN", "false").strip().lower() in ("1", "true", "yes")
+
 
 # ── All helper functions (defined before any UI code) ─────────────────────────
 
@@ -128,8 +133,8 @@ st.markdown("""
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.title("🏥 Medical RAG")
-    st.caption("Intelligent Medical Document Retrieval")
+    st.title("EHR RAG")
+    st.caption("Ask questions about ICD10 guidelines")
     st.divider()
 
     # System status
@@ -152,42 +157,43 @@ with st.sidebar:
         if health.get("error"):
             st.caption(health["error"])
 
-    st.divider()
+    # Ingest / upload — admin-only. Hidden in the public demo (SHOW_ADMIN unset)
+    # so users cannot modify the pre-ingested corpus.
+    if SHOW_ADMIN:
+        st.divider()
+        st.subheader("📂 Ingest Documents")
+        st.caption(
+            "Place files in the `data/patients/` or `data/providers/` "
+            "folder, then click **Ingest**."
+        )
+        if st.button("⚡ Ingest All Files", use_container_width=True, type="primary"):
+            with st.spinner("Indexing files…"):
+                res = api("post", "/ingest")
+            if res:
+                st.success(f"✅ {res['success_count']} file(s) indexed")
+                if res["error_count"]:
+                    st.warning(f"⚠️ {res['error_count']} error(s) — check backend logs")
 
-    # Ingest
-    st.subheader("📂 Ingest Documents")
-    st.caption(
-        "Place files in the `data/patients/` or `data/providers/` "
-        "folder, then click **Ingest**."
-    )
-    if st.button("⚡ Ingest All Files", use_container_width=True, type="primary"):
-        with st.spinner("Indexing files…"):
-            res = api("post", "/ingest")
-        if res:
-            st.success(f"✅ {res['success_count']} file(s) indexed")
-            if res["error_count"]:
-                st.warning(f"⚠️ {res['error_count']} error(s) — check backend logs")
-
-    st.caption("Or upload a file directly:")
-    upload = st.file_uploader(
-        "Upload",
-        type=["pdf", "json", "csv", "xlsx", "txt"],
-        label_visibility="collapsed",
-    )
-    if upload:
-        if st.button("📤 Upload & Ingest", use_container_width=True):
-            with st.spinner(f"Ingesting {upload.name}…"):
-                res = api(
-                    "post", "/ingest/upload",
-                    files={"file": (upload.name, upload.getvalue(), upload.type)},
-                )
-            if res and res.get("status") == "success":
-                st.success(f"✅ {upload.name} ingested")
-                m = res.get("metadata", {})
-                if m.get("patient_name"):
-                    st.caption(f"Patient: {m['patient_name']}")
-                if m.get("doc_type"):
-                    st.caption(f"Type: {m['doc_type']}")
+        st.caption("Or upload a file directly:")
+        upload = st.file_uploader(
+            "Upload",
+            type=["pdf", "json", "csv", "xlsx", "txt"],
+            label_visibility="collapsed",
+        )
+        if upload:
+            if st.button("📤 Upload & Ingest", use_container_width=True):
+                with st.spinner(f"Ingesting {upload.name}…"):
+                    res = api(
+                        "post", "/ingest/upload",
+                        files={"file": (upload.name, upload.getvalue(), upload.type)},
+                    )
+                if res and res.get("status") == "success":
+                    st.success(f"✅ {upload.name} ingested")
+                    m = res.get("metadata", {})
+                    if m.get("patient_name"):
+                        st.caption(f"Patient: {m['patient_name']}")
+                    if m.get("doc_type"):
+                        st.caption(f"Type: {m['doc_type']}")
 
     st.divider()
 
@@ -230,23 +236,17 @@ with st.sidebar:
 
 # ── Main area ─────────────────────────────────────────────────────────────────
 
-st.title("🏥 Medical Document Retrieval")
+st.title("Helps with ICD and CPT code and guidelines")
 st.caption(
-    "Ask about patient bills, medical records, or provider information "
+    "Ask about ICD 10 and CPT codes and guidelines "
     "in plain English."
 )
 
 # Example queries
 with st.expander("💡 Example queries — click to use", expanded=False):
     examples = [
-        "Get patient Alice Johnson's bill for 27-10-2025",
-        "What is the NPI number for Dr. Robert Chen?",
-        "Show me all records for patient P001",
-        "What is the total amount on Alice's latest bill?",
-        "Get provider information for NPI 9876543210",
-        "What is the date of birth for Dr. Sarah Williams?",
-        "Show me the diagnoses for subject id 10006",
-        "What was the admission type for hadm id 142345?",
+        "What does Z12 code mean",
+        "What is the code for Hypertensive heart and chronic kidney disease ?",
     ]
     for ex in examples:
         if st.button(f"→  {ex}", key=f"ex_{ex}"):

@@ -6,9 +6,10 @@ pypdf==4.2.0
 pandas==2.2.2
 openpyxl==3.1.4
 python-multipart==0.0.9
-pydantic-settings==2.3.4
+pydantic-settings>=2.4.0
 ollama>=0.3.3
-openai==1.35.0
+# OpenAI SDK — also drives OpenRouter / NVIDIA NIM (OpenAI-compatible APIs).
+openai>=1.68.2
 python-dotenv==1.0.1
 httpx==0.27.0
 
@@ -42,5 +43,33 @@ psycopg2-binary>=2.9.9
 sqlglot>=23.0.0
 
 # ── YAML ───────────────────────────────────────────────────────────────────────
-# Parses data/sql_schema_metadata.yaml for text-to-SQL grounding context.
+# Parses data/sql_schema_metadata.yaml for text-to-SQL grounding context,
+# and data/concept_map.yaml for the canonical event adapter (Phase 1).
 PyYAML>=6.0.1
+
+# ── Evaluation metrics (Phase 5) ─────────────────────────────────────────────
+# Accuracy / Macro-F1 / per-class F1 for prediction-task benchmarking.
+scikit-learn>=1.4.0
+
+# ── OCR for scanned PDFs / images (Phase 1c) ─────────────────────────────────
+# rapidocr-onnxruntime: ONNX-based OCR, no torch dependency. PyMuPDF renders
+# pages to images; rapidocr extracts text when a PDF page has no text layer.
+rapidocr-onnxruntime>=1.3.0
+pillow>=10.0.0
+
+# ── Structured PDF table extraction ──────────────────────────────────────────
+# pdfplumber recovers real table structure (columns/rows) from digital PDFs —
+# far more reliable than PyMuPDF find_tables on borderless/whitespace tables.
+# Extracted tables are routed into the same staging pipeline as CSV/Excel.
+pdfplumber>=0.11.0
+
+# ── LangChain SQL Database Agent (structured query engine) ────────────────────
+# Introspects the Postgres catalog and runs a tool-using agent to answer
+# structured questions. Default LLM: NVIDIA Nemotron 3 Ultra over OpenRouter
+# via langchain-openai (ChatOpenAI + base_url); langchain-ollama is kept for
+# the local LLM_PROVIDER=ollama fallback.
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-ollama>=0.2.0
+langchain-openai>=0.2.0
+SQLAlchemy>=2.0.0

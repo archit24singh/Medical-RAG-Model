@@ -32,6 +32,8 @@ intent_parser.parse_intent().  No additional LLM call is needed.
 
 import logging
 
+from config import settings
+
 logger = logging.getLogger(__name__)
 
 # Intent fields that indicate a specific fact is being asked for
@@ -54,6 +56,14 @@ def route(intent: dict) -> str:
     Returns:
         One of 'analytical', 'sql', 'hybrid', 'rag'
     """
+    # ── RAG-only mode (Hugging Face / no-Postgres demo) ───────────────────────
+    # Force every query down the semantic RAG path so PostgreSQL is never
+    # touched. The SQL / analytical / hybrid branches all depend on Postgres,
+    # which does not exist in the demo deployment.
+    if settings.RAG_ONLY_MODE:
+        logger.info("Query router → rag  (RAG_ONLY_MODE enabled)")
+        return "rag"
+
     # ── Analytical (checked first) ────────────────────────────────────────────
     # Aggregate / trending queries bypass the exact-lookup and RAG paths and
     # go straight to LLM text-to-SQL generation.

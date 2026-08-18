@@ -29,8 +29,10 @@ Connection model
 """
 
 import logging
+import threading
 import psycopg2
 import psycopg2.extras
+import psycopg2.pool
 from contextlib import contextmanager
 
 from config import settings
@@ -38,63 +40,106 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 
-# ── Connection helpers ────────────────────────────────────────────────────────
+# ── Connection pools (Phase 6 — scale ingestion) ──────────────────────────────
+# Pooled connections replace the per-call psycopg2.connect()/.close() that made
+# large ingests (≈900K rows, one connect per row) time out. Pools are created
+# lazily and guarded by a lock; if pooling fails we fall back to a direct
+# connection so nothing breaks.
+
+_POOL_LOCK = threading.Lock()
+_RW_POOL: "psycopg2.pool.ThreadedConnectionPool | None" = None
+_RO_POOL: "psycopg2.pool.ThreadedConnectionPool | None" = None
+
+# Warn once if the read-only DSN is missing (was previously warned on every call).
+_RO_WARNED = False
+
 
 def _connect(dsn: str):
-    """Open a psycopg2 connection with DictCursor row factory."""
+    """Open a psycopg2 connection (fallback when no pool is available)."""
     conn = psycopg2.connect(dsn)
     conn.autocommit = False
     return conn
 
 
+def _get_pool(readonly: bool):
+    global _RW_POOL, _RO_POOL
+    dsn = (settings.POSTGRES_READONLY_DSN or settings.POSTGRES_DSN) if readonly else settings.POSTGRES_DSN
+    if not dsn:
+        return None
+    with _POOL_LOCK:
+        pool = _RO_POOL if readonly else _RW_POOL
+        if pool is None:
+            try:
+                pool = psycopg2.pool.ThreadedConnectionPool(
+                    minconn=1,
+                    maxconn=getattr(settings, "POSTGRES_POOL_MAX", 10),
+                    dsn=dsn,
+                )
+                if readonly:
+                    _RO_POOL = pool
+                else:
+                    _RW_POOL = pool
+                logger.info("PostgreSQL %s pool created (maxconn=%d)",
+                            "readonly" if readonly else "read-write",
+                            getattr(settings, "POSTGRES_POOL_MAX", 10))
+            except Exception as exc:
+                logger.warning("Connection pool init failed (%s) — using direct connections", exc)
+                return None
+        return pool
+
+
 @contextmanager
 def get_db():
     """
-    Yield a read-write psycopg2 connection (POSTGRES_DSN).
-    Used exclusively by ingestion and write operations.
-
-    Usage:
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute(...)
+    Yield a read-write psycopg2 connection (POSTGRES_DSN), from the pool when
+    available. Commits on success, rolls back on error, returns the connection
+    to the pool (or closes it) on exit.
     """
-    conn = _connect(settings.POSTGRES_DSN)
+    pool = _get_pool(readonly=False)
+    conn = pool.getconn() if pool else _connect(settings.POSTGRES_DSN)
     try:
+        conn.autocommit = False
         yield conn
         conn.commit()
     except Exception:
         conn.rollback()
         raise
     finally:
-        conn.close()
+        if pool:
+            pool.putconn(conn)
+        else:
+            conn.close()
 
 
 @contextmanager
 def get_readonly_db():
     """
-    Yield a read-only psycopg2 connection.
-
-    Uses POSTGRES_READONLY_DSN if configured; falls back to POSTGRES_DSN
-    with a warning when it is not. All query-path SELECTs and LLM-generated
-    SQL execute through this connection so that when the read-only role is
-    eventually set up, nothing else needs to change.
+    Yield a read-only psycopg2 connection (POSTGRES_READONLY_DSN if configured,
+    else POSTGRES_DSN with a one-time warning), from the pool when available.
     """
-    dsn = settings.POSTGRES_READONLY_DSN or settings.POSTGRES_DSN
-    if not settings.POSTGRES_READONLY_DSN:
+    global _RO_WARNED
+    if not settings.POSTGRES_READONLY_DSN and not _RO_WARNED:
+        _RO_WARNED = True
         logger.warning(
             "get_readonly_db: POSTGRES_READONLY_DSN not set — "
             "executing on full-privilege connection. "
             "Set POSTGRES_READONLY_DSN to a SELECT-only role for production."
         )
-    conn = _connect(dsn)
+    pool = _get_pool(readonly=True)
+    dsn = settings.POSTGRES_READONLY_DSN or settings.POSTGRES_DSN
+    conn = pool.getconn() if pool else _connect(dsn)
     try:
+        conn.autocommit = False
         yield conn
         conn.commit()
     except Exception:
         conn.rollback()
         raise
     finally:
-        conn.close()
+        if pool:
+            pool.putconn(conn)
+        else:
+            conn.close()
 
 
 def dict_row(cursor, row) -> dict:
@@ -228,6 +273,49 @@ CREATE TABLE IF NOT EXISTS admissions (
 CREATE INDEX IF NOT EXISTS idx_admissions_patient_id ON admissions(patient_id);
 CREATE INDEX IF NOT EXISTS idx_admissions_subject_id ON admissions(subject_id);
 CREATE INDEX IF NOT EXISTS idx_admissions_hadm_id    ON admissions(hadm_id);
+
+-- ── Events (canonical event adapter — Phase 1, feeds ETHER/AIR/DER) ─────────────
+-- One row per canonical clinical event (concept, value, timestamp), extracted
+-- dataset-agnostically from the staging tables via data/concept_map.yaml.
+-- Numeric events populate value_num (per-indicator trajectories); textual
+-- events populate value_text. row_hash gives idempotent re-ingest.
+CREATE TABLE IF NOT EXISTS events (
+    id             BIGSERIAL PRIMARY KEY,
+    patient_key    TEXT,                     -- patient grouping key (raw)
+    patient_name   TEXT,                     -- display name (for name-based Q&A)
+    concept        TEXT NOT NULL,            -- canonical concept name
+    concept_type   TEXT NOT NULL,            -- 'numeric' | 'textual'
+    value_num      NUMERIC,                  -- numeric events
+    value_text     TEXT,                     -- textual events / numeric label
+    event_time     DATE,                     -- parsed timestamp (NULL if unparseable)
+    event_time_raw TEXT,                     -- original timestamp string
+    source_file    TEXT,
+    raw_text       TEXT,                     -- verbatim serialised event (for embedding/quoting)
+    row_hash       TEXT UNIQUE,              -- idempotency: dedupe identical events
+    created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_patient ON events(patient_key);
+CREATE INDEX IF NOT EXISTS idx_events_concept ON events(concept);
+CREATE INDEX IF NOT EXISTS idx_events_type    ON events(concept_type);
+CREATE INDEX IF NOT EXISTS idx_events_time    ON events(event_time);
+
+-- ── Documents (extracted structured records — folder-per-format pipeline) ──────
+-- One row per extracted document (invoice/statement/etc). The complete record
+-- lives in `data` JSONB (schema-agnostic, nothing dropped). Flattened header +
+-- line-item rows are routed separately into the staging pipeline for reliable
+-- SQL. Idempotent on source_file.
+CREATE TABLE IF NOT EXISTS documents (
+    id           BIGSERIAL PRIMARY KEY,
+    source_file  TEXT UNIQUE,
+    doc_folder   TEXT,                       -- format group (the folder name)
+    doc_type     TEXT,
+    data         JSONB NOT NULL,             -- full extracted record
+    created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_folder ON documents(doc_folder);
+CREATE INDEX IF NOT EXISTS idx_documents_data   ON documents USING gin (data);
 """
 
 # Columns that may not exist on older databases — added with IF NOT EXISTS.
@@ -241,6 +329,7 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("records",  "icd9_description", "TEXT"),
     ("records",  "seq_num",          "TEXT"),
     ("admissions", "deathtime",      "TEXT"),
+    ("events",     "patient_name",   "TEXT"),
 ]
 
 
@@ -258,6 +347,120 @@ def _run_migrations(conn) -> None:
                 logger.warning("Migration skipped (%s.%s): %s", table, column, exc)
 
 
+# Scaling indexes for per-patient event rollups. pg_trgm lets a leading-wildcard
+# ILIKE name search use an index instead of a full scan as the table grows.
+# Each runs independently with error handling (pg_trgm may need privileges).
+_EVENTS_SCALE_INDEX_DDL = [
+    "CREATE EXTENSION IF NOT EXISTS pg_trgm",
+    "CREATE INDEX IF NOT EXISTS idx_events_patient_concept ON events(patient_key, concept)",
+    "CREATE INDEX IF NOT EXISTS idx_events_name_trgm "
+    "ON events USING gin (lower(patient_name) gin_trgm_ops)",
+]
+
+
+def _run_events_scale_indexes(conn) -> None:
+    for stmt in _EVENTS_SCALE_INDEX_DDL:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(stmt)
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            logger.warning("Events scale index skipped (%s): %s", stmt.split()[:6], exc)
+
+
+def auto_expose_streams() -> int:
+    """
+    Bridge fix: auto-create a v_auto_<sig8> VIEW over every ingested staging
+    stream so the general text-to-SQL engine can query it (the engine only sees
+    canonical tables + v_* views, never raw stg_* tables). Pass-through of all
+    non-system columns; WHERE _deleted_at IS NULL.
+
+    Idempotent (CREATE OR REPLACE VIEW). Streams already exposed manually
+    (view_name set via catalog_admin) are left untouched. Returns #views made.
+    """
+    exposed = 0
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT column_signature, staging_table FROM source_catalog "
+                "WHERE staging_table IS NOT NULL AND aliased_to IS NULL "
+                "AND (view_name IS NULL OR view_name LIKE 'v\\_auto\\_%%')"
+            )
+            streams = cur.fetchall()
+
+        for sig, tbl in streams:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema='public' AND table_name=%s "
+                        "AND column_name NOT LIKE '\\_%%' ORDER BY ordinal_position",
+                        [tbl],
+                    )
+                    cols = [r[0] for r in cur.fetchall()]
+                if not cols:
+                    continue
+                view_name = "v_auto_" + sig[:8]
+                col_sql = ", ".join(_quote_identifier(c) for c in cols)
+                ddl = (
+                    f"CREATE OR REPLACE VIEW {_quote_identifier(view_name)} AS "
+                    f"SELECT {col_sql} FROM {_quote_identifier(tbl)} WHERE _deleted_at IS NULL"
+                )
+                with conn.cursor() as cur:
+                    cur.execute(ddl)
+                role = (settings.POSTGRES_READONLY_ROLE or "").strip()
+                if role:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            f"GRANT SELECT ON {_quote_identifier(view_name)} "
+                            f"TO {_quote_identifier(role)}"
+                        )
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE source_catalog SET view_name=%s, query_exposed=TRUE "
+                        "WHERE column_signature=%s",
+                        [view_name, sig],
+                    )
+                conn.commit()
+                exposed += 1
+            except Exception as exc:
+                conn.rollback()
+                logger.warning("auto_expose skipped %s: %s", tbl, exc)
+
+    logger.info("auto_expose_streams: %d view(s) exposed", exposed)
+    return exposed
+
+
+def _ensure_readonly_role(conn) -> None:
+    """
+    Create a SELECT-only role for the LangChain SQL agent and grant it read
+    access to everything in `public` (current + future objects). Idempotent.
+    The agent connects as this role so its generated SQL can never write/drop.
+    """
+    role = (settings.POSTGRES_READONLY_ROLE or "").strip()
+    if not settings.AUTO_CREATE_READONLY_ROLE or not role:
+        return
+    pw = settings.POSTGRES_READONLY_PASSWORD.replace("'", "''")
+    stmts = [
+        f"DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='{role}') "
+        f"THEN CREATE ROLE {_quote_identifier(role)} LOGIN PASSWORD '{pw}'; END IF; END $$;",
+        f"GRANT USAGE ON SCHEMA public TO {_quote_identifier(role)}",
+        f"GRANT SELECT ON ALL TABLES IN SCHEMA public TO {_quote_identifier(role)}",
+        f"ALTER DEFAULT PRIVILEGES IN SCHEMA public "
+        f"GRANT SELECT ON TABLES TO {_quote_identifier(role)}",
+    ]
+    for stmt in stmts:
+        try:
+            with conn.cursor() as cur:
+                cur.execute(stmt)
+            conn.commit()
+        except Exception as exc:
+            conn.rollback()
+            logger.warning("read-only role setup skipped (%s): %s", stmt.split()[:4], exc)
+    logger.info("Read-only role '%s' ensured (SELECT-only)", role)
+
+
 def init_db() -> None:
     """
     Create all tables and indexes if they do not already exist.
@@ -270,6 +473,12 @@ def init_db() -> None:
         with conn.cursor() as cur:
             cur.execute(_CATALOG_DDL)
         conn.commit()
+        _run_events_scale_indexes(conn)
+        _ensure_readonly_role(conn)
+    try:
+        auto_expose_streams()
+    except Exception as exc:
+        logger.warning("auto_expose_streams failed at init (non-fatal): %s", exc)
     logger.info("PostgreSQL database ready — schema initialised")
 
 

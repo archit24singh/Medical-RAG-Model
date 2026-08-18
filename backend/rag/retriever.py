@@ -42,7 +42,9 @@ import logging
 
 from rag.intent_parser import parse_intent, build_where_filter
 from rag.query_router import route
-from rag.sql_retriever import lookup as sql_lookup, analytical_lookup
+# NOTE: rag.sql_retriever pulls in the PostgreSQL layer (db.operations → psycopg2).
+# It is imported lazily inside query() only on the sql/hybrid/analytical paths, so
+# the pure-RAG demo (RAG_ONLY_MODE) needs neither Postgres nor psycopg2 installed.
 from rag.vectorstore import search, search_bm25
 from rag.llm_client import call_llm
 from config import settings
@@ -234,12 +236,20 @@ Retrieved documents:
 {documents}
 
 Instructions:
-- If a specific field was requested (NPI, date of birth, total amount, etc.), highlight it clearly.
-- If multiple documents match, present all relevant information.
-- If no relevant documents are found, say "No matching records found."
+- Give ONE direct, specific answer to the question. Do not list several possible
+  answers and do not hedge — commit to the single best-supported answer.
+- Base your answer on the MOST relevant document(s). The documents are ordered by
+  relevance; prefer the earlier, higher-scoring ones when they are sufficient.
+- After the answer, cite the source it came from as: (Source: <file_name>, chunk <n>).
+- If — and only if — the documents genuinely disagree on the answer, state the
+  single best-supported value first, then briefly note the conflicting one and its
+  source. Do not treat merely-different documents as a conflict.
+- If a specific field was requested (NPI, date of birth, total amount, etc.),
+  state exactly that field as the answer — nothing extra.
+- If the answer is not present in the documents, say exactly:
+  "No matching records found." Do not guess.
 - Be concise and factual. Never add information not in the documents.
-- Format monetary amounts with the $ sign.
-- Display dates as DD-MM-YYYY.
+- Format monetary amounts with the $ sign. Display dates as DD-MM-YYYY.
 
 Answer:"""
 
@@ -270,6 +280,7 @@ def query(user_query: str) -> dict:
 
     # ── Step 2a: analytical path (LLM text-to-SQL) ───────────────────────────
     if path == "analytical":
+        from rag.sql_retriever import analytical_lookup   # lazy: Postgres only
         analytical_docs = analytical_lookup(user_query)
         if analytical_docs:
             answer = _format_analytical_answer(analytical_docs, user_query)
@@ -287,6 +298,7 @@ def query(user_query: str) -> dict:
     # ── Step 3a: SQL exact lookup ─────────────────────────────────────────────
     sql_documents = []
     if path in ("sql", "hybrid"):
+        from rag.sql_retriever import lookup as sql_lookup   # lazy: Postgres only
         sql_documents = sql_lookup(intent)
         logger.info("SQL lookup returned %d result(s)", len(sql_documents))
 
@@ -448,10 +460,20 @@ def _format_rag_answer(documents: list[dict], user_query: str) -> tuple[str, boo
     Returns (answer_text, hallucination_flag).
     hallucination_flag is True when the checker flagged the answer as ungrounded.
     """
+    # Show the CrossEncoder rerank score (a meaningful relevance signal, typically
+    # ~ -10 … +10) rather than the tiny RRF fusion fraction, which formatted as a
+    # percentage always looked like ~1-3% and made every chunk seem low-confidence.
+    # Documents arrive already ordered best-first by the reranker.
+    def _relevance_label(doc: dict) -> str:
+        if "rerank_score" in doc:
+            return f"Relevance score: {doc['rerank_score']:.2f}"
+        # Reranker was unavailable — fall back to the RRF fusion rank order.
+        return "Relevance: (ranked by fusion order)"
+
     docs_text = "\n\n".join(
-        f"Document {i + 1} — {doc['metadata'].get('file_name', 'unknown')}"
+        f"Document {i + 1} (rank {i + 1}) — {doc['metadata'].get('file_name', 'unknown')}"
         f"  (chunk {doc['metadata'].get('chunk_number', '?')})\n"
-        f"Relevance: {doc.get('relevance_score', 0.0):.0%}\n"
+        f"{_relevance_label(doc)}\n"
         f"{doc['content'][:1500]}"
         for i, doc in enumerate(documents)
     )
@@ -465,14 +487,17 @@ def _format_rag_answer(documents: list[dict], user_query: str) -> tuple[str, boo
         logger.warning("LLM RAG answer failed: %s — using fallback", exc)
         return _fallback_answer(documents), False
 
-    # Hallucination / grounding check
-    grounded = _check_hallucination(answer, documents)
-    if not grounded:
-        # Hard failure: return the raw sources and a clear refusal instead of
-        # a warned passthrough.  A confident but ungrounded answer is worse
-        # than an honest "I cannot verify this" message.
-        logger.warning("Grounding check failed — returning raw sources with failure message")
-        return _GROUNDING_FAILURE_MESSAGE, True
+    # Hallucination / grounding check — optional, costs a SECOND LLM call.
+    # Disable via ENABLE_HALLUCINATION_CHECK=false to halve generation usage on
+    # rate-limited hosts (e.g. the Groq free tier).
+    if settings.ENABLE_HALLUCINATION_CHECK:
+        grounded = _check_hallucination(answer, documents)
+        if not grounded:
+            # Hard failure: return the raw sources and a clear refusal instead of
+            # a warned passthrough.  A confident but ungrounded answer is worse
+            # than an honest "I cannot verify this" message.
+            logger.warning("Grounding check failed — returning raw sources with failure message")
+            return _GROUNDING_FAILURE_MESSAGE, True
 
     return answer, False
 

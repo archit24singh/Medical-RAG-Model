@@ -1,0 +1,2 @@
+Update the Project_Summary.md for every conversation, the model must use this as a reference instead if reading the whole conversation.
+In regards to every conversation go through the Project_Summary.md to get context

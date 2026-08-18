@@ -11,6 +11,7 @@ Query flow:
   2. Semantic similarity on the query embedding finds the most relevant chunks
 """
 import logging
+import os
 import time
 import chromadb
 from config import settings
@@ -217,6 +218,53 @@ _client: chromadb.HttpClient = None
 _collection = None
 
 
+def _make_client():
+    """
+    Build the ChromaDB client based on CHROMA_MODE.
+
+      "persistent" → chromadb.PersistentClient(path=CHROMA_PERSIST_DIR): Chroma
+                     runs embedded in-process from a local directory. Used for
+                     the single-container Streamlit demo (no separate service).
+      "http"       → chromadb.HttpClient: connect to a separate ChromaDB service
+                     (local Docker compose). Waits for the port first.
+    """
+    if settings.CHROMA_MODE == "persistent":
+        os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
+        logger.info("Opening embedded ChromaDB at %s", settings.CHROMA_PERSIST_DIR)
+        return chromadb.PersistentClient(path=settings.CHROMA_PERSIST_DIR)
+
+    logger.info("Connecting to ChromaDB at %s:%s", settings.CHROMA_HOST, settings.CHROMA_PORT)
+    _wait_for_chroma(settings.CHROMA_HOST, settings.CHROMA_PORT)
+    return chromadb.HttpClient(host=settings.CHROMA_HOST, port=settings.CHROMA_PORT)
+
+
+def _make_embedding_function():
+    """
+    Build the embedding function based on EMBEDDING_BACKEND.
+
+      "sentence-transformers" → in-process CPU model (ST_EMBEDDING_MODEL), used on
+                                Hugging Face / Streamlit where Ollama is absent.
+      "ollama"                → nomic-embed-text served by Ollama (local dev).
+
+    NOTE: the index MUST be built with the same backend + model used at query
+    time, or cosine similarity is meaningless.
+    """
+    if settings.EMBEDDING_BACKEND == "sentence-transformers":
+        from chromadb.utils import embedding_functions
+        logger.info("Embedding backend: sentence-transformers (%s)", settings.ST_EMBEDDING_MODEL)
+        return embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name=settings.ST_EMBEDDING_MODEL,
+            device="cpu",
+            normalize_embeddings=True,   # cosine space expects unit vectors
+        )
+
+    logger.info("Embedding backend: ollama (%s)", settings.EMBEDDING_MODEL)
+    return _OllamaEmbeddingFunction(
+        model_name=settings.EMBEDDING_MODEL,
+        host=settings.OLLAMA_BASE_URL,
+    )
+
+
 def get_collection():
     """Return the ChromaDB collection, connecting if not yet open."""
     global _client, _collection
@@ -224,23 +272,8 @@ def get_collection():
     if _collection is not None:
         return _collection
 
-    logger.info("Connecting to ChromaDB at %s:%s", settings.CHROMA_HOST, settings.CHROMA_PORT)
-
-    # Wait for ChromaDB to be ready, then connect.
-    _wait_for_chroma(settings.CHROMA_HOST, settings.CHROMA_PORT)
-
-    _client = chromadb.HttpClient(
-        host=settings.CHROMA_HOST,
-        port=settings.CHROMA_PORT,
-    )
-
-    # Embeddings are served by Ollama (nomic-embed-text, 8192-token context).
-    # Ollama runs on the host machine; the backend container reaches it via
-    # host.docker.internal (set in docker-compose environment).
-    ef = _OllamaEmbeddingFunction(
-        model_name=settings.EMBEDDING_MODEL,
-        host=settings.OLLAMA_BASE_URL,
-    )
+    _client = _make_client()
+    ef = _make_embedding_function()
 
     _collection = _client.get_or_create_collection(
         name=settings.CHROMA_COLLECTION,

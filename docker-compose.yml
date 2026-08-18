@@ -37,10 +37,11 @@ services:
       - rag_network
 
   # ── RAG Backend (FastAPI) ────────────────────────────────────────────────────
-  # NOTE: Ollama runs on the HOST machine (not in Docker).
-  # Before starting the stack, pull the required models once:
+  # NOTE: generation runs on a cloud API — NVIDIA Nemotron 3 Ultra via
+  # OpenRouter (OPENAI_* vars in .env, loaded through env_file below).
+  # Ollama still runs on the HOST machine and serves EMBEDDINGS only:
   #   ollama pull nomic-embed-text   # embeddings (8192-token context)
-  #   ollama pull mistral            # text generation (already pulled)
+  #   ollama pull devstral:24b       # only if you set LLM_PROVIDER=ollama
   # The backend reaches Ollama via host.docker.internal:11434.
   backend:
     build:
@@ -61,6 +62,10 @@ services:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       # Inside Docker, reach postgres by service name — overrides the .env value
       - POSTGRES_DSN=postgresql://arcben:12345@postgres:5432/medical_rag_db
+      # Read-only role the SQL agent connects as (auto-created at startup)
+      - POSTGRES_READONLY_DSN=postgresql://rag_readonly:rag_readonly_pw@postgres:5432/medical_rag_db
+      - POSTGRES_READONLY_ROLE=rag_readonly
+      - POSTGRES_READONLY_PASSWORD=rag_readonly_pw
     depends_on:
       postgres:
         condition: service_healthy

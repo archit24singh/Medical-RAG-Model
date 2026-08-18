@@ -58,20 +58,28 @@ Your Files (PDFs, JSONs, CSVs)
 Download and install from https://docker.com/products/docker-desktop  
 Make sure Docker is running (icon in system tray).
 
-### Step 2 — Set up Ollama (local LLM, free)
+### Step 2 — Set up Ollama (embeddings, free)
 ```bash
 # Install from https://ollama.com, then:
-ollama pull mistral
+ollama pull nomic-embed-text
 ```
-Keep Ollama running in the background.
+Keep Ollama running in the background. Generation no longer runs locally by
+default — only embeddings do.
 
 ### Step 3 — Configure environment
 ```bash
 # In the RAG MODEL folder:
 copy .env.example .env
-# The default .env uses Ollama — no changes needed if using local LLM.
-# To use OpenAI instead, edit .env and set LLM_PROVIDER=openai + OPENAI_API_KEY=sk-...
 ```
+Then put your OpenRouter API key in `.env`:
+```
+OPENAI_API_KEY=sk-or-v1-your-key-here
+```
+The default `.env` uses **NVIDIA Nemotron 3 Ultra via OpenRouter**
+(`LLM_PROVIDER=openai`, `OPENAI_BASE_URL=https://openrouter.ai/api/v1`,
+`OPENAI_MODEL=nvidia/nemotron-3-ultra`).
+To go back to fully local generation: set `LLM_PROVIDER=ollama` and
+`ollama pull devstral:24b`.
 
 ### Step 4 — Start all services
 ```bash
@@ -147,15 +155,25 @@ docker-compose down -v       # Stop and DELETE all indexed data
 
 ---
 
-## Switching to OpenAI (instead of Ollama)
+## Switching the generation model
 
-Edit `.env`:
+All cloud hosts speak the OpenAI protocol — change two lines in `.env`:
+
+| Host | `OPENAI_BASE_URL` | `OPENAI_MODEL` | Key prefix |
+|------|-------------------|----------------|------------|
+| OpenRouter (default) | `https://openrouter.ai/api/v1` | `nvidia/nemotron-3-ultra` | `sk-or-v1-` |
+| NVIDIA NIM | `https://integrate.api.nvidia.com/v1` | `nvidia/nemotron-3-ultra` | `nvapi-` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | `sk-` |
+
+Fully local instead:
 ```
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o-mini
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=devstral:24b     # ollama pull devstral:24b
 ```
 Then restart: `docker-compose down && docker-compose up`
+
+Embeddings always stay on Ollama (`nomic-embed-text`) — changing them would
+invalidate the ChromaDB vectors and force a full re-ingest.
 
 ---
 

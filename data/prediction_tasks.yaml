@@ -1,0 +1,34 @@
+# prediction_tasks.yaml — clinical prediction task registry (Phase 4/5).
+#
+# Each task defines what DER predicts. Tasks are config-driven so adding the
+# EHRSHOT/MIMIC benchmark tasks later is an edit here, not a code change.
+#
+#   task:     natural-language description of the prediction task
+#   outcome:  the POSITIVE outcome phrase (used to build q+ / q-)
+#   labels:   allowed output labels (first is the default/fallback)
+#
+# The four tasks below mirror the EHR-RAG paper (§4.1). They run today against
+# whatever events exist (e.g. Campbell), but are only *scorable* once labeled
+# longitudinal data is ingested (see Phase 5 / eval harness).
+
+tasks:
+
+  long_length_of_stay:
+    task: "Predict whether this hospital stay will be a long length of stay."
+    outcome: "has a long length of stay"
+    labels: ["long", "short"]
+
+  readmission_30d:
+    task: "Predict whether this patient will be readmitted within 30 days of discharge."
+    outcome: "is readmitted within 30 days"
+    labels: ["readmitted", "not readmitted"]
+
+  acute_mi:
+    task: "Predict whether this patient will have an acute myocardial infarction."
+    outcome: "has an acute myocardial infarction"
+    labels: ["MI", "no MI"]
+
+  anemia:
+    task: "Predict the patient's anemia lab-result severity."
+    outcome: "has abnormal anemia lab results"
+    labels: ["low", "medium", "high", "abnormal"]

@@ -28,6 +28,7 @@ import hashlib
 import json
 import logging
 import math
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -48,6 +49,8 @@ SUPPORTED_EXTENSIONS = {
     ".pdf", ".txt", ".md",
     ".html", ".htm", ".xml",
     ".docx", ".doc",
+    # Image documents — OCR pipeline (Phase 1c)
+    ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif",
 }
 
 # Cell values treated as missing even if non-null
@@ -706,12 +709,33 @@ def _split_text_into_chunks(
 
         # Only look for separators in the second half of the window so the
         # chosen cut point is always well past `start + min_advance`.
+        #
+        # Boundary preference (best → worst), so a chunk ends on a COMPLETE unit
+        # of meaning rather than mid-sentence — the previous version broke at any
+        # space, routinely cutting sentences in half and blurring both the
+        # embedding and the reranker. Tiers are tried in order; within a tier we
+        # take the rightmost match to keep chunks as full as possible.
+        #   1. paragraph break        "\n\n"
+        #   2. sentence end           ". " "? " "! " and their newline variants
+        #   3. line break             "\n"
+        #   4. space                  " "   (last resort — mid-sentence)
         cut = end
         search_from = start + min_advance
-        for sep in ("\n\n", "\n", " "):
-            pos = text.rfind(sep, search_from, end)
-            if pos != -1:
-                cut = pos + len(sep)
+        _SEPARATOR_TIERS = (
+            ("\n\n",),
+            (". ", ".\n", "? ", "?\n", "! ", "!\n"),
+            ("\n",),
+            (" ",),
+        )
+        for tier in _SEPARATOR_TIERS:
+            best = -1
+            best_sep = ""
+            for sep in tier:
+                pos = text.rfind(sep, search_from, end)
+                if pos > best:
+                    best, best_sep = pos, sep
+            if best != -1:
+                cut = best + len(best_sep)
                 break
 
         chunk = text[start:cut].strip()
@@ -852,12 +876,31 @@ def _extract_text_from_file(file_path: str, ext: str) -> str:
     DOCX/DOC → PyMuPDF (can open DOCX via internal format support)
     Others   → plain UTF-8 read (tabs stripped, HTML tags removed for HTML files)
     """
+    # Image files — OCR only (Phase 1c)
+    if ext in (".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif"):
+        from rag.ocr import ocr_image
+        return ocr_image(file_path)
+
     if ext == ".pdf":
         try:
             import fitz  # PyMuPDF
             doc = fitz.open(file_path)
-            pages = [page.get_text() for page in doc]
+            # Per-page text-layer extraction with OCR fallback for scanned pages
+            from rag.ocr import page_needs_ocr, ocr_pdf_page, ocr_available
+            pages = []
+            ocr_ok = ocr_available()
+            ocr_used = 0
+            for page in doc:
+                txt = page.get_text()
+                if (not txt or len(txt.strip()) < 20) and ocr_ok and page_needs_ocr(page):
+                    ocr_txt = ocr_pdf_page(page)
+                    if ocr_txt:
+                        txt = ocr_txt
+                        ocr_used += 1
+                pages.append(txt)
             doc.close()
+            if ocr_used:
+                logger.info("OCR applied to %d scanned page(s) in %s", ocr_used, file_path)
             return "\n\n".join(pages)
         except Exception as exc_fitz:
             logger.warning("PyMuPDF failed for %s (%s) — falling back to pypdf", file_path, exc_fitz)
@@ -1143,9 +1186,30 @@ def _ingest_text_document(file_path: str, ext: str) -> dict:
 
     ingested = add_documents_batch(ids, texts, metas)
 
+    # Phase 1b: recover structured tables from PDFs into canonical events so
+    # PDF tables become SQL-/event-queryable (not just fuzzy text). Best-effort:
+    # never let table extraction failure break the text-ingest happy path.
+    pdf_events = 0
+    pdf_staged = 0
+    if ext == ".pdf":
+        try:
+            from rag.pdf_tables import extract_and_persist_pdf_events
+            pdf_events = extract_and_persist_pdf_events(file_path, source_file=filename)
+        except Exception as exc:
+            logger.warning("PDF table→event extraction failed for %s: %s", filename, exc)
+        # Structured PDF tables → staging pipeline (pdfplumber), so invoices/
+        # statements get full parity with Excel (profile / field / aggregate /
+        # document lookup). Best-effort — text chunks above remain the fallback.
+        try:
+            from rag.pdf_tables import extract_and_stage_pdf_tables
+            staged = extract_and_stage_pdf_tables(file_path)
+            pdf_staged = staged.get("staged", 0)
+        except Exception as exc:
+            logger.warning("PDF table→staging failed for %s: %s", filename, exc)
+
     logger.info(
-        "Text ingest complete: %s — %d/%d chunk(s) stored",
-        filename, ingested, len(chunks),
+        "Text ingest complete: %s — %d/%d chunk(s) stored, %d PDF event(s), %d staged row(s)",
+        filename, ingested, len(chunks), pdf_events, pdf_staged,
     )
     return {
         "status":          "success",
@@ -1186,8 +1250,9 @@ def ingest_file(file_path: str) -> dict:
     if ext in (".csv", ".xlsx", ".xls"):
         return _ingest_tabular(file_path, ext)
 
-    # Text documents
-    if ext in (".pdf", ".txt", ".md", ".html", ".htm", ".xml", ".docx", ".doc"):
+    # Text + image documents (images go through OCR in _extract_text_from_file)
+    if ext in (".pdf", ".txt", ".md", ".html", ".htm", ".xml", ".docx", ".doc",
+               ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif"):
         return _ingest_text_document(file_path, ext)
 
     # Structured JSON
@@ -1234,12 +1299,25 @@ def ingest_directory(bucket_dir: str = None) -> dict:
     for ext in SUPPORTED_EXTENSIONS:
         files.extend(data_path.rglob("*" + ext))
 
+    # Structured format-folders are handled by the folder-per-format pipeline
+    # (ingest_structured_folders), NOT the per-file path — exclude them here so
+    # nothing is double-processed.
+    structured_dirs = [
+        (data_path / s).resolve() for s in _structured_folder_names()
+    ]
+
     # Skip files inside any directory whose name starts with '_'.
     # Convention: rename a folder to _skip_<name> or _ignore_<name> to exclude it
     # without moving it out of the bucket (e.g. large files not ready for ingest).
     def _is_excluded(fp: Path) -> bool:
         relative_parts = fp.relative_to(data_path).parts[:-1]  # all parts except filename
-        return any(part.startswith("_") for part in relative_parts)
+        if any(part.startswith("_") for part in relative_parts):
+            return True
+        rp = fp.resolve()
+        return any(
+            rp == sd or str(rp).startswith(str(sd) + os.sep)
+            for sd in structured_dirs
+        )
 
     excluded = [fp for fp in files if _is_excluded(fp)]
     files    = [fp for fp in files if not _is_excluded(fp)]
@@ -1272,3 +1350,70 @@ def ingest_directory(bucket_dir: str = None) -> dict:
         len(results["success"]), len(results["skipped"]), len(results["errors"]),
     )
     return results
+
+
+def _structured_folder_names() -> list[str]:
+    """Configured structured format-folders (relative to BUCKET_DIR)."""
+    raw = getattr(settings, "STRUCTURED_DOC_FOLDERS", "") or ""
+    return [s.strip() for s in raw.split(",") if s.strip()]
+
+
+def ingest_structured_folders(bucket_dir: str = None) -> dict:
+    """
+    Run the folder-per-format pipeline (ingest_folder) for each configured
+    structured folder that exists. Returns a per-folder summary. Best-effort:
+    a failure in one folder doesn't stop the others.
+    """
+    base = Path(bucket_dir or settings.BUCKET_DIR)
+    out: dict = {}
+    for name in _structured_folder_names():
+        folder = base / name
+        if not folder.exists() or not folder.is_dir():
+            logger.info("Structured folder not found (skipping): %s", folder)
+            continue
+        try:
+            from rag.doc_store import ingest_folder
+            out[name] = ingest_folder(str(folder))
+        except Exception as exc:
+            logger.warning("Structured folder ingest failed for %s: %s", folder, exc)
+            out[name] = {"error": str(exc)}
+    return out
+
+
+def refresh_event_layer() -> dict:
+    """
+    Rebuild the canonical events table + timestamped event index from the current
+    staging data. Called automatically after ingestion so the events-derived
+    features (predict / rollup / event Q&A) stay current WITHOUT a manual
+    /events/backfill. Idempotent and safe to call repeatedly.
+
+    Note: the schema-on-read patient profile does NOT depend on this — it reads
+    staging directly — so profiles are correct even before this runs.
+    """
+    try:
+        from rag.events import backfill_events
+        from rag.event_chunker import index_all_events
+        inserted = backfill_events()
+        chunks = index_all_events()
+        # Build/refresh the staging indexes that keep the all-columns entity
+        # profile/QA path fast at 1M+ rows. Done after writes so the index build
+        # doesn't contend with ingestion.
+        idx = {}
+        try:
+            from rag.profiles import ensure_entity_indexes
+            idx = ensure_entity_indexes()
+        except Exception as exc:
+            logger.warning("Entity index build failed (non-fatal): %s", exc)
+        # Bridge fix: expose every ingested stream as a queryable v_* view so the
+        # general text-to-SQL engine can answer arbitrary structured questions
+        # (filter by date, client, amount, etc.) over newly ingested data.
+        try:
+            from db.schema import auto_expose_streams
+            auto_expose_streams()
+        except Exception as exc:
+            logger.warning("auto_expose_streams failed (non-fatal): %s", exc)
+        logger.info("Event layer refreshed — %d new event(s), %d chunk(s)", inserted, chunks)
+        return {"events_inserted": inserted, "event_chunks_indexed": chunks, **idx}
+    except Exception as exc:
+        logger.warning("Event-layer refresh failed (non-fatal): %s", exc)
+        return {"events_inserted": 0, "event_chunks_indexed": 0, "error": str(exc)}

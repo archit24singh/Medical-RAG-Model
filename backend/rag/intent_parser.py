@@ -30,8 +30,11 @@ logger = logging.getLogger(__name__)
 # path instead of the SQL exact-lookup or RAG paths.
 
 _ANALYTICAL_PATTERNS = [
-    # Aggregation / analytics action words
-    r"\b(count|total|sum|average|avg|mean|rate|trend|trending|revenue|denial|denials"
+    # Aggregation / analytics action words.
+    # NOTE: bare "mean" was removed — it collided with "what does <code> mean?",
+    # routing code-definition questions to text-to-SQL ("No analytical data").
+    # "average"/"avg" still cover the statistical sense.
+    r"\b(count|total|sum|average|avg|rate|trend|trending|revenue|denial|denials"
     r"|ar\b|ytd|breakdown|distribution|percentage|percent|statistics|stat|metric|metrics"
     r"|how many|how much|top \d+|ranking|ranked)\b",
     # "by <dimension>" analytical patterns

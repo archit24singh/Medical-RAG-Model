@@ -19,6 +19,9 @@ chroma_data/
 # ── Reference / research material (local only, never committed) ──────────────
 REFERENCE-REPO/
 
+# ── Local planning docs (never committed) ────────────────────────────────────
+goal.md
+
 # ── OS / editor ──────────────────────────────────────────────────────────────
 .DS_Store
 .vscode/
@@ -28,3 +31,9 @@ EHR-RAG writeup.out
 Campbell Fox, Mary Anne_01-01-2025_to_09-23-2025 (1).xlsx
 EHR-RAG writeup.tex
 ~$Campbell Fox, Mary Anne_01-01-2025_to_09-23-2025 (1).xlsx
+# ── Streamlit local secrets (never commit real keys) ─────────────────────────
+.streamlit/secrets.toml
+
+# ── Baked demo vector index MUST be committed — override *.sqlite3 / *.db above
+!chroma_index/
+!chroma_index/**

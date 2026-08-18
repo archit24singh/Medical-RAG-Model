@@ -551,6 +551,16 @@ def _build_schema_from_catalog(conn, user_query: str) -> str:
         for col in cols:
             lines.append(f"  {col}")
         lines.append("")
+
+    # v_auto_* views expose raw staging columns as TEXT. Tell the LLM to use the
+    # safe-cast helpers for math/date/comparison so numeric/date filters work.
+    if any(t.startswith("v_auto_") for t, _ in ranked_views):
+        lines.append(
+            "NOTE: v_auto_* view columns are TEXT. For numeric math/comparison "
+            "wrap the column in safe_numeric(col); for date filters use "
+            "safe_date(col, 'DD/MM/YYYY') (adjust the format to the data). "
+            "Example: WHERE safe_date(invoice_date,'DD/MM/YYYY') = DATE '2024-03-10'."
+        )
     return "\n".join(lines)
 
 
