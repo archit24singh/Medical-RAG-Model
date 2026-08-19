@@ -26,6 +26,7 @@ self-contained.
 import hashlib
 import json
 import logging
+import os
 from collections import OrderedDict
 from typing import Any, Optional
 
@@ -238,32 +239,46 @@ def _openai_endpoints() -> list[dict]:
 
     When LLM_FALLBACK_ENABLED is False, only the highest-priority configured
     endpoint is returned. Raises if nothing is configured.
+
+    Values are read ENVIRONMENT-FIRST, falling back to the frozen `settings`
+    snapshot. This matters on Streamlit Community Cloud: `settings` is built once
+    at import, but secrets (GROQ_API_KEY, …) may be injected into the environment
+    slightly later (or the retriever is served from an @st.cache_resource that
+    predates the secrets). Reading os.environ live here means a key added via the
+    Secrets UI is picked up on the next query without needing a cold restart.
     """
+    def _cfg(env_name: str, settings_val):
+        v = os.environ.get(env_name)
+        return v if v not in (None, "") else settings_val
+
     endpoints: list[dict] = []
 
-    if settings.GROQ_API_KEY:
+    groq_key = _cfg("GROQ_API_KEY", settings.GROQ_API_KEY)
+    if groq_key:
         endpoints.append({
             "name":        "groq",
-            "api_key":     settings.GROQ_API_KEY,
-            "base_url":    settings.GROQ_BASE_URL,
-            "model":       settings.GROQ_MODEL,
+            "api_key":     groq_key,
+            "base_url":    _cfg("GROQ_BASE_URL", settings.GROQ_BASE_URL),
+            "model":       _cfg("GROQ_MODEL", settings.GROQ_MODEL),
             "timeout":     settings.GROQ_TIMEOUT_S,
             "max_retries": settings.GROQ_MAX_RETRIES,
             "headers":     None,
         })
 
-    if settings.OPENAI_API_KEY:
+    openai_key = _cfg("OPENAI_API_KEY", settings.OPENAI_API_KEY)
+    if openai_key:
+        openai_base = _cfg("OPENAI_BASE_URL", settings.OPENAI_BASE_URL)
         headers = {}
-        if "openrouter" in (settings.OPENAI_BASE_URL or ""):
+        if "openrouter" in (openai_base or ""):
             if settings.OPENROUTER_SITE_URL:
                 headers["HTTP-Referer"] = settings.OPENROUTER_SITE_URL
             if settings.OPENROUTER_APP_NAME:
                 headers["X-Title"] = settings.OPENROUTER_APP_NAME
         endpoints.append({
             "name":        "openrouter",
-            "api_key":     settings.OPENAI_API_KEY,
-            "base_url":    settings.OPENAI_BASE_URL,
-            "model":       settings.OPENAI_MODEL,
+            "api_key":     openai_key,
+            "base_url":    openai_base,
+            "model":       _cfg("OPENAI_MODEL", settings.OPENAI_MODEL),
             "timeout":     settings.OPENAI_TIMEOUT_S,
             "max_retries": settings.OPENAI_MAX_RETRIES,
             "headers":     headers or None,
@@ -277,7 +292,8 @@ def _openai_endpoints() -> list[dict]:
             "  OpenRouter key: https://openrouter.ai/keys     (sk-or-v1-…)"
         )
 
-    if not settings.LLM_FALLBACK_ENABLED:
+    fallback = _cfg("LLM_FALLBACK_ENABLED", str(settings.LLM_FALLBACK_ENABLED))
+    if str(fallback).strip().lower() not in ("1", "true", "yes"):
         return endpoints[:1]
     return endpoints
 

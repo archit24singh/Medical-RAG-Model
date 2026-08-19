@@ -1,0 +1,16 @@
+# Streamlit runtime config (committed — safe, no secrets here).
+
+[server]
+# Disable the source-file watcher. A deployed app doesn't need hot-reload, and
+# the watcher tries to introspect every imported module — including transformers'
+# vision models (vitmatte / vitpose / yolos / zoedepth), which import torchvision.
+# We don't install torchvision (text models only), so the watcher spams the log
+# with harmless ModuleNotFoundError tracebacks. Turning it off silences them.
+fileWatcherType = "none"
+headless = true
+
+[logger]
+level = "warning"
+
+[browser]
+gatherUsageStats = false

@@ -92,7 +92,7 @@ with st.sidebar:
     else:
         st.success("✅ Ready")
     st.caption(
-        "Pre-ingested demo — the document set is fixed and uploads are disabled."
+        "Pre-ingested demo."
     )
 
 # ── Load backend (models + index) ─────────────────────────────────────────────
