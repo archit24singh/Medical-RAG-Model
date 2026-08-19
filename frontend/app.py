@@ -242,7 +242,7 @@ st.caption(
     "in plain English."
 )
 
-# Example queries
+# qries
 with st.expander("💡 Example queries — click to use", expanded=False):
     examples = [
         "What does Z12 code mean",
