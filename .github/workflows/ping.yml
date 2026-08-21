@@ -10,5 +10,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping URL
-        # Notice the URL at the end of this line has changed
-        run: curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" https://medical-rag-model-nexgfixgbyqbgui2crfde5.streamlit.app/_stcore/health
+        # Removed -L and added || true to prevent action failure
+        run: curl -s -o /dev/null https://medical-rag-model-nexgfixgbyqbgui2crfde5.streamlit.app || true
