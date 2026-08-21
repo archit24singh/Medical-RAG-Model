@@ -1,7 +1,7 @@
 name: Ping Streamlit App
 
 on:
-  workflow_dispatch:   # <--- This line enables the manual run button
+  workflow_dispatch:
   schedule:
     - cron: '0 12 * * *'
 
@@ -10,4 +10,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping URL
-        run: curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" https://medical-rag-model-nexgfixgbyqbgui2crfde5.streamlit.app
+        # Notice the URL at the end of this line has changed
+        run: curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" https://medical-rag-model-nexgfixgbyqbgui2crfde5.streamlit.app/_stcore/health
