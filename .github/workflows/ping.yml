@@ -1,7 +1,9 @@
 name: Ping Streamlit App
+
 on:
+  workflow_dispatch:   # <--- This line enables the manual run button
   schedule:
-    - cron: '0 12 * * *' # Runs daily
+    - cron: '0 12 * * *'
 
 jobs:
   ping:
